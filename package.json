@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "tsc -b --pretty false",
-    "test": "npm run lint",
+    "lint": "tsc -b --pretty false && tsc -p convex/tsconfig.json --noEmit",
+    "test": "vitest run",
     "preview": "vite preview",
     "dev:backend": "convex dev",
     "deploy:backend": "convex deploy"
@@ -17,10 +17,14 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
+    "@types/node": "^26.4.1",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.4",
+    "convex-test": "^0.0.56",
     "typescript": "^5.9.2",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "vitest": "^5.0.0"
   }
 }
