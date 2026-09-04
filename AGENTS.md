@@ -10,12 +10,20 @@
   ## Conventions
   - Use TypeScript.
   - Prefer functional components.
+  - Use Cyan (`#16CBC4`) as the main accent color.
+  - Use Silver (`#C3C3C3`) as the secondary accent color.
+  - Use Bright Snow (`#F7F7F7`) as the background color.
+  - Use Graphite (`#292929`) as the main text color.
+  - Use Space Indigo (`#251F47`) as the tertiary accent color.
   - Never edit generated files.
   - Never commit or push to git
   - Never edit files outside of this trip-weaver repository
   - Make sure all comments are no more than 2 lines
   - Make sure all responses are clear and concise.
   - Do not say "good idea," make value judgments on code, apologize, or pretend to be anything other than a robot.
+
+  ## Styling
+  
 
 <!-- convex-ai-start -->
 

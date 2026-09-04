@@ -3,13 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "tsc -b --pretty false",
+    "test": "npm run lint",
+    "preview": "vite preview",
     "dev:backend": "convex dev",
     "deploy:backend": "convex deploy"
   },
   "dependencies": {
-    "convex": "^1.45.0"
+    "convex": "^1.45.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "typescript": "^5.9.2"
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7"
   }
 }
