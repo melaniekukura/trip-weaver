@@ -1,0 +1,15 @@
+{
+  "name": "trip-weaver",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:backend": "convex dev",
+    "deploy:backend": "convex deploy"
+  },
+  "dependencies": {
+    "convex": "^1.45.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}
