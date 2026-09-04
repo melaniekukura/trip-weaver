@@ -224,6 +224,122 @@ h1 {
   transition: background 160ms ease;
 }
 
+.search-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.search-feedback,
+.flight-results {
+  width: min(100%, 660px);
+  margin-right: auto;
+  margin-left: auto;
+  text-align: left;
+}
+
+.search-feedback {
+  margin-top: 14px;
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+.search-error {
+  color: #9c2f2f;
+}
+
+.flight-results {
+  margin-top: 18px;
+  border: 1px solid var(--gray);
+  background: var(--paper);
+  box-shadow: 0 12px 32px rgb(37 31 71 / 7%);
+}
+
+.flight-results-header,
+.flight-result,
+.flight-route,
+.flight-meta {
+  display: flex;
+  align-items: center;
+}
+
+.flight-results-header {
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--gray);
+}
+
+.result-label {
+  display: block;
+  margin-bottom: 3px;
+  color: rgb(41 41 41 / 50%);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.flight-results-header h2 {
+  margin-bottom: 0;
+  font-size: 17px;
+}
+
+.data-source {
+  padding: 5px 8px;
+  color: var(--indigo);
+  background: rgb(22 203 196 / 20%);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.flight-result {
+  gap: 24px;
+  padding: 18px;
+}
+
+.flight-carrier,
+.flight-route > div {
+  display: grid;
+  gap: 4px;
+}
+
+.flight-carrier {
+  min-width: 142px;
+}
+
+.flight-carrier strong,
+.flight-route strong {
+  font-size: 13px;
+}
+
+.flight-carrier span,
+.flight-route time,
+.flight-meta span {
+  color: rgb(41 41 41 / 60%);
+  font-size: 11px;
+}
+
+.flight-route {
+  flex: 1;
+  justify-content: center;
+  gap: 14px;
+}
+
+.route-line {
+  color: var(--teal);
+}
+
+.flight-meta {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 70px;
+}
+
+.flight-meta strong {
+  color: var(--indigo);
+  font-size: 15px;
+}
+
 .destinations {
   max-width: 1280px;
   margin: 0 auto;
@@ -367,6 +483,21 @@ footer a:focus-visible {
   .search-button {
     width: 100%;
     margin-top: 10px;
+  }
+
+  .flight-result {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .flight-route {
+    align-self: stretch;
+    justify-content: space-between;
+  }
+
+  .flight-meta {
+    align-items: flex-start;
   }
 
   .destinations {
