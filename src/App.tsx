@@ -1,9 +1,12 @@
-import { useAction } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { Authenticated, AuthLoading, Unauthenticated, useAction, useConvexAuth } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 
 import { api } from "../convex/_generated/api";
+import { AuthForm } from "./AuthForm";
+import { Trips } from "./Trips";
 
 type FlightSearchResult = FunctionReturnType<typeof api.flights.search>;
 
@@ -104,6 +107,9 @@ const flightTimeFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 function App() {
+  const { signOut } = useAuthActions();
+  const { isAuthenticated } = useConvexAuth();
+  const [signOutError, setSignOutError] = useState(false);
   const searchFlights = useAction(api.flights.search);
   const [origin, setOrigin] = useState("Lisbon");
   const [destination, setDestination] = useState("");
@@ -147,12 +153,21 @@ function App() {
           <a href="#about">About</a>
         </nav>
         <div className="account-actions">
-          <a className="sign-in" href="#signin">Sign in</a>
-          <a className="primary-link" href="#planner">Start planning</a>
+          <Authenticated><button className="sign-out" onClick={() => {
+            setSignOutError(false);
+            void signOut().catch(() => setSignOutError(true));
+          }}>Sign out</button></Authenticated>
+          <Unauthenticated><a className="sign-in" href="#signin">Sign in</a></Unauthenticated>
+          <a className="primary-link" href={isAuthenticated ? "#my-trips" : "#signin"}>
+            {isAuthenticated ? "My trips" : "Start planning"}</a>
         </div>
       </header>
 
       <main id="top">
+        {signOutError && <p className="search-feedback search-error" role="alert">Unable to sign out. Please try again.</p>}
+        <AuthLoading><p className="search-feedback" role="status">Loading your account…</p></AuthLoading>
+        <Authenticated><Trips /></Authenticated>
+        <Unauthenticated><AuthForm /></Unauthenticated>
         <section className="hero" aria-labelledby="hero-title">
           <p className="eyebrow">Trip planning, woven together</p>
           <h1 id="hero-title">Trip-Weaver</h1>

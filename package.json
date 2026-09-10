@@ -12,7 +12,10 @@
     "deploy:backend": "convex deploy"
   },
   "dependencies": {
+    "@auth/core": "0.41.3",
+    "@convex-dev/auth": "0.0.95",
     "convex": "^1.45.0",
+    "jose": "6.2.12",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
