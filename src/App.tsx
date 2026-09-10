@@ -1,5 +1,5 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { Authenticated, AuthLoading, Unauthenticated, useAction, useConvexAuth } from "convex/react";
+import { Authenticated, AuthLoading, Unauthenticated, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
@@ -106,9 +106,8 @@ const flightTimeFormatter = new Intl.DateTimeFormat("en-US", {
   timeStyle: "short",
 });
 
-function App() {
+function SignedInApp() {
   const { signOut } = useAuthActions();
-  const { isAuthenticated } = useConvexAuth();
   const [signOutError, setSignOutError] = useState(false);
   const searchFlights = useAction(api.flights.search);
   const [origin, setOrigin] = useState("Lisbon");
@@ -153,21 +152,17 @@ function App() {
           <a href="#about">About</a>
         </nav>
         <div className="account-actions">
-          <Authenticated><button className="sign-out" onClick={() => {
+          <button className="sign-out" onClick={() => {
             setSignOutError(false);
             void signOut().catch(() => setSignOutError(true));
-          }}>Sign out</button></Authenticated>
-          <Unauthenticated><a className="sign-in" href="#signin">Sign in</a></Unauthenticated>
-          <a className="primary-link" href={isAuthenticated ? "#my-trips" : "#signin"}>
-            {isAuthenticated ? "My trips" : "Start planning"}</a>
+          }}>Sign out</button>
+          <a className="primary-link" href="#my-trips">My trips</a>
         </div>
       </header>
 
       <main id="top">
         {signOutError && <p className="search-feedback search-error" role="alert">Unable to sign out. Please try again.</p>}
-        <AuthLoading><p className="search-feedback" role="status">Loading your account…</p></AuthLoading>
-        <Authenticated><Trips /></Authenticated>
-        <Unauthenticated><AuthForm /></Unauthenticated>
+        <Trips />
         <section className="hero" aria-labelledby="hero-title">
           <p className="eyebrow">Trip planning, woven together</p>
           <h1 id="hero-title">Trip-Weaver</h1>
@@ -323,4 +318,28 @@ function App() {
   );
 }
 
-export default App;
+function LoginScreen({ loading = false }: { loading?: boolean }) {
+  return (
+    <div className="site-shell">
+      <header className="topbar">
+        <a className="brand" href="#signin" aria-label="Trip-Weaver home">
+          <RouteIcon />
+          <span>Trip-Weaver</span>
+        </a>
+      </header>
+      <main>
+        {loading ? <p className="auth-panel" role="status">Loading your account…</p> : <AuthForm />}
+      </main>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <>
+      <AuthLoading><LoginScreen loading /></AuthLoading>
+      <Unauthenticated><LoginScreen /></Unauthenticated>
+      <Authenticated><SignedInApp /></Authenticated>
+    </>
+  );
+}
