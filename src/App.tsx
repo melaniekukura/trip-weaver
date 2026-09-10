@@ -7,6 +7,7 @@ import type { FormEvent, ReactNode } from "react";
 import { api } from "../convex/_generated/api";
 import { AuthForm } from "./AuthForm";
 import { Trips } from "./Trips";
+import { IdleSession } from "./IdleSession";
 
 type FlightSearchResult = FunctionReturnType<typeof api.flights.search>;
 
@@ -339,7 +340,7 @@ export default function App() {
     <>
       <AuthLoading><LoginScreen loading /></AuthLoading>
       <Unauthenticated><LoginScreen /></Unauthenticated>
-      <Authenticated><SignedInApp /></Authenticated>
+      <Authenticated><IdleSession><SignedInApp /></IdleSession></Authenticated>
     </>
   );
 }

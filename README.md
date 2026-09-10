@@ -86,6 +86,12 @@ After signing in, **My trips** supports creating, editing, and deleting plans.
 Trips include destinations, calendar dates, budget, currency, traveler count,
 and interests. Changes persist in the local Convex database.
 
+The frontend signs users out after 30 minutes without typing, clicking, or
+scrolling. A warning appears two minutes beforehand with a **Stay signed in**
+button. Activity is shared across tabs and retained on reload; elapsed time is
+checked again when a tab resumes. Unsaved form changes are lost on sign-out.
+This is a browser inactivity timer, not a server-enforced idle-session limit.
+
 The `trips:list`, `trips:get`, `trips:create`, `trips:update`, and `trips:remove`
 functions require authentication. Ownership is derived from Convex Auth's stable
 user ID. Lists use an owner index and pagination; updates reject stale forms.

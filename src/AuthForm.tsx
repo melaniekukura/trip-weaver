@@ -1,6 +1,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { recordActivity } from "./idleTimer";
 
 export function AuthForm() {
   const { signIn } = useAuthActions();
@@ -16,6 +17,7 @@ export function AuthForm() {
     setError("");
     try {
       await signIn("password", data);
+      recordActivity();
     } catch {
       setError(flow === "signIn"
         ? "Unable to sign in. Check your email and password, or try again shortly."

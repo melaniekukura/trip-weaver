@@ -597,3 +597,16 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   .form-row { flex-direction: column; }
   .trip-editor, .saved-trip { padding: 18px; }
 }
+
+.session-warning {
+  position: fixed; z-index: 10; bottom: 20px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  width: min(760px, calc(100% - 32px)); padding: 20px;
+  background: var(--indigo); color: var(--paper); border: 1px solid var(--teal);
+  border-radius: 6px; box-shadow: 0 8px 30px rgb(0 0 0 / 20%);
+}
+.session-warning p { margin: 8px 0 0; font-size: 13px; }
+.session-warning button { flex-shrink: 0; }
+@media (max-width: 600px) {
+  .session-warning { align-items: stretch; flex-direction: column; gap: 14px; }
+}
