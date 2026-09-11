@@ -8,7 +8,7 @@ const modules = import.meta.glob("./**/*.ts");
 const details = {
   name: "Japan", origin: "Detroit", destinations: ["Kyoto", "Osaka"],
   startDate: "2026-10-01", endDate: "2026-10-09", budget: 3000,
-  currency: "USD", travelers: 2, interests: ["Food"],
+  currency: "USD", travelers: 2, interests: ["Food"], accessibility: "Step-free routes",
 };
 const paginationOpts = { numItems: 2, cursor: null };
 
@@ -69,7 +69,7 @@ test.each([
   { startDate: "2026-02-30" }, { startDate: "not-a-date" }, { endDate: "2026-09-01" },
   { name: " " }, { destinations: [] }, { destinations: [" "] }, { travelers: 1.5 },
   { travelers: 0 }, { budget: -1 }, { budget: Number.NaN }, { budget: 1.234 },
-  { currency: "INVALID" }, { interests: Array(21).fill("a") },
+  { accessibility: "a".repeat(2001) }, { currency: "INVALID" }, { interests: Array(21).fill("a") },
 ])("rejects invalid trip details: %j", async (changes) => {
   const { alice } = await setup();
   await expect(alice.mutation(api.trips.create, { ...details, ...changes })).rejects.toThrow("INVALID_TRIP");
@@ -91,4 +91,21 @@ test("caller cannot supply an owner to create a trip", async () => {
   const forged = { ...details, ownerId: aliceId };
   await expect(alice.mutation(api.trips.create, forged)).rejects.toThrow();
   expect((await alice.query(api.trips.list, { paginationOpts })).page).toHaveLength(0);
+});
+
+test("accessibility notes can be added to older trips, edited, and cleared", async () => {
+  const { t, alice, aliceId } = await setup();
+  const { accessibility: _notes, ...legacyDetails } = details;
+  const tripId = await t.run(async (ctx) => ctx.db.insert("trips", {
+    ...legacyDetails, ownerId: aliceId, updatedAt: 1,
+  }));
+  let trip = await alice.query(api.trips.get, { tripId });
+  expect(trip.accessibility).toBeUndefined();
+  for (const notes of ["  Accessible room  ", "Regular rest breaks", ""]) {
+    await alice.mutation(api.trips.update, {
+      tripId, changes: { ...legacyDetails, accessibility: notes }, expectedUpdatedAt: trip.updatedAt,
+    });
+    trip = await alice.query(api.trips.get, { tripId });
+    expect(trip.accessibility).toBe(notes.trim());
+  }
 });
