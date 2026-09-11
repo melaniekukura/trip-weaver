@@ -122,7 +122,7 @@ action boundary is separate from the Firecrawl research integration below.
 
 ### Firecrawl web research
 
-Saved trips include a **Find flights** prototype: one-way economy for one adult
+Saved trips include a **Find flights** prototype: one-way or round-trip economy for one adult
 in USD, using Firecrawl to read Google Flights. Enter airport codes and a departure
 date to see up to five observed fares, source links, progress/errors, and refresh.
 Matching results are cached for 15 minutes, with ownership checks and request limits.
@@ -139,7 +139,10 @@ These low-level actions remain internal. The authenticated, rate-limited
 `flightJobs:start` mutation queues flight searches, and `flightJobs:latest` reads results.
 They can be invoked by backend actions, the Convex dashboard, or the authenticated
 Convex CLI. The old mock flight form is removed from the UI. The prototype does
-not verify checkout availability or support round trips and multiple travelers.
+not verify checkout availability or support multiple travelers. Round-trip results
+let you choose an outgoing flight, retrieve matching returns, and filter each leg
+separately. Return-option prices cover both flights. Confirm availability and
+booking details in Google Flights; return selection uses Firecrawl browser credits.
 
 #### Configure and verify
 
