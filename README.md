@@ -75,9 +75,35 @@ an independent local database.
 
 ## Convex backend
 
-The backend currently uses an empty schema so its data model can evolve during
-prototyping. It exposes `api.health.check` to verify the connection and
-`api.flights.search` for flight searches.
+The backend stores Convex Auth accounts and private saved trips. It also exposes
+`api.health.check` to verify the connection and `api.flights.search` for mock
+flight searches.
+
+### Authentication and saved trips
+
+Create an account with an email address and a password of 12–128 characters.
+After signing in, **My trips** supports creating, editing, and deleting plans.
+Trips include destinations, calendar dates, budget, currency, traveler count,
+and interests. Changes persist in the local Convex database.
+
+The frontend signs users out after 30 minutes without typing, clicking, or
+scrolling. A warning appears two minutes beforehand with a **Stay signed in**
+button. Activity is shared across tabs and retained on reload; elapsed time is
+checked again when a tab resumes. Unsaved form changes are lost on sign-out.
+This is a browser inactivity timer, not a server-enforced idle-session limit.
+
+The `trips:list`, `trips:get`, `trips:create`, `trips:update`, and `trips:remove`
+functions require authentication. Ownership is derived from Convex Auth's stable
+user ID. Lists use an owner index and pagination; updates reject stale forms.
+
+Each developer's local deployment needs its own `JWT_PRIVATE_KEY` and `JWKS`
+signing keys. Follow the [manual Convex Auth key setup](https://labs.convex.dev/auth/setup/manual)
+to generate these and set them in the **local deployment's** environment settings.
+Do not put signing keys in Vite variables or commit them. `SITE_URL` can be set to
+the frontend origin, normally `http://localhost:5173`.
+
+Password reset and email verification are not implemented yet. Add them with
+email delivery before public launch; account emails are currently unverified.
 
 ### Flight search
 
@@ -102,7 +128,8 @@ SDK or additional service is required. It provides two internal actions:
   descriptions, retrieval time, and optional Markdown.
 - `firecrawl:scrape`: read one HTTP(S) page as Markdown with its source URL.
 
-These actions are internal because the app does not have authentication yet.
+These actions remain internal until trip research has authenticated, rate-limited
+public entry points.
 They can be invoked by backend actions, the Convex dashboard, or the authenticated
 Convex CLI. The landing-page form is not connected to them. Add authenticated,
 rate-limited public wrappers when connecting the trip agent or browser UI.
