@@ -15,6 +15,8 @@ import { flightRequest, flightSearchUrl, parseFlightPage, validateFlightRequest 
 import { parseReturnResults, returnBrowserCode } from "./returnFlights";
 import type { FlightRequest } from "./flightSearch";
 
+import { accessibilityRequirements, checkFlightAccessibility } from "./accessibility";
+
 const pool = new Workpool(components.researchPool, { maxParallelism: 2, retryActionsByDefault: false });
 const limiter = new RateLimiter(components.rateLimiter, {
   researchUser: { kind: "token bucket", rate: 10, period: HOUR, capacity: 3 },
@@ -95,7 +97,9 @@ export const start = mutation({
 
 export const latest = query({
   args: { tripId: v.id("trips"), flight: flightRequest, outboundSourceId: v.optional(v.id("researchSources")) },
-  returns: v.union(v.null(), v.object({ run: schema.doc("researchRuns"), sources: v.array(schema.doc("researchSources")) })),
+  returns: v.union(v.null(), v.object({ run: schema.doc("researchRuns"), sources: v.array(schema.doc("researchSources")),
+    accessibility: v.optional(v.object({ excludedCount: v.number(), unverified: v.array(v.string()), notApplicable: v.array(v.string()) })),
+  })),
   handler: async (ctx, args) => {
     const trip = await ownedTrip(ctx, args.tripId);
     await checkOutbound(ctx, trip._id, args.flight, args.outboundSourceId);
@@ -104,7 +108,12 @@ export const latest = query({
       q.eq("tripId", trip._id).eq("searchKey", details.searchKey)).order("desc").first();
     if (!run) return null;
     const sources = await ctx.db.query("researchSources").withIndex("by_runId", (q) => q.eq("runId", run._id)).take(5);
-    return { run, sources };
+    const assessment = checkFlightAccessibility(accessibilityRequirements(trip.accessibility));
+    return { run, sources, accessibility: {
+      excludedCount: 0,
+      unverified: assessment.checks.filter(check => check.status === "unverified").map(check => check.requirement),
+      notApplicable: assessment.checks.filter(check => check.status === "not-applicable").map(check => check.requirement),
+    } };
   },
 });
 

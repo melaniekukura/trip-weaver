@@ -15,7 +15,7 @@ function categoryFor(value: string) {
   return categories.find(category => category.suggestions.some(suggestion => suggestion.toLowerCase() === value.toLowerCase()))?.name ?? "Custom requirements";
 }
 
-export function AccessibilityTab({ initialValue = "" }: { initialValue?: string }) {
+export function AccessibilityTab({ initialValue = "", onChange }: { initialValue?: string; onChange?: (value: string) => void }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [requirements, setRequirements] = useState(() => initialValue.split("\n").map(value => value.trim()).filter(Boolean));
@@ -34,6 +34,7 @@ export function AccessibilityTab({ initialValue = "" }: { initialValue?: string 
       return;
     }
     setRequirements([...requirements, value]);
+    onChange?.([...requirements, value].join("\n"));
     setDraft("");
     setMessage(`Added ${value}.`);
     input.current?.focus();
@@ -63,6 +64,7 @@ export function AccessibilityTab({ initialValue = "" }: { initialValue?: string 
               <span>{requirement}</span>
               <button type="button" aria-label={`Remove ${requirement}`} onClick={() => {
                 setRequirements(requirements.filter(value => value !== requirement));
+                onChange?.(requirements.filter(value => value !== requirement).join("\n"));
                 setMessage(`Removed ${requirement}.`);
                 input.current?.focus();
               }}>×</button>

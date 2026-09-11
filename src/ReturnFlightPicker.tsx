@@ -1,3 +1,4 @@
+import { FlightAccessibilityNotice } from "./FlightAccessibilityNotice";
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useState } from "react";
@@ -44,6 +45,7 @@ export function ReturnFlightPicker({ tripId, request, outbound, onClose }: {
     {(result?.run.status === "pending" || result?.run.status === "running") && <p role="status">Selecting your outgoing flight and retrieving matching return options…</p>}
     {result?.run.status === "failed" && <p className="search-error" role="alert">{result.run.error}</p>}
     {result?.run.status === "completed" && <>
+      <FlightAccessibilityNotice assessment={result.accessibility} />
       <p className="field-hint">Observed {new Date(result.run.finishedAt!).toLocaleString()}. Local airport times; verify the final fare and availability before booking.</p>
       <p role="status">Showing {options.length} of {result.sources.length} retrieved return flights.</p>
       {!options.length && <p>No retrieved return flights match. Adjust the return filters or try another outgoing flight.</p>}

@@ -621,6 +621,8 @@ footer a:focus-visible {
 .accessibility-editor .field-hint { margin: 0; font-size: 14px; }
 .accessibility-status { margin: 0; color: var(--indigo); font-size: 14px; }
 .accessibility-status:empty { display: none; }
+.flight-accessibility-warning { display: flex; align-items: center; gap: 10px; color: var(--indigo); font-size: 14px; line-height: 1.5; }
+.flight-accessibility-warning svg { flex-shrink: 0; }
 .accessibility-selected, .accessibility-browse { display: grid; gap: 24px; }
 .accessibility-browse { margin-top: 16px; }
 .accessibility-category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; align-items: start; }

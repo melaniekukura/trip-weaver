@@ -22,6 +22,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
 }) {
   const planning = mode === "page";
   const tabs = planning ? planningTabs : setupTabs;
+  const [accessibility, setAccessibility] = useState(trip?.accessibility ?? "");
   const [notice, setNotice] = useState("");
   const convex = useConvex();
   const [savedTrip, setSavedTrip] = useState(trip);
@@ -162,7 +163,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
             </section>}
             {planning && <>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-2" aria-labelledby="trip-tab-2" data-tab="2" hidden={active !== 2}>
-                <TransportationTab origin={origin} destination={destinations[0]?.value ?? ""}
+                <TransportationTab accessibility={accessibility} origin={origin} destination={destinations[0]?.value ?? ""}
                   departureDate={startDate} onSaveTrip={saveTrip} onEditDetails={(tab) => setActive(tab)} />
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-3" aria-labelledby="trip-tab-3" data-tab="3" hidden={active !== 3}>
@@ -182,7 +183,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
                   <textarea name="interests" rows={4} maxLength={1650} defaultValue={trip?.interests.join(", ")} placeholder="Food, museums, hiking" /></label>
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-5" aria-labelledby="trip-tab-5" data-tab="5" hidden={active !== 5}>
-                <AccessibilityTab initialValue={trip?.accessibility} />
+                <AccessibilityTab initialValue={trip?.accessibility} onChange={setAccessibility} />
               </section>
             </>}
           </fieldset>

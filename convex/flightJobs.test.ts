@@ -262,4 +262,32 @@ test("return searches enforce ownership and selection, cache per outbound, and s
   expect((await alice.mutation(api.flightJobs.start, returnArgs)).reused).toBe(true);
   expect(await alice.query(api.flightJobs.latest, { ...returnArgs, outboundSourceId: out!.sources[1]._id })).toBeNull();
   expect(fetchMock.mock.calls.some(([, options]) => options?.method === "DELETE")).toBe(true);
+  await t.run(ctx => ctx.db.patch("trips", args.tripId, { accessibility: "Airport assistance" }));
+  expect((await alice.query(api.flightJobs.latest, returnArgs))?.sources.length).toBeGreaterThan(0);
+  expect((await alice.mutation(api.flightJobs.start, returnArgs)).reused).toBe(true);
+  expect(await t.query(internal.flightJobs.selectedOutbound, { runId: returning.runId })).not.toBeNull();
+});
+
+test("current accessibility requirements flag cached flights without hiding them or another provider request", async () => {
+  const { t, alice, tripId, args } = await setup();
+  const { runId } = await alice.mutation(api.flightJobs.start, args);
+  await t.action(internal.flightJobs.execute, { runId });
+  expect((await alice.query(api.flightJobs.latest, args))?.sources).toHaveLength(3);
+  await t.run(ctx => ctx.db.patch("trips", tripId, { accessibility: "Wheelchair-accessible spaces" }));
+  const filtered = await alice.query(api.flightJobs.latest, args);
+  expect(filtered?.sources).toHaveLength(3);
+  expect(filtered?.accessibility).toMatchObject({ excludedCount: 0, unverified: ["wheelchair-accessible spaces"] });
+  expect((await alice.mutation(api.flightJobs.start, args)).reused).toBe(true);
+  await t.run(ctx => ctx.db.patch("trips", tripId, { accessibility: "Roll-in showers" }));
+  expect((await alice.query(api.flightJobs.latest, args))?.sources).toHaveLength(3);
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+test("requirements changed during a search apply when results arrive", async () => {
+  const { t, alice, tripId, args } = await setup();
+  const { runId } = await alice.mutation(api.flightJobs.start, args);
+  await t.run(ctx => ctx.db.patch("trips", tripId, { accessibility: "No strenuous activity" }));
+  await t.action(internal.flightJobs.execute, { runId });
+  expect((await alice.query(api.flightJobs.latest, args))?.sources).toHaveLength(3);
+  expect((await alice.query(api.flightJobs.latest, args))?.accessibility?.unverified).toEqual(["no strenuous activity"]);
 });

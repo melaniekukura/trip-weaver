@@ -1,3 +1,4 @@
+import { FlightAccessibilityNotice } from "./FlightAccessibilityNotice";
 import { flightSearchUrl } from "../convex/flightSearch";
 import type { FlightRequest } from "../convex/flightSearch";
 import { lowestFlightSources } from "./flightResearch";
@@ -27,6 +28,7 @@ export function FlightResults({ research, flight, filters, selectedSourceId, onS
     {research?.run.status === "running" && <p role="status">Searching flight listings and checking prices. This can take about a minute.</p>}
     {research?.run.status === "failed" && <p className="search-error" role="alert">{research.run.error}</p>}
     {research?.run.status === "completed" && <>
+      <FlightAccessibilityNotice assessment={research.accessibility} />
       <p className="field-hint">{sources.length} lowest-priced {sources.length === 1 ? "listing" : "listings"} from {research.sources.length} returned.
         {flight.tripType === "round-trip" ? "Round trip" : "One way"} · 1 adult · Economy including basic fares · USD. Prices may change; confirm before booking.</p>
       {research.run.finishedAt && <p className="field-hint">Observed {new Date(research.run.finishedAt).toLocaleString()}. Times are local to each airport.</p>}

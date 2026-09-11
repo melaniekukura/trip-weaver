@@ -8,6 +8,7 @@ import { FlightResults } from "./FlightResults";
 import { flightRequestFromTrip } from "./flightResearch";
 
 type TransportationTabProps = {
+  accessibility: string;
   origin: string;
   destination: string;
   departureDate: string;
@@ -15,7 +16,7 @@ type TransportationTabProps = {
   onSaveTrip: () => Promise<Id<"trips"> | null>;
 };
 
-export function TransportationTab({ origin, destination, departureDate, onEditDetails, onSaveTrip }: TransportationTabProps) {
+export function TransportationTab({ accessibility, origin, destination, departureDate, onEditDetails, onSaveTrip }: TransportationTabProps) {
   const [enabled, setEnabled] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
@@ -23,7 +24,7 @@ export function TransportationTab({ origin, destination, departureDate, onEditDe
   const [submitted, setSubmitted] = useState<{ tripId: Id<"trips">; flight: FlightRequest; route: string } | null>(null);
   const lock = useRef(false);
   const start = useMutation(api.flightJobs.start);
-  const route = JSON.stringify([origin, destination, departureDate]);
+  const route = JSON.stringify([origin, destination, departureDate, accessibility]);
   const current = submitted?.route === route ? submitted : null;
   const research = useQuery(api.flightJobs.latest, enabled && current ? { tripId: current.tripId, flight: current.flight } : "skip");
   const result = research;
@@ -57,13 +58,13 @@ export function TransportationTab({ origin, destination, departureDate, onEditDe
         aria-label="Find my flight" aria-controls="transportation-results" />
     </label>
     <p className="field-hint">City selections include all passenger airports in that city; individual airport selections stay specific.
-      Fares are one way, for one adult, in USD. Preference filtering is not available yet.</p>
+      Fares are one way, for one adult, in USD. Flights with unverified accessibility requirements display a warning.</p>
     {enabled && <div id="transportation-results" className="transportation-flights">
       {starting && <p role="status">Saving your trip and starting flight search…</p>}
       {error && <p className="search-error" role="alert">{error}</p>}
       {notice && <p role="status" className="field-hint">{notice}</p>}
       {!starting && !current && <div className="flight-setup">
-        <p>Choose cities or airports in Destinations and a start date in Overview, then search.</p>
+        <p>Your route or accessibility requirements may have changed. Check your trip details, then search to save them and update flight matches.</p>
         <div className="button-row">
           <button className="secondary-button" type="button" onClick={() => onEditDetails(1)}>Choose locations</button>
           <button className="secondary-button" type="button" onClick={() => onEditDetails(0)}>Trip dates</button>

@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as accessibility from "../accessibility.js";
 import type * as auth from "../auth.js";
 import type * as cityAirports from "../cityAirports.js";
 import type * as firecrawl from "../firecrawl.js";
@@ -28,6 +29,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  accessibility: typeof accessibility;
   auth: typeof auth;
   cityAirports: typeof cityAirports;
   firecrawl: typeof firecrawl;
