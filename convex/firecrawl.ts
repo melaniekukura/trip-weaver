@@ -50,13 +50,13 @@ function page(value: unknown, fallbackUrl?: string) {
   };
 }
 
-async function request(endpoint: "search" | "scrape", body: Record<string, unknown>) {
+async function request(endpoint: "search" | "scrape", body: Record<string, unknown>, timeoutMs = 45000) {
   const key = process.env.FIRECRAWL_API_KEY?.trim();
   if (!key) {
     fail("FIRECRAWL_NOT_CONFIGURED", "Set FIRECRAWL_API_KEY in the Convex deployment environment.");
   }
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 45000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`https://api.firecrawl.dev/v2/${endpoint}`, {
       method: "POST",
@@ -138,3 +138,20 @@ export const scrape = internalAction({
     return { dataSource: "firecrawl" as const, retrievedAt: new Date().toISOString(), page: content };
   },
 });
+
+export async function scrapeFlightPage(url: string) {
+  const target = new URL(url);
+  if (target.origin !== "https://www.google.com" || target.pathname !== "/travel/flights") {
+    fail("INVALID_URL", "Invalid flight search URL.");
+  }
+  const result = await request("scrape", {
+    url, formats: ["markdown"], onlyMainContent: false, maxAge: 0, waitFor: 5000, timeout: 60000,
+  }, 70000);
+  const data = object(result.data);
+  const metadata = data.metadata == null ? {} : object(data.metadata);
+  if (metadata.error || (typeof metadata.statusCode === "number" && metadata.statusCode >= 400) ||
+    typeof data.markdown !== "string" || data.markdown.length > 250000) {
+    fail("FIRECRAWL_PAGE_FAILED", "Flight results could not be read.");
+  }
+  return { markdown: data.markdown, retrievedAt: new Date().toISOString() };
+}

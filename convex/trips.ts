@@ -2,6 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import schema from "./schema";
@@ -76,6 +77,7 @@ export const remove = mutation({
   handler: async (ctx, { tripId }) => {
     await requireTrip(ctx, tripId);
     await ctx.db.delete("trips", tripId);
+    await ctx.scheduler.runAfter(0, internal.flightJobs.cleanupTrip, { tripId });
     return null;
   },
 });

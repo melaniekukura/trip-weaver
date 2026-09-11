@@ -105,8 +105,9 @@ the frontend origin, normally `http://localhost:5173`.
 Password reset and email verification are not implemented yet. Add them with
 email delivery before public launch; account emails are currently unverified.
 
-### Flight search
+### Legacy mock flight action
 
+The UI no longer uses this action. For the real prototype, see below.
 Call `api.flights.search` with a source and destination:
 
 ```ts
@@ -121,6 +122,12 @@ action boundary is separate from the Firecrawl research integration below.
 
 ### Firecrawl web research
 
+Saved trips include a **Find flights** prototype: one-way economy for one adult
+in USD, using Firecrawl to read Google Flights. Enter airport codes and a departure
+date to see up to five observed fares, source links, progress/errors, and refresh.
+Matching results are cached for 15 minutes, with ownership checks and request limits.
+See [the research API and itinerary handoff](references/flight-search.md).
+
 `convex/firecrawl.ts` uses Firecrawl's v2 REST API directly from Convex; no browser
 SDK or additional service is required. It provides two internal actions:
 
@@ -128,11 +135,11 @@ SDK or additional service is required. It provides two internal actions:
   descriptions, retrieval time, and optional Markdown.
 - `firecrawl:scrape`: read one HTTP(S) page as Markdown with its source URL.
 
-These actions remain internal until trip research has authenticated, rate-limited
-public entry points.
+These low-level actions remain internal. The authenticated, rate-limited
+`flightJobs:start` mutation queues flight searches, and `flightJobs:latest` reads results.
 They can be invoked by backend actions, the Convex dashboard, or the authenticated
-Convex CLI. The landing-page form is not connected to them. Add authenticated,
-rate-limited public wrappers when connecting the trip agent or browser UI.
+Convex CLI. The old mock flight form is removed from the UI. The prototype does
+not verify checkout availability or support round trips and multiple travelers.
 
 #### Configure and verify
 

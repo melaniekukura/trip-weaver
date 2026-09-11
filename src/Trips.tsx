@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "../convex/_generated/api";
 import { TripForm } from "./TripForm";
 import type { Doc, Id } from "../convex/_generated/dataModel";
+import { FlightSearchPanel } from "./FlightSearchPanel";
 
 function errorMessage(error: unknown) {
   if (error instanceof ConvexError && typeof error.data === "object" && error.data !== null &&
@@ -15,6 +16,7 @@ export function Trips() {
   const { results, status, loadMore } = usePaginatedQuery(api.trips.list, {}, { initialNumItems: 12 });
   const remove = useMutation(api.trips.remove);
   const [editor, setEditor] = useState<Doc<"trips"> | "new" | null>(null);
+  const [flightTripId, setFlightTripId] = useState<Id<"trips"> | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Id<"trips"> | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
@@ -56,6 +58,11 @@ export function Trips() {
               <button className="secondary-button" disabled={editor !== null} onClick={() => setEditor(trip)}>Edit</button>
               <button className="text-button" disabled={editor !== null || deleting} onClick={() => { setConfirmDelete(trip._id); setError(""); }}>Delete</button>
             </div>}
+            <button className="text-button" aria-expanded={flightTripId === trip._id}
+              onClick={() => setFlightTripId(flightTripId === trip._id ? null : trip._id)}>
+              {flightTripId === trip._id ? "Close flight search" : "Find flights"}
+            </button>
+            {flightTripId === trip._id && <FlightSearchPanel key={trip._id} trip={trip} />}
           </article>
         ))}
       </div>
