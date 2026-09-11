@@ -13,6 +13,7 @@ export const flightTables = {
   researchRuns: defineTable({
     tripId: v.id("trips"), ownerId: v.id("users"), destination: v.string(), topic: flightTopic,
     flightRequest: flightRequest,
+    outboundSourceId: v.optional(v.id("researchSources")),
     searchKey: v.string(), query: v.string(), tripUpdatedAt: v.number(),
     status: v.union(v.literal("pending"), v.literal("running"), v.literal("completed"), v.literal("failed")),
     workId: v.optional(v.string()), startedAt: v.optional(v.number()), finishedAt: v.optional(v.number()),

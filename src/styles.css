@@ -670,13 +670,23 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 .flight-search-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .flight-search-fields label { display: grid; gap: 8px; font-size: 14px; }
-.flight-search-fields input { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--gray); background: white; font: inherit; }
+.flight-search-fields input, .flight-search-fields select { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--gray); background: white; font: inherit; }
 .flight-search-heading { margin-top: 24px !important; }
 .observed-flight { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .observed-fare { display: grid; gap: 6px; text-align: right; flex-shrink: 0; }
 .observed-fare strong { color: var(--indigo); font-size: 24px; }
 .observed-fare span { font-size: 12px; }
 @media (max-width: 600px) { .flight-search-fields { grid-template-columns: 1fr; } .observed-flight { align-items: flex-start; flex-direction: column; } .observed-fare { text-align: left; } }
+
+.flight-filters { min-width: 0; margin: 20px 0; padding: 16px; border: 1px solid var(--gray); border-radius: 6px; }
+.flight-filters legend { padding: 0 6px; color: var(--indigo); font-weight: 600; }
+.flight-filter-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.flight-filter-fields label { display: grid; gap: 8px; font-size: 14px; }
+.flight-filter-fields input, .flight-filter-fields select { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--gray); background: white; color: var(--ink); font: inherit; }
+@media (max-width: 600px) { .flight-filter-fields { grid-template-columns: 1fr; } }
+
+.return-flight-picker { margin-top: 24px; padding: 18px; border: 1px solid var(--teal); border-radius: 6px; }
+.round-trip-summary { margin-top: 20px; padding: 16px; background: var(--paper); border-left: 4px solid var(--teal); }
 
 .trip-modal {
   width: min(960px, calc(100% - 32px));

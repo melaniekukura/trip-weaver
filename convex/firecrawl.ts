@@ -155,3 +155,27 @@ export async function scrapeFlightPage(url: string) {
   }
   return { markdown: data.markdown, retrievedAt: new Date().toISOString() };
 }
+
+export async function browseReturnFlights(code: string) {
+  const key = process.env.FIRECRAWL_API_KEY?.trim();
+  if (!key) fail("FIRECRAWL_NOT_CONFIGURED", "Flight search is not configured.");
+  async function browserRequest(path: string, body?: object, method = "POST") {
+    const response = await fetch(`https://api.firecrawl.dev/v2/${path}`, {
+      method, headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(90000),
+    });
+    if (!response.ok) fail(response.status === 402 ? "FIRECRAWL_CREDITS_EXHAUSTED" : "FLIGHTS_UNAVAILABLE", "Return search failed.");
+    const result = object(await response.json());
+    if (result.success !== true) fail("FLIGHTS_UNAVAILABLE", "Return search failed.");
+    return result;
+  }
+  const session = await browserRequest("interact", { ttl: 120, activityTtl: 90 });
+  if (typeof session.id !== "string" || !/^[\w-]+$/.test(session.id)) fail("FLIGHTS_UNAVAILABLE", "Return search failed.");
+  try {
+    const result = await browserRequest(`interact/${session.id}/execute`, { code, language: "node" });
+    if (result.exitCode !== 0 || result.killed || typeof result.result !== "string" || result.result.length > 250000) fail("FLIGHTS_UNAVAILABLE", "Return search failed.");
+    return JSON.parse(result.result) as unknown;
+  } finally {
+    await browserRequest(`interact/${session.id}`, undefined, "DELETE").catch(() => {});
+  }
+}

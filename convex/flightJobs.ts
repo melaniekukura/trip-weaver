@@ -5,12 +5,13 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { internalAction, internalMutation, mutation, query } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
-import { scrapeFlightPage } from "./firecrawl";
+import { browseReturnFlights, scrapeFlightPage } from "./firecrawl";
 import { sourceFields } from "./flightSchema";
 import schema from "./schema";
 import { flightRequest, flightSearchUrl, parseFlightPage, validateFlightRequest } from "./flightSearch";
+import { parseReturnResults, returnBrowserCode } from "./returnFlights";
 import type { FlightRequest } from "./flightSearch";
 
 const pool = new Workpool(components.researchPool, { maxParallelism: 2, retryActionsByDefault: false });
@@ -32,22 +33,36 @@ async function ownedTrip(ctx: QueryCtx, tripId: Id<"trips">) {
   return trip;
 }
 
-function searchDetails(flight: FlightRequest) {
+function searchDetails(flight: FlightRequest, outboundSourceId?: Id<"researchSources">) {
   const request = validateFlightRequest(flight);
-  return { destination: request.destination, searchKey: JSON.stringify(["flights-v1", request]), queryText: flightSearchUrl(request), flightRequest: request };
+  return { destination: request.destination, searchKey: JSON.stringify(outboundSourceId ? ["returns-v1", request, outboundSourceId] : ["flights-v1", request]), queryText: flightSearchUrl(request), flightRequest: request };
+}
+
+async function checkOutbound(ctx: QueryCtx, tripId: Id<"trips">, flight: FlightRequest, sourceId?: Id<"researchSources">) {
+  if (!sourceId) return null;
+  const source = await ctx.db.get("researchSources", sourceId);
+  const run = source ? await ctx.db.get("researchRuns", source.runId) : null;
+  if (!source || source.tripId !== tripId || !run || run.tripId !== tripId || run.outboundSourceId ||
+    run.status !== "completed" || flight.tripType !== "round-trip" ||
+    JSON.stringify(validateFlightRequest(run.flightRequest)) !== JSON.stringify(validateFlightRequest(flight))) {
+    throw new ConvexError({ code: "INVALID_OUTBOUND", message: "Choose an outgoing flight from this trip's matching search." });
+  }
+  return source;
 }
 
 export const start = mutation({
-  args: { tripId: v.id("trips"), flight: flightRequest, refresh: v.optional(v.boolean()) },
+  args: { tripId: v.id("trips"), flight: flightRequest, outboundSourceId: v.optional(v.id("researchSources")), refresh: v.optional(v.boolean()) },
   returns: v.object({ runId: v.id("researchRuns"), reused: v.boolean() }),
   handler: async (ctx, args) => {
     const trip = await ownedTrip(ctx, args.tripId);
-    const details = searchDetails(args.flight);
+    await checkOutbound(ctx, trip._id, args.flight, args.outboundSourceId);
+    const details = searchDetails(args.flight, args.outboundSourceId);
     if (details.flightRequest) {
       const departure = Date.parse(`${details.flightRequest.departureDate}T00:00:00Z`);
       const today = Date.parse(new Date().toISOString().slice(0, 10));
-      if (departure < today || departure > today + 330 * 86400000) {
-        throw new ConvexError({ code: "INVALID_FLIGHT_SEARCH", message: "Choose a departure date within the next 330 days." });
+      const returning = details.flightRequest.returnDate ? Date.parse(`${details.flightRequest.returnDate}T00:00:00Z`) : departure;
+      if (departure < today || departure > today + 330 * 86400000 || returning > today + 330 * 86400000) {
+        throw new ConvexError({ code: "INVALID_FLIGHT_SEARCH", message: "Choose travel dates within the next 330 days." });
       }
     }
     const existing = await ctx.db.query("researchRuns").withIndex("by_tripId_searchKey", (q) =>
@@ -66,6 +81,7 @@ export const start = mutation({
     const runId = await ctx.db.insert("researchRuns", {
       tripId: trip._id, ownerId: trip.ownerId, destination: details.destination, topic: "flights",
       flightRequest: details.flightRequest,
+      ...(args.outboundSourceId ? { outboundSourceId: args.outboundSourceId } : {}),
       searchKey: details.searchKey, query: details.queryText, tripUpdatedAt: trip.updatedAt, status: "pending",
     });
     const workId = await pool.enqueueAction(ctx, internal.flightJobs.execute, { runId }, {
@@ -77,16 +93,28 @@ export const start = mutation({
 });
 
 export const latest = query({
-  args: { tripId: v.id("trips"), flight: flightRequest },
+  args: { tripId: v.id("trips"), flight: flightRequest, outboundSourceId: v.optional(v.id("researchSources")) },
   returns: v.union(v.null(), v.object({ run: schema.doc("researchRuns"), sources: v.array(schema.doc("researchSources")) })),
   handler: async (ctx, args) => {
     const trip = await ownedTrip(ctx, args.tripId);
-    const details = searchDetails(args.flight);
+    await checkOutbound(ctx, trip._id, args.flight, args.outboundSourceId);
+    const details = searchDetails(args.flight, args.outboundSourceId);
     const run = await ctx.db.query("researchRuns").withIndex("by_tripId_searchKey", (q) =>
       q.eq("tripId", trip._id).eq("searchKey", details.searchKey)).order("desc").first();
     if (!run) return null;
     const sources = await ctx.db.query("researchSources").withIndex("by_runId", (q) => q.eq("runId", run._id)).take(5);
     return { run, sources };
+  },
+});
+
+export const selectedOutbound = internalQuery({
+  args: { runId: v.id("researchRuns") }, returns: v.union(v.null(), schema.doc("researchSources")),
+  handler: async (ctx, { runId }) => {
+    const run = await ctx.db.get("researchRuns", runId);
+    if (!run || !run.outboundSourceId) return null;
+    const trip = await ctx.db.get("trips", run.tripId);
+    if (!trip || trip.ownerId !== run.ownerId) return null;
+    return checkOutbound(ctx, run.tripId, run.flightRequest, run.outboundSourceId);
   },
 });
 
@@ -117,6 +145,17 @@ export const execute = internalAction({
     const run = await ctx.runMutation(internal.flightJobs.claim, { runId });
     if (!run || !run.flightRequest) return null;
     try {
+      if (run.outboundSourceId) {
+        const outbound = await ctx.runQuery(internal.flightJobs.selectedOutbound, { runId });
+        if (!outbound) throw new Error("Outbound unavailable");
+        const raw = await browseReturnFlights(returnBrowserCode(run.flightRequest, outbound.flight));
+        const response = parseReturnResults(raw, run.flightRequest, outbound.flight);
+        await ctx.runMutation(internal.flightJobs.finish, { runId, sources: response.flights.map((flight) => ({
+          title: flight.airline, category: "flights" as const, description: `${flight.duration} · ${flight.stops}`,
+          destination: run.flightRequest.origin, sourceUrl: response.sourceUrl, retrievedAt: new Date().toISOString(), flight,
+        })) });
+        return null;
+      }
       const response = await scrapeFlightPage(run.query);
       const flights = parseFlightPage(response.markdown, run.flightRequest);
       await ctx.runMutation(internal.flightJobs.finish, { runId, sources: flights.map((flight) => ({
