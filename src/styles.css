@@ -610,3 +610,20 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 @media (max-width: 600px) {
   .session-warning { align-items: stretch; flex-direction: column; gap: 14px; }
 }
+
+.flight-search-panel { margin-top: 16px; padding-top: 20px; border-top: 1px solid var(--gray); }
+.flight-search-panel h4 { margin: 0 0 10px; color: var(--indigo); }
+.flight-search-results { list-style: none; margin: 0; padding: 0; }
+.flight-search-results li { padding: 16px 0; border-top: 1px solid var(--gray); }
+.flight-search-results a { color: var(--indigo); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.flight-search-results p { margin: 8px 0; }
+
+.flight-search-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.flight-search-fields label { display: grid; gap: 8px; font-size: 14px; }
+.flight-search-fields input { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--gray); background: white; font: inherit; }
+.flight-search-heading { margin-top: 24px !important; }
+.observed-flight { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.observed-fare { display: grid; gap: 6px; text-align: right; flex-shrink: 0; }
+.observed-fare strong { color: var(--indigo); font-size: 24px; }
+.observed-fare span { font-size: 12px; }
+@media (max-width: 600px) { .flight-search-fields { grid-template-columns: 1fr; } .observed-flight { align-items: flex-start; flex-direction: column; } .observed-fare { text-align: left; } }

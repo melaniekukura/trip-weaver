@@ -1,0 +1,161 @@
+# Flight search
+One way
+Economy (include Basic)
+## Filters
+Prices include required taxes + fees for 1 adult.
+Track prices departing 2026-10-15
+CurrencyUSD
+### Top flights
+Ranked based on price and convenience
+Close dialog
+“Top flights” are ranked based on the best trade-off between price and convenience factors such as duration, number of stops, and airport changes during layovers. All other flights are ranked by price. [Learn more](https://support.google.com/travel/answer/7664728?ref_topic=2475360&hl=en-US)
+Prices include required taxes + fees for 1 adult. Optional charges and bag fees may apply. Passenger assistance info.
+Sorted by top flights
+- 10:38 AM
+10:38 AM on Thu, Oct 15
+– 3:00 PM
+3:00 PM on Thu, Oct 15
+Frontier
+7 hr 22 min
+DTW
+Detroit Metropolitan Wayne County Airport
+–
+LAX
+Los Angeles International Airport
+1 stop
+56 min DFW
+Dallas Fort Worth International Airport
+272 kg CO2e
+  -6% emissions
+  -6% emissions
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$169
+DepartureThu, Oct 15
+272 kg CO2e
+  -6% emissions
+  -6% emissions
+Select flight
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$169
+10:38 AM
+DTW
+![](https://www.gstatic.com/flights/app/2x/arrow_1.png)
+3:00 PM
+LAX
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$169
+1 stop in DFW1 stop7 hr 22 min
+Frontier
+272 kg CO2e
+  -6% emissions
+  -6% emissions
+- 2:45 PM
+2:45 PM on Thu, Oct 15
+– 6:25 PM
+6:25 PM on Thu, Oct 15
+Southwest
+6 hr 40 min
+DTW
+Detroit Metropolitan Wayne County Airport
+–
+LAX
+Los Angeles International Airport
+1 stop
+1 hr MDW
+Chicago Midway International Airport
+261 kg CO2e
+  -10% emissions
+  -10% emissions
+1 0
+Close dialog
+1 carry-on bag included
+Additional fees for checked bags
+To include bags, use the Bags filter
+$300
+DepartureThu, Oct 15
+261 kg CO2e
+  -10% emissions
+  -10% emissions
+Select flight
+1 0
+Close dialog
+1 carry-on bag included
+Additional fees for checked bags
+To include bags, use the Bags filter
+$300
+2:45 PM
+DTW
+![](https://www.gstatic.com/flights/app/2x/arrow_1.png)
+6:25 PM
+LAX
+1 0
+Close dialog
+1 carry-on bag included
+Additional fees for checked bags
+To include bags, use the Bags filter
+$300
+1 stop in MDW1 stop6 hr 40 min
+Southwest
+261 kg CO2e
+  -10% emissions
+  -10% emissions
+- 6:00 PM
+6:00 PM on Thu, Oct 15
+– 7:52 PM
+7:52 PM on Thu, Oct 15
+Delta
+4 hr 52 min
+DTW
+Detroit Metropolitan Wayne County Airport
+–
+LAX
+Los Angeles International Airport
+Nonstop
+224 kg CO2e
+  -23% emissions
+  -23% emissions
+1 0
+Close dialog
+1 carry-on bag included
+Additional fees for checked bags
+To include bags, use the Bags filter
+$389
+DepartureThu, Oct 15
+224 kg CO2e
+  -23% emissions
+  -23% emissions
+Select flight
+1 0
+Close dialog
+1 carry-on bag included
+Additional fees for checked bags
+To include bags, use the Bags filter
+$389
+6:00 PM
+DTW
+![](https://www.gstatic.com/flights/app/2x/arrow_0.png)
+7:52 PM
+LAX
+1 0
+Close dialog
+1 carry-on bag included
+Additional fees for checked bags
+To include bags, use the Bags filter
+$389
+NonstopNonstop4 hr 52 min
+Delta
+224 kg CO2e
+  -23% emissions
+  -23% emissions

@@ -1,0 +1,184 @@
+import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
+import { Workpool, vOnCompleteValidator } from "@convex-dev/workpool";
+import type { WorkId } from "@convex-dev/workpool";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { ConvexError, v } from "convex/values";
+import { components, internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
+import { internalAction, internalMutation, mutation, query } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
+import { scrapeFlightPage } from "./firecrawl";
+import { sourceFields } from "./flightSchema";
+import schema from "./schema";
+import { flightRequest, flightSearchUrl, parseFlightPage, validateFlightRequest } from "./flightSearch";
+import type { FlightRequest } from "./flightSearch";
+
+const pool = new Workpool(components.researchPool, { maxParallelism: 2, retryActionsByDefault: false });
+const limiter = new RateLimiter(components.rateLimiter, {
+  researchUser: { kind: "token bucket", rate: 10, period: HOUR, capacity: 3 },
+  researchGlobal: { kind: "token bucket", rate: 100, period: HOUR, capacity: 10 },
+});
+const CACHE_MS = 15 * 60000;
+
+async function ownedTrip(ctx: QueryCtx, tripId: Id<"trips">) {
+  const ownerId = await getAuthUserId(ctx);
+  if (!ownerId || !await ctx.db.get("users", ownerId)) {
+    throw new ConvexError({ code: "UNAUTHENTICATED", message: "Sign in to search flights for your trip." });
+  }
+  const trip = await ctx.db.get("trips", tripId);
+  if (!trip || trip.ownerId !== ownerId) {
+    throw new ConvexError({ code: "TRIP_NOT_FOUND", message: "This trip is unavailable." });
+  }
+  return trip;
+}
+
+function searchDetails(flight: FlightRequest) {
+  const request = validateFlightRequest(flight);
+  return { destination: request.destination, searchKey: JSON.stringify(["flights-v1", request]), queryText: flightSearchUrl(request), flightRequest: request };
+}
+
+export const start = mutation({
+  args: { tripId: v.id("trips"), flight: flightRequest, refresh: v.optional(v.boolean()) },
+  returns: v.object({ runId: v.id("researchRuns"), reused: v.boolean() }),
+  handler: async (ctx, args) => {
+    const trip = await ownedTrip(ctx, args.tripId);
+    const details = searchDetails(args.flight);
+    if (details.flightRequest) {
+      const departure = Date.parse(`${details.flightRequest.departureDate}T00:00:00Z`);
+      const today = Date.parse(new Date().toISOString().slice(0, 10));
+      if (departure < today || departure > today + 330 * 86400000) {
+        throw new ConvexError({ code: "INVALID_FLIGHT_SEARCH", message: "Choose a departure date within the next 330 days." });
+      }
+    }
+    const existing = await ctx.db.query("researchRuns").withIndex("by_tripId_searchKey", (q) =>
+      q.eq("tripId", trip._id).eq("searchKey", details.searchKey)).order("desc").first();
+    if (existing && (existing.status === "pending" || existing.status === "running" ||
+      (!args.refresh && existing.status === "completed" && (existing.expiresAt ?? 0) > Date.now()))) {
+      return { runId: existing._id, reused: true };
+    }
+    if (!process.env.FIRECRAWL_API_KEY?.trim()) {
+      throw new ConvexError({ code: "RESEARCH_NOT_CONFIGURED", message: "Flight search is not configured yet. Set the Firecrawl key in Convex." });
+    }
+    for (const [name, key] of [["researchUser", trip.ownerId], ["researchGlobal", undefined]] as const) {
+      const status = await limiter.limit(ctx, name, { key });
+      if (!status.ok) throw new ConvexError({ code: "RESEARCH_RATE_LIMITED", message: `Flight search limit reached. Try again in ${Math.max(1, Math.ceil(status.retryAfter / 60000))} minute(s).` });
+    }
+    const runId = await ctx.db.insert("researchRuns", {
+      tripId: trip._id, ownerId: trip.ownerId, destination: details.destination, topic: "flights",
+      flightRequest: details.flightRequest,
+      searchKey: details.searchKey, query: details.queryText, tripUpdatedAt: trip.updatedAt, status: "pending",
+    });
+    const workId = await pool.enqueueAction(ctx, internal.flightJobs.execute, { runId }, {
+      retry: false, onComplete: internal.flightJobs.onComplete, context: { runId },
+    });
+    await ctx.db.patch("researchRuns", runId, { workId });
+    return { runId, reused: false };
+  },
+});
+
+export const latest = query({
+  args: { tripId: v.id("trips"), flight: flightRequest },
+  returns: v.union(v.null(), v.object({ run: schema.doc("researchRuns"), sources: v.array(schema.doc("researchSources")) })),
+  handler: async (ctx, args) => {
+    const trip = await ownedTrip(ctx, args.tripId);
+    const details = searchDetails(args.flight);
+    const run = await ctx.db.query("researchRuns").withIndex("by_tripId_searchKey", (q) =>
+      q.eq("tripId", trip._id).eq("searchKey", details.searchKey)).order("desc").first();
+    if (!run) return null;
+    const sources = await ctx.db.query("researchSources").withIndex("by_runId", (q) => q.eq("runId", run._id)).take(5);
+    return { run, sources };
+  },
+});
+
+export const claim = internalMutation({
+  args: { runId: v.id("researchRuns") }, returns: v.union(v.null(), schema.doc("researchRuns")),
+  handler: async (ctx, { runId }) => {
+    const run = await ctx.db.get("researchRuns", runId);
+    if (!run || run.status !== "pending") return null;
+    const trip = await ctx.db.get("trips", run.tripId);
+    if (!trip || trip.ownerId !== run.ownerId) return null;
+    await ctx.db.patch("researchRuns", runId, { status: "running", startedAt: Date.now() });
+    return run;
+  },
+});
+
+const providerErrors: Record<string, string> = {
+  FLIGHTS_UNAVAILABLE: "Matching flight prices could not be verified. Try again or open Google Flights.",
+  FIRECRAWL_UNAUTHORIZED: "The flight search service key is invalid. Contact the app administrator.",
+  FIRECRAWL_CREDITS_EXHAUSTED: "The flight search service is out of credits. Try again after credits are added.",
+  FIRECRAWL_RATE_LIMITED: "The flight search provider is busy. Try again later.",
+  FIRECRAWL_TIMEOUT: "Flight search timed out. You can try again.",
+  FIRECRAWL_NOT_CONFIGURED: "Flight search is not configured yet. Contact the app administrator.",
+};
+
+export const execute = internalAction({
+  args: { runId: v.id("researchRuns") }, returns: v.null(),
+  handler: async (ctx, { runId }) => {
+    const run = await ctx.runMutation(internal.flightJobs.claim, { runId });
+    if (!run || !run.flightRequest) return null;
+    try {
+      const response = await scrapeFlightPage(run.query);
+      const flights = parseFlightPage(response.markdown, run.flightRequest);
+      await ctx.runMutation(internal.flightJobs.finish, { runId, sources: flights.map((flight) => ({
+        title: flight.airline, category: "flights" as const, description: `${flight.duration} · ${flight.stops}`,
+        destination: run.destination, sourceUrl: run.query, retrievedAt: response.retrievedAt, flight,
+      })) });
+    } catch (error) {
+      const code = error instanceof ConvexError && typeof error.data === "object" && error.data !== null && "code" in error.data
+        ? String(error.data.code) : "";
+      await ctx.runMutation(internal.flightJobs.fail, {
+        runId, message: providerErrors[code] ?? "Flight search could not be completed. Please try again.",
+      });
+    }
+    return null;
+  },
+});
+
+export const finish = internalMutation({
+  args: { runId: v.id("researchRuns"), sources: v.array(sourceFields) }, returns: v.null(),
+  handler: async (ctx, { runId, sources }) => {
+    const run = await ctx.db.get("researchRuns", runId);
+    if (!run || run.status !== "running") return null;
+    const trip = await ctx.db.get("trips", run.tripId);
+    if (!trip || trip.ownerId !== run.ownerId) return null;
+    for (const source of sources.slice(0, 5)) await ctx.db.insert("researchSources", { ...source, tripId: run.tripId, runId });
+    await ctx.db.patch("researchRuns", runId, { status: "completed", finishedAt: Date.now(), expiresAt: Date.now() + CACHE_MS });
+    return null;
+  },
+});
+
+export const fail = internalMutation({
+  args: { runId: v.id("researchRuns"), message: v.string() }, returns: v.null(),
+  handler: async (ctx, { runId, message }) => {
+    const run = await ctx.db.get("researchRuns", runId);
+    if (run && (run.status === "pending" || run.status === "running")) {
+      await ctx.db.patch("researchRuns", runId, { status: "failed", finishedAt: Date.now(), error: message });
+    }
+    return null;
+  },
+});
+
+export const onComplete = internalMutation({
+  args: vOnCompleteValidator(v.object({ runId: v.id("researchRuns") })), returns: v.null(),
+  handler: async (ctx, { context, result }) => {
+    await ctx.runMutation(internal.flightJobs.fail, { runId: context.runId,
+      message: result.kind === "canceled" ? "Flight search was canceled. You can try again." : "Flight search was interrupted. You can try again." });
+    return null;
+  },
+});
+
+export const cleanupTrip = internalMutation({
+  args: { tripId: v.id("trips") }, returns: v.null(),
+  handler: async (ctx, { tripId }) => {
+    if (await ctx.db.get("trips", tripId)) return null;
+    const runs = await ctx.db.query("researchRuns").withIndex("by_tripId", (q) => q.eq("tripId", tripId)).take(20);
+    for (const run of runs) {
+      if (run.workId && (run.status === "pending" || run.status === "running")) await pool.cancel(ctx, run.workId as WorkId);
+      const sources = await ctx.db.query("researchSources").withIndex("by_runId", (q) => q.eq("runId", run._id)).take(5);
+      for (const source of sources) await ctx.db.delete("researchSources", source._id);
+      await ctx.db.delete("researchRuns", run._id);
+    }
+    if (runs.length === 20) await ctx.scheduler.runAfter(0, internal.flightJobs.cleanupTrip, { tripId });
+    return null;
+  },
+});

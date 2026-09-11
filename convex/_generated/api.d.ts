@@ -10,6 +10,9 @@
 
 import type * as auth from "../auth.js";
 import type * as firecrawl from "../firecrawl.js";
+import type * as flightJobs from "../flightJobs.js";
+import type * as flightSchema from "../flightSchema.js";
+import type * as flightSearch from "../flightSearch.js";
 import type * as flights from "../flights.js";
 import type * as health from "../health.js";
 import type * as http from "../http.js";
@@ -25,6 +28,9 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   firecrawl: typeof firecrawl;
+  flightJobs: typeof flightJobs;
+  flightSchema: typeof flightSchema;
+  flightSearch: typeof flightSearch;
   flights: typeof flights;
   health: typeof health;
   http: typeof http;
@@ -58,4 +64,7 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  researchPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"researchPool">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+};

@@ -62,11 +62,11 @@ the UI.
 
 ## 3. Trip research
 
-- [ ] Connect the existing internal Firecrawl actions to authenticated trip
+- [x] Connect the existing internal Firecrawl actions to authenticated trip
       research operations.
 - [ ] Support research topics: sights, events, weather, safety, flights, and stays.
-- [ ] Save research runs, source URLs, retrieval times, and results.
-- [ ] Add request limits, caching, and visible progress and error states.
+- [x] Save research runs, source URLs, retrieval times, and results.
+- [x] Add request limits, caching, and visible progress and error states.
 - [ ] Handle partial failures and interrupted research without losing saved work.
 - [ ] Let the user save a sourced recommendation to the itinerary.
 - [ ] Treat retrieved web content as untrusted material, never agent instructions.
@@ -75,9 +75,17 @@ the UI.
 **Done when:** a user researches a destination and saves a sourced recommendation
 to their itinerary.
 
-**Flight scope:** start with sourced research and external links. Verified live
-pricing and availability require a separate integration decision; mock fares
-must remain clearly labeled until replaced.
+**First milestone, September 11:** the saved-trip UI now focuses on flight
+research using Firecrawl to read Google Flights. The prototype supports one-way
+economy, one adult, USD, with route/date validation, observed fares, source links,
+15-minute caching, background jobs, ownership checks, and credit limits. City/sights research is deferred.
+Flight parser and queue tests, lint, build, and an authenticated live search
+through the local backend have been verified. Browser visual verification remains pending. See
+`references/flight-search.md`.
+
+**Flight scope:** prices are observations from Google Flights, not verified
+checkout inventory. Round trips, additional travelers/cabins/currencies, other
+research topics, and saving results into the itinerary remain unfinished.
 
 ## 4. AI travel assistant
 
