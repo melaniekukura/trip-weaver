@@ -213,3 +213,53 @@ test("city lookup failure produces an actionable error without spending Firecraw
   expect(fetchMock).toHaveBeenCalledOnce();
   expect(String(fetchMock.mock.calls[0][0])).toContain("travelpayouts.com");
 });
+
+test("round trips persist both dates and cannot reuse one-way or different-return results", async () => {
+  const { default: markdown } = await import("./fixtures/google-flights-roundtrip.txt?raw");
+  const { t, alice, args } = await setup();
+  const roundTrip = { ...args, flight: { ...args.flight, tripType: "round-trip" as const, returnDate: "2026-10-22" } };
+  const oneWay = await alice.mutation(api.flightJobs.start, args);
+  await t.action(internal.flightJobs.execute, { runId: oneWay.runId });
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown } })));
+  const round = await alice.mutation(api.flightJobs.start, roundTrip);
+  expect(round.runId).not.toBe(oneWay.runId);
+  await t.action(internal.flightJobs.execute, { runId: round.runId });
+  const result = await alice.query(api.flightJobs.latest, roundTrip);
+  expect(result?.run.status).toBe("completed");
+  expect(result?.run.flightRequest.returnDate).toBe("2026-10-22");
+  expect(result?.sources[0].flight.amount).toBe(273);
+  expect((await alice.mutation(api.flightJobs.start, roundTrip)).reused).toBe(true);
+  expect(await alice.query(api.flightJobs.latest, { ...roundTrip, flight: { ...roundTrip.flight, returnDate: "2026-10-23" } })).toBeNull();
+  await expect(alice.mutation(api.flightJobs.start, { ...roundTrip, flight: { ...roundTrip.flight, returnDate: "2027-12-31" } })).rejects.toThrow("INVALID_FLIGHT_SEARCH");
+});
+
+test("return searches enforce ownership and selection, cache per outbound, and store the combined price", async () => {
+  const { default: roundtrip } = await import("./fixtures/google-flights-roundtrip.txt?raw");
+  const { default: returns } = await import("./fixtures/return-flights.json");
+  const { t, alice, bob, args } = await setup();
+  const flight = { ...args.flight, tripType: "round-trip" as const, returnDate: "2026-10-22" };
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown: roundtrip } })));
+  const { runId } = await alice.mutation(api.flightJobs.start, { ...args, flight });
+  await t.action(internal.flightJobs.execute, { runId });
+  const out = await alice.query(api.flightJobs.latest, { ...args, flight });
+  const returnArgs = { tripId: args.tripId, flight, outboundSourceId: out!.sources[0]._id };
+  for (const client of [t, bob]) {
+    await expect(client.mutation(api.flightJobs.start, returnArgs)).rejects.toThrow();
+    await expect(client.query(api.flightJobs.latest, returnArgs)).rejects.toThrow();
+  }
+  await expect(alice.mutation(api.flightJobs.start, { ...returnArgs, flight: { ...flight, returnDate: "2026-10-23" } })).rejects.toThrow("INVALID_OUTBOUND");
+  fetchMock.mockImplementation(async (url, options) => new Response(JSON.stringify(
+    options?.method === "DELETE" ? { success: true } : String(url).endsWith("/execute")
+      ? { success: true, result: JSON.stringify(returns), exitCode: 0, killed: false }
+      : { success: true, id: "test-session" },
+  )));
+  const returning = await alice.mutation(api.flightJobs.start, returnArgs);
+  await t.action(internal.flightJobs.execute, { runId: returning.runId });
+  const result = await alice.query(api.flightJobs.latest, returnArgs);
+  expect(result?.run.status).toBe("completed");
+  expect(result?.sources[0].flight.amount).toBe(273);
+  expect(result?.sources[0].flight.departure).toBe("10:38 PM on Thu, Oct 22");
+  expect((await alice.mutation(api.flightJobs.start, returnArgs)).reused).toBe(true);
+  expect(await alice.query(api.flightJobs.latest, { ...returnArgs, outboundSourceId: out!.sources[1]._id })).toBeNull();
+  expect(fetchMock.mock.calls.some(([, options]) => options?.method === "DELETE")).toBe(true);
+});

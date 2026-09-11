@@ -1,0 +1,283 @@
+# Flight search
+Round trip
+- Round trip
+- One way
+- Multi-city
+1
+- Adults
+Remove adult
+11
+Add adult
+- Children Aged 2-11
+Aged 2 to 11
+Remove child aged 2 to 11
+00
+Add child aged 2 to 11
+- Infants In seat
+Remove infant in seat
+00
+Add infant in seat
+- Infants On lap
+Remove infant on lap
+00
+Add infant on lap
+Done
+Cancel
+Economy (include Basic)
+- Economy (include Basic)Includes cheapest but more restrictive fares
+- Economy (exclude Basic)Fares with free seat selection and carry-on bags
+- Premium economy
+- Business
+- First
+DetroitDTW
+DTW · Detroit
+Remove
+Select multiple airports
+Done
+Press the plus key to switch to multi-select mode.
+Los AngelesLAX
+LAX · Los Angeles
+Remove
+Select multiple airports
+Done
+Press the plus key to switch to multi-select mode.
+
+## Filters
+### Top departing flights
+Ranked based on price and convenience
+Close dialog
+“Top flights” are ranked based on the best trade-off between price and convenience factors such as duration, number of stops, and airport changes during layovers. All other flights are ranked by price. [Learn more](https://support.google.com/travel/answer/7664728?ref_topic=2475360&hl=en-US)
+Prices include required taxes + fees for 1 adult. Optional charges and bag fees may apply. Passenger assistance info.
+Sorted by top flights
+- 6:30 AM
+6:30 AM on Thu, Oct 15
+– 12:02 PM
+12:02 PM on Thu, Oct 15
+Frontier
+8 hr 32 min
+DTW
+Detroit Metropolitan Wayne County Airport
+–
+LAX
+Los Angeles International Airport
+1 stop
+1 hr 24 min ATL
+Hartsfield-Jackson Atlanta International Airport
+277 kg CO2e
+Avg emissions
+Avg emissions
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$273
+round trip
+DepartureThu, Oct 15
+277 kg CO2e
+Avg emissions
+Avg emissions
+Select flight
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$273
+round trip
+6:30 AM
+DTW
+![](https://www.gstatic.com/flights/app/2x/arrow_1.png)
+12:02 PM
+LAX
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$273
+round trip
+1 stop in ATL1 stop8 hr 32 min
+Frontier
+277 kg CO2e
+Avg emissions
+Avg emissions
+- 10:38 AM
+10:38 AM on Thu, Oct 15
+– 3:00 PM
+3:00 PM on Thu, Oct 15
+Frontier
+7 hr 22 min
+DTW
+Detroit Metropolitan Wayne County Airport
+–
+LAX
+Los Angeles International Airport
+1 stop
+56 min DFW
+Dallas Fort Worth International Airport
+272 kg CO2e
+  -6% emissions
+  -6% emissions
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$273
+round trip
+DepartureThu, Oct 15
+272 kg CO2e
+  -6% emissions
+  -6% emissions
+Select flight
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$273
+round trip
+10:38 AM
+DTW
+![](https://www.gstatic.com/flights/app/2x/arrow_1.png)
+3:00 PM
+LAX
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$273
+round trip
+1 stop in DFW1 stop7 hr 22 min
+Frontier
+272 kg CO2e
+  -6% emissions
+  -6% emissions
+- 7:08 AM
+7:08 AM on Thu, Oct 15
+– 10:45 AM
+10:45 AM on Thu, Oct 15
+Frontier
+6 hr 37 min
+DTW
+Detroit Metropolitan Wayne County Airport
+–
+LAX
+Los Angeles International Airport
+1 stop
+40 min DEN
+Denver International Airport
+249 kg CO2e
+  -14% emissions
+  -14% emissions
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$298
+round trip
+DepartureThu, Oct 15
+249 kg CO2e
+  -14% emissions
+  -14% emissions
+Select flight
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$298
+round trip
+7:08 AM
+DTW
+![](https://www.gstatic.com/flights/app/2x/arrow_1.png)
+10:45 AM
+LAX
+0 0
+Close dialog
+Additional fees for carry-on bags
+Additional fees for checked bags
+To include bags, use the Bags filter
+$298
+round trip
+1 stop in DEN1 stop6 hr 37 min
+Frontier
+249 kg CO2e
+  -14% emissions
+  -14% emissions
+- 8:42 PM
+8:42 PM on Thu, Oct 15
+– 10:34 PM
+10:34 PM on Thu, Oct 15
+Delta
+4 hr 52 min
+DTW
+Detroit Metropolitan Wayne County Airport
+–
+LAX
+Los Angeles International Airport
+Nonstop
+296 kg CO2e
+Avg emissions
+Avg emissions
+1 0
+Close dialog
+1 carry-on bag included
+Additional fees for checked bags
+To include bags, use the Bags filter
+$579
+round trip
+DepartureThu, Oct 15
+296 kg CO2e
+Avg emissions
+Avg emissions
+Select flight
+1 0
+Close dialog
+1 carry-on bag included
+Additional fees for checked bags
+To include bags, use the Bags filter
+$579
+round trip
+8:42 PM
+DTW
+![](https://www.gstatic.com/flights/app/2x/arrow_0.png)
+10:34 PM
+LAX
+1 0
+Close dialog
+1 carry-on bag included
+Additional fees for checked bags
+To include bags, use the Bags filter
+$579
+round trip
+NonstopNonstop4 hr 52 min
+Delta
+296 kg CO2e
+Avg emissions
+Avg emissions
+### Price insights
+The cheapest time to book is usually now, until Oct 1
+Prices are currently typical
+View price history
+Track prices
+Close dialog
+Get email updates when prices change for your searched dates. You’ll also get travel tips by email.
+Or, track any dates to get regular email updates when prices are low for Detroit – Los Angeles.
+Track prices from Detroit to Los Angeles departing 2026-10-15 and returning 2026-10-22
+Oct 15 – 22
+Continue tracking prices
+Close dialog
+Track prices from Detroit to Los Angeles - Any dates
+Any dates
+Continue tracking prices
+Close dialog
+Travel Oct 14 – 21 for $165
+Change dates
+Date grid
+Price graph
+
+CurrencyUSD

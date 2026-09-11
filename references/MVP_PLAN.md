@@ -76,7 +76,7 @@ the UI.
 to their itinerary.
 
 **First milestone, September 11:** the saved-trip UI now focuses on flight
-research using Firecrawl to read Google Flights. The prototype supports one-way
+research using Firecrawl to read Google Flights. The prototype supports one-way and round-trip
 economy, one adult, USD, with route/date validation, observed fares, source links,
 15-minute caching, background jobs, ownership checks, and credit limits. City/sights research is deferred.
 Flight parser and queue tests, lint, build, and an authenticated live search
@@ -84,7 +84,7 @@ through the local backend have been verified. Browser visual verification remain
 `references/flight-search.md`.
 
 **Flight scope:** prices are observations from Google Flights, not verified
-checkout inventory. Round trips, additional travelers/cabins/currencies, other
+checkout inventory. Additional travelers/cabins/currencies, other
 research topics, and saving results into the itinerary remain unfinished.
 
 ## 4. AI travel assistant

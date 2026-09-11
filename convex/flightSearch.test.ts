@@ -72,3 +72,39 @@ test("parses the live city-wide Google Flights excerpt with Economy labeling", a
   expect(() => parseFlightPage(cityPage.replace("\nEconomy\n", "\nBusiness\n"), input,
     { origin: ["LHR", "LGW"], destination: ["JFK", "EWR"] })).toThrow("FLIGHTS_UNAVAILABLE");
 });
+
+test("reads round-trip price labels and verifies both dates", async () => {
+  const { default: roundTripPage } = await import("./fixtures/google-flights-roundtrip.txt?raw");
+  const roundTrip = { ...request, tripType: "round-trip" as const, returnDate: "2026-10-22" };
+  const flights = parseFlightPage(roundTripPage, roundTrip);
+  expect(flights.map((flight) => flight.amount)).toEqual([273, 273, 298, 579]);
+  expect(flights[0].departure).toBe("6:30 AM on Thu, Oct 15");
+  expect(() => parseFlightPage(roundTripPage, request)).toThrow("FLIGHTS_UNAVAILABLE");
+  expect(() => parseFlightPage(fixture, roundTrip)).toThrow("FLIGHTS_UNAVAILABLE");
+  expect(() => parseFlightPage(roundTripPage, { ...roundTrip, returnDate: "2026-10-23" })).toThrow("FLIGHTS_UNAVAILABLE");
+  expect(() => parseFlightPage(roundTripPage.replaceAll("\nround trip", "\none way"), roundTrip)).toThrow("FLIGHTS_UNAVAILABLE");
+});
+
+test.each([undefined, "invalid", "2026-02-30", "2026-10-14"])("rejects invalid return date %s", (returnDate) => {
+  expect(() => validateFlightRequest({ ...request, tripType: "round-trip", returnDate })).toThrow("INVALID_FLIGHT_SEARCH");
+});
+
+test("one-way inputs remain compatible and round-trip URLs include the return date", () => {
+  expect(validateFlightRequest({ ...request, tripType: "one-way" })).toEqual(validateFlightRequest(request));
+  expect(() => validateFlightRequest({ ...request, returnDate: "2026-10-22" })).toThrow("INVALID_FLIGHT_SEARCH");
+  const url = new URL(flightSearchUrl({ ...request, tripType: "round-trip", returnDate: "2026-10-22" }));
+  expect(url.searchParams.get("q")).toContain("returning October 22, 2026 round trip");
+});
+
+test("round-trip searches preserve city scope and validate actual airports", async () => {
+  const { default: page } = await import("./fixtures/google-flights-roundtrip.txt?raw");
+  const input = { ...request, origin: " lon ", originType: "city" as const,
+    destination: "NYC", destinationType: "city" as const,
+    tripType: "round-trip" as const, returnDate: "2026-10-22" };
+  expect(validateFlightRequest(input)).toEqual({ ...input, origin: "LON" });
+  const cityPage = page.replaceAll("DTW", "LHR").replaceAll("LAX", "JFK");
+  const flights = parseFlightPage(cityPage, input, { origin: ["LHR", "LGW"], destination: ["JFK", "EWR"] });
+  expect(flights.map(flight => flight.amount)).toEqual([273, 273, 298, 579]);
+  expect(flights.every(flight => flight.originAirport === "LHR" && flight.destinationAirport === "JFK")).toBe(true);
+  expect(() => parseFlightPage(cityPage, input, { origin: ["LGW"], destination: ["JFK"] })).toThrow("FLIGHTS_UNAVAILABLE");
+});
