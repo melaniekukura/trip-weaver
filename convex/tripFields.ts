@@ -11,6 +11,7 @@ export const tripFields = v.object({
   currency: v.string(),
   travelers: v.number(),
   interests: v.array(v.string()),
+  accessibility: v.optional(v.string()),
 });
 
 function invalid(message: string): never {
@@ -42,6 +43,10 @@ export function validateTrip(input: Infer<typeof tripFields>) {
     invalid("Add between 1 and 20 destinations.");
   }
   if (input.interests.length > 20) invalid("Add at most 20 interests.");
+  const accessibility = input.accessibility?.trim();
+  if (accessibility !== undefined && accessibility.length > 2000) {
+    invalid("Accessibility notes must contain at most 2,000 characters.");
+  }
   if (!Number.isInteger(input.travelers) || input.travelers < 1 || input.travelers > 100) {
     invalid("Travelers must be a whole number between 1 and 100.");
   }
@@ -63,5 +68,6 @@ export function validateTrip(input: Infer<typeof tripFields>) {
     currency,
     travelers: input.travelers,
     interests: [...new Set(input.interests.map((value) => text(value, "Interest", 80)))],
+    ...(accessibility !== undefined ? { accessibility } : {}),
   };
 }
