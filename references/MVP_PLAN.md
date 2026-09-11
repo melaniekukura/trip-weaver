@@ -50,11 +50,11 @@ from the saved-trip form, which sends structured start and end dates.
 
 ## 2. Editable itineraries
 
-- [ ] Store flights, stays, activities, and transfers as individual trip-owned
+- [x] Store flights, stays, activities, and transfers as individual trip-owned
       records with ordering, local dates, time zones, notes, and source links.
-- [ ] Implement adding, editing, moving, and removing items.
+- [x] Implement adding, editing, moving, and removing items.
 - [ ] Validate dates and enforce ownership for all item operations.
-- [ ] Connect the itinerary UI to reactive Convex queries.
+- [x] Connect the itinerary UI to reactive Convex queries.
 - [ ] Define cleanup of related records when a trip is deleted.
 
 **Done when:** a manually created itinerary persists and updates immediately in

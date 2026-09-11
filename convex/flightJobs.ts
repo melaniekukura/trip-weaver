@@ -7,6 +7,7 @@ import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalAction, internalMutation, mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
+import { resolveAirportScope } from "./cityAirports";
 import { scrapeFlightPage } from "./firecrawl";
 import { sourceFields } from "./flightSchema";
 import schema from "./schema";
@@ -34,7 +35,7 @@ async function ownedTrip(ctx: QueryCtx, tripId: Id<"trips">) {
 
 function searchDetails(flight: FlightRequest) {
   const request = validateFlightRequest(flight);
-  return { destination: request.destination, searchKey: JSON.stringify(["flights-v1", request]), queryText: flightSearchUrl(request), flightRequest: request };
+  return { destination: request.destination, searchKey: JSON.stringify(["flights-v2", request]), queryText: flightSearchUrl(request), flightRequest: request };
 }
 
 export const start = mutation({
@@ -103,6 +104,7 @@ export const claim = internalMutation({
 });
 
 const providerErrors: Record<string, string> = {
+  AIRPORT_LOOKUP_FAILED: "City airports could not be verified. Please try again or select an individual airport.",
   FLIGHTS_UNAVAILABLE: "Matching flight prices could not be verified. Try again or open Google Flights.",
   FIRECRAWL_UNAUTHORIZED: "The flight search service key is invalid. Contact the app administrator.",
   FIRECRAWL_CREDITS_EXHAUSTED: "The flight search service is out of credits. Try again after credits are added.",
@@ -117,9 +119,10 @@ export const execute = internalAction({
     const run = await ctx.runMutation(internal.flightJobs.claim, { runId });
     if (!run || !run.flightRequest) return null;
     try {
+      const scope = await resolveAirportScope(run.flightRequest);
       const response = await scrapeFlightPage(run.query);
-      const flights = parseFlightPage(response.markdown, run.flightRequest);
-      await ctx.runMutation(internal.flightJobs.finish, { runId, sources: flights.map((flight) => ({
+      const flights = parseFlightPage(response.markdown, run.flightRequest, scope);
+      await ctx.runMutation(internal.flightJobs.finish, { runId, airportScope: scope, sources: flights.map((flight) => ({
         title: flight.airline, category: "flights" as const, description: `${flight.duration} · ${flight.stops}`,
         destination: run.destination, sourceUrl: run.query, retrievedAt: response.retrievedAt, flight,
       })) });
@@ -135,14 +138,14 @@ export const execute = internalAction({
 });
 
 export const finish = internalMutation({
-  args: { runId: v.id("researchRuns"), sources: v.array(sourceFields) }, returns: v.null(),
-  handler: async (ctx, { runId, sources }) => {
+  args: { runId: v.id("researchRuns"), sources: v.array(sourceFields), airportScope: v.optional(v.object({ origin: v.array(v.string()), destination: v.array(v.string()) })) }, returns: v.null(),
+  handler: async (ctx, { runId, sources, airportScope }) => {
     const run = await ctx.db.get("researchRuns", runId);
     if (!run || run.status !== "running") return null;
     const trip = await ctx.db.get("trips", run.tripId);
     if (!trip || trip.ownerId !== run.ownerId) return null;
-    for (const source of sources.slice(0, 5)) await ctx.db.insert("researchSources", { ...source, tripId: run.tripId, runId });
-    await ctx.db.patch("researchRuns", runId, { status: "completed", finishedAt: Date.now(), expiresAt: Date.now() + CACHE_MS });
+    for (const source of [...sources].sort((a, b) => a.flight.amount - b.flight.amount).slice(0, 5)) await ctx.db.insert("researchSources", { ...source, tripId: run.tripId, runId });
+    await ctx.db.patch("researchRuns", runId, { status: "completed", finishedAt: Date.now(), expiresAt: Date.now() + CACHE_MS, ...(airportScope ? { airportScope } : {}) });
     return null;
   },
 });

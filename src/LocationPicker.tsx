@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { locationValue, searchLocations } from "./locations";
+import { locationSearchTerm, locationValue, searchLocations } from "./locations";
 import type { LocationOption } from "./locations";
 
 type LocationPickerProps = {
@@ -18,11 +18,29 @@ export function LocationPicker({ label, value = "", required = false, disabled =
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const search = query === value ? query.split(" — ")[0].replace(/ \(all airports\)$/, "") : query;
-  const matches = searchLocations(search);
-  const options: LocationOption[] = matches.length || !query.trim() ? matches : [
-    { id: "custom-city", city: search.trim(), country: "Add as a city" },
-  ];
+  const search = query === value ? locationSearchTerm(query) : query;
+  const [lookup, setLookup] = useState<{ term: string; options: LocationOption[]; error: string; loading: boolean }>({
+    term: "", options: [], error: "", loading: false,
+  });
+  const [retry, setRetry] = useState(0);
+  const options = lookup.term === search ? lookup.options : [];
+  const loading = open && search.trim().length >= 2 && (lookup.term !== search || lookup.loading);
+
+  useEffect(() => {
+    if (!open || disabled || search.trim().length < 2) return;
+    const controller = new AbortController();
+    setLookup({ term: search, options: [], error: "", loading: true });
+    const timer = setTimeout(() => {
+      const timeout = setTimeout(() => controller.abort(new Error("Location search timed out.")), 10_000);
+      void searchLocations(search, controller.signal).then((options) => {
+        if (!controller.signal.aborted) { setLookup({ term: search, options, error: "", loading: false }); setActive(0); }
+      }).catch(() => {
+        if (!disposed) setLookup({ term: search, options: [], error: "Unable to load locations. Please try again.", loading: false });
+      }).finally(() => clearTimeout(timeout));
+    }, 300);
+    let disposed = false;
+    return () => { disposed = true; clearTimeout(timer); controller.abort(); };
+  }, [search, open, disabled, retry]);
 
   useEffect(() => {
     input.current?.setCustomValidity(required && query && !value ? "Select a city or airport from the suggestions." : "");
@@ -46,13 +64,13 @@ export function LocationPicker({ label, value = "", required = false, disabled =
     }}>
       <label htmlFor={id}>{label}</label>
       <input id={id} ref={input} role="combobox" autoComplete="off" aria-autocomplete="list"
-        aria-expanded={open} aria-controls={`${id}-options`} aria-describedby={`${id}-hint`}
+        aria-expanded={open} aria-busy={loading} aria-controls={`${id}-options`} aria-describedby={`${id}-hint`}
         aria-activedescendant={open && options[active] ? `${id}-option-${active}` : undefined}
         required={required} disabled={disabled} maxLength={90} value={query}
         placeholder="Search city, airport, or airport code" onFocus={() => { setOpen(true); setActive(0); }}
         onChange={(event) => { setQuery(event.target.value); onClear?.(); setOpen(true); setActive(0); }}
         onKeyDown={(event) => {
-          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          if ((event.key === "ArrowDown" || event.key === "ArrowUp") && options.length > 0) {
             event.preventDefault();
             setOpen(true);
             setActive(open ? (active + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length : 0);
@@ -65,8 +83,16 @@ export function LocationPicker({ label, value = "", required = false, disabled =
             setOpen(false);
           }
         }} />
-      <p className="field-hint" id={`${id}-hint`}>Choose a city for all airports, or select an individual airport.</p>
+      <p className="field-hint" id={`${id}-hint`}>Type at least two characters to search cities and airports live.</p>
       {open && <ul className="location-options" id={`${id}-options`} role="listbox" aria-label={`${label} suggestions`}>
+        {loading && <li role="presentation">Searching locations…</li>}
+        {!loading && search.trim().length < 2 && <li role="presentation">Type a city or airport name to start.</li>}
+        {!loading && lookup.term === search && lookup.error && <li role="presentation">
+          <span role="alert">{lookup.error}</span>
+          <button type="button" className="secondary-button" onClick={() => setRetry(retry + 1)}>Retry</button>
+        </li>}
+        {!loading && lookup.term === search && !lookup.error && search.trim().length >= 2 && options.length === 0 &&
+          <li role="presentation">No matching locations. Try another name or an airport code.</li>}
         {options.map((option, index) => (
           <li id={`${id}-option-${index}`} key={option.id} role="option" aria-selected={index === active}
             className={option.code ? "location-airport" : "location-city"}

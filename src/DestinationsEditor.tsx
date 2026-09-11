@@ -74,7 +74,7 @@ export function DestinationsEditor({ origin, stops, disabled, onOriginChange, on
             setAnnouncement(`${value} added as stop ${stops.length + 1}.`);
           }} />
       </div>
-      <p className="field-hint">{stops.length >= 20 ? "You have reached the 20-stop limit." : "Suggestions cover popular cities. If no match appears, you can add a city by name."}</p>
+      <p className="field-hint">{stops.length >= 20 ? "You have reached the 20-stop limit." : "Search by city name, airport name, or three-letter airport code."}</p>
       <p className="visually-hidden" role="status">{announcement}</p>
     </div>
   );

@@ -811,3 +811,14 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   .location-options li { gap: 8px; }
   .location-options .location-airport { padding-left: 16px; }
 }
+
+.live-planner { width: min(100%, 1000px); }
+.live-planner .location-picker > label { font-size: 11px; color: #626262; }
+.live-planner .location-picker > .field-hint { display: none; }
+.live-planner .location-options { top: 55px; min-width: min(360px, calc(100vw - 64px)); }
+.live-planner .location-options span { margin: 0; color: inherit; font-size: inherit; }
+.live-planner .location-options .location-code { margin-left: auto; font-size: 12px; }
+.home-search-hint { margin: 18px auto 0; }
+.hero .trip-modal { text-align: left; }
+.transportation-flights > .secondary-button { margin-top: 16px; }
+.location-options button { flex-shrink: 0; }

@@ -1,11 +1,17 @@
 import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
 
-export const flightRequest = v.object({ origin: v.string(), destination: v.string(), departureDate: v.string() });
+const locationType = v.union(v.literal("airport"), v.literal("city"));
+export const flightRequest = v.object({
+  origin: v.string(), destination: v.string(), departureDate: v.string(),
+  originType: v.optional(locationType), destinationType: v.optional(locationType),
+});
+export type AirportScope = { origin: string[]; destination: string[] };
 export type FlightRequest = Infer<typeof flightRequest>;
 export const flightOption = v.object({
   airline: v.string(), departure: v.string(), arrival: v.string(), duration: v.string(),
   stops: v.string(), amount: v.number(), currency: v.literal("USD"),
+  originAirport: v.optional(v.string()), destinationAirport: v.optional(v.string()),
 });
 
 export function validateFlightRequest(input: FlightRequest): FlightRequest {
@@ -15,9 +21,12 @@ export function validateFlightRequest(input: FlightRequest): FlightRequest {
   if (!/^[A-Z]{3}$/.test(origin) || !/^[A-Z]{3}$/.test(destination) || origin === destination ||
     !/^\d{4}-\d{2}-\d{2}$/.test(input.departureDate) || !Number.isFinite(date.getTime()) ||
     date.toISOString().slice(0, 10) !== input.departureDate) {
-    throw new ConvexError({ code: "INVALID_FLIGHT_SEARCH", message: "Enter different three-letter airport codes and a valid departure date." });
+    throw new ConvexError({ code: "INVALID_FLIGHT_SEARCH", message: "Enter different three-letter airport or city codes and a valid departure date." });
   }
-  return { origin, destination, departureDate: input.departureDate };
+  return { origin, destination, departureDate: input.departureDate,
+    ...(input.originType === "city" ? { originType: "city" as const } : {}),
+    ...(input.destinationType === "city" ? { destinationType: "city" as const } : {}),
+  };
 }
 
 export function flightSearchUrl(input: FlightRequest) {
@@ -29,12 +38,17 @@ export function flightSearchUrl(input: FlightRequest) {
   return url.href;
 }
 
-export function parseFlightPage(markdown: string, input: FlightRequest): Infer<typeof flightOption>[] {
+export function parseFlightPage(markdown: string, input: FlightRequest, scope?: AirportScope): Infer<typeof flightOption>[] {
   const request = validateFlightRequest(input);
+  if ((request.originType === "city" || request.destinationType === "city") && !scope) {
+    throw new ConvexError({ code: "AIRPORT_LOOKUP_FAILED", message: "City airports could not be verified." });
+  }
+  const originAirports = new Set(request.originType === "city" ? scope!.origin : [request.origin]);
+  const destinationAirports = new Set(request.destinationType === "city" ? scope!.destination : [request.destination]);
   const text = markdown.replace(/\u00a0/g, " ").replace(/[\u200b-\u200d]/g, "").replace(/\n[ \t]*\n+/g, "\n");
   const header = text.split("## Filters")[0];
   const fail = (): never => { throw new ConvexError({ code: "FLIGHTS_UNAVAILABLE", message: "Matching flight prices could not be verified. Try again or open Google Flights." }); };
-  if (!header.includes("# Flight search\nOne way\n") || !header.includes("\nEconomy (include Basic)\n") ||
+  if (!header.includes("# Flight search\nOne way\n") || !/\nEconomy(?: \(include Basic\))?\n/.test(header) ||
     !text.includes("Prices include required taxes + fees for 1 adult.") || !/Currency\s*USD\b/.test(text) ||
     !text.includes(`departing ${request.departureDate}`)) return fail();
   const dateLabel = new Date(`${request.departureDate}T00:00:00Z`).toLocaleDateString("en-US", {
@@ -48,16 +62,17 @@ export function parseFlightPage(markdown: string, input: FlightRequest): Infer<t
     const arrival = lines[3];
     const airline = lines[4];
     const duration = lines[5];
-    const amount = block.match(/\n\$([\d,]+(?:\.\d{2})?)\n/);
+    const amount = block.match(/\n\$([\d,]+(?:\.\d{2})?)(?:\n|$)/);
     const stops = lines.find((line) => /^(Nonstop|\d+ stops?)$/.test(line));
     if (!departure?.endsWith(`on ${dateLabel}`) || !/^\d{1,2}:\d{2} [AP]M on [A-Za-z]{3}, [A-Za-z]{3} \d{1,2}$/.test(arrival ?? "") ||
       !airline || airline.length > 200 || !/^(\d+ hr(?: \d+ min)?|\d+ min)$/.test(duration ?? "") ||
-      lines[6] !== request.origin || lines[8] !== "–" || lines[9] !== request.destination || !amount || !stops) continue;
+      !originAirports.has(lines[6]) || lines[8] !== "–" || !destinationAirports.has(lines[9]) || !amount || !stops) continue;
     const price = Number(amount[1].replaceAll(",", ""));
     if (!Number.isFinite(price) || price <= 0) continue;
-    const option = { airline, departure, arrival, duration, stops, amount: price, currency: "USD" as const };
+    const option = { airline, departure, arrival, duration, stops, amount: price, currency: "USD" as const,
+      originAirport: lines[6], destinationAirport: lines[9] };
     if (!flights.some((flight) => JSON.stringify(flight) === JSON.stringify(option))) flights.push(option);
   }
   if (flights.length === 0) return fail();
-  return flights.slice(0, 5);
+  return flights.sort((a, b) => a.amount - b.amount).slice(0, 5);
 }

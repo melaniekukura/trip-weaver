@@ -1,0 +1,61 @@
+# Flight search
+One way
+Economy
+## Filters
+Prices include required taxes + fees for 1 adult.
+Track prices from London to New York departing 2026-10-15
+CurrencyUSD
+- 1:05 PM
+1:05 PM on Thu, Oct 15
+– 3:55 PM
+3:55 PM on Thu, Oct 15
+Norse Atlantic UK
+7 hr 50 min
+LGW
+London Gatwick Airport
+–
+JFK
+John F. Kennedy International Airport
+Nonstop
+361 kg CO2e
++13% emissions
++13% emissions
+$496
+- 8:40 AM
+8:40 AM on Thu, Oct 15
+– 5:29 PM
+5:29 PM on Thu, Oct 15
+JetBlue
+13 hr 49 min
+LHR
+Heathrow Airport
+–
+JFK
+John F. Kennedy International Airport
+1 stop
+4 hr 52 min BOS
+Boston Logan International Airport
+649 kg CO2e
++103% emissions
++103% emissions
+$505
+- 6:00 AM
+6:00 AM on Thu, Oct 15
+– 9:00 PM
+9:00 PM on Thu, Oct 15
+Tap Air Portugal
+20 hr
+LHR
+Heathrow Airport
+–
+EWR
+Newark Liberty International Airport
+1 stop
+9 hr layover
+Long layover
+9 hr LIS
+Humberto Delgado Airport
+547 kg CO2e
++71% emissions
++71% emissions
+$605

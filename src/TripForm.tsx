@@ -1,4 +1,4 @@
-import { useMutation } from "convex/react";
+import { useConvex, useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
@@ -7,20 +7,27 @@ import { DestinationsEditor } from "./DestinationsEditor";
 import type { DestinationStop } from "./DestinationsEditor";
 import { TransportationTab } from "./TransportationTab";
 import { api } from "../convex/_generated/api";
-import type { Doc } from "../convex/_generated/dataModel";
+import type { Doc, Id } from "../convex/_generated/dataModel";
 
 const tabs = ["Overview", "Destinations", "Transportation", "Budget", "Interests", "Accessibility"];
 
-export function TripForm({ trip, onClose }: { trip?: Doc<"trips">; onClose: () => void }) {
+type InitialTrip = { origin: string; destinations: string[]; startDate: string };
+
+export function TripForm({ trip, initialValues, onClose }: { trip?: Doc<"trips">; initialValues?: InitialTrip; onClose: () => void }) {
+  const convex = useConvex();
+  const [savedTrip, setSavedTrip] = useState(trip);
+  const createdId = useRef<Id<"trips"> | null>(null);
+  const saveLock = useRef(false);
+  const form = useRef<HTMLFormElement>(null);
   const create = useMutation(api.trips.create);
   const update = useMutation(api.trips.update);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [active, setActive] = useState(0);
-  const [startDate, setStartDate] = useState(trip?.startDate ?? "");
-  const [origin, setOrigin] = useState(trip?.origin ?? "");
+  const [startDate, setStartDate] = useState(trip?.startDate ?? initialValues?.startDate ?? "");
+  const [origin, setOrigin] = useState(trip?.origin ?? initialValues?.origin ?? "");
   const [destinations, setDestinations] = useState<DestinationStop[]>(() =>
-    (trip?.destinations ?? []).map((value, index) => ({ id: `saved-${index}`, value })));
+    (trip?.destinations ?? initialValues?.destinations ?? []).map((value, index) => ({ id: `saved-${index}`, value })));
   const dialog = useRef<HTMLDialogElement>(null);
   const tabButtons = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -49,17 +56,17 @@ export function TripForm({ trip, onClose }: { trip?: Doc<"trips">; onClose: () =
     tabButtons.current[next]?.focus();
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const invalid = event.currentTarget.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(":invalid");
+  async function saveTrip(): Promise<Id<"trips"> | null> {
+    if (saveLock.current || !form.current) return null;
+    const invalid = form.current.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(":invalid");
     if (invalid) {
       const panel = invalid.closest<HTMLElement>("[data-tab]");
       flushSync(() => setActive(Number(panel?.dataset.tab ?? 0)));
       invalid.focus();
       invalid.reportValidity();
-      return;
+      return null;
     }
-    const data = new FormData(event.currentTarget);
+    const data = new FormData(form.current);
     const value = (key: string) => String(data.get(key) ?? "").trim();
     const changes = {
       name: value("name"), origin,
@@ -70,15 +77,28 @@ export function TripForm({ trip, onClose }: { trip?: Doc<"trips">; onClose: () =
       accessibility: value("accessibility"),
       interests: value("interests").split(",").map((item) => item.trim()).filter(Boolean),
     };
+    saveLock.current = true;
     setPending(true);
     setError("");
     try {
-      if (trip) await update({ tripId: trip._id, changes, expectedUpdatedAt: trip.updatedAt });
-      else await create(changes);
-      onClose();
-    } catch (err) { setError(err instanceof ConvexError && typeof err.data === "object" && err.data !== null &&
-      "message" in err.data && typeof err.data.message === "string" ? err.data.message : "Unable to save your trip. Please try again."); }
-    finally { setPending(false); }
+      let existing = savedTrip;
+      if (!existing && createdId.current) existing = await convex.query(api.trips.get, { tripId: createdId.current });
+      const tripId = existing?._id ?? await create(changes);
+      if (!existing) createdId.current = tripId;
+      else await update({ tripId, changes, expectedUpdatedAt: existing.updatedAt });
+      const persisted = await convex.query(api.trips.get, { tripId });
+      setSavedTrip(persisted);
+      return tripId;
+    } catch (err) {
+      setError(err instanceof ConvexError && typeof err.data === "object" && err.data !== null &&
+        "message" in err.data && typeof err.data.message === "string" ? err.data.message : "Unable to save your trip. Please try again.");
+      return null;
+    } finally { saveLock.current = false; setPending(false); }
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (await saveTrip()) onClose();
   }
 
   return (
@@ -89,11 +109,11 @@ export function TripForm({ trip, onClose }: { trip?: Doc<"trips">; onClose: () =
       <header className="trip-modal-header">
         <div>
           <p className="eyebrow">Your next adventure</p>
-          <h2 id="editor-title">{trip ? "Edit trip" : "Plan a new trip"}</h2>
+          <h2 id="editor-title">{savedTrip ? "Edit trip" : "Plan a new trip"}</h2>
         </div>
         <button className="modal-close" type="button" aria-label="Close trip form" disabled={pending} onClick={onClose}>×</button>
       </header>
-      <form className="trip-modal-form" noValidate onSubmit={submit}>
+      <form ref={form} className="trip-modal-form" noValidate onSubmit={submit}>
         <div className="trip-tabs" role="tablist" aria-label="Trip details">
           {tabs.map((tab, index) => (
             <button key={tab} ref={(element) => { tabButtons.current[index] = element; }}
@@ -123,7 +143,7 @@ export function TripForm({ trip, onClose }: { trip?: Doc<"trips">; onClose: () =
             </section>
             <section className="trip-tab-panel" role="tabpanel" id="trip-panel-2" aria-labelledby="trip-tab-2" data-tab="2" hidden={active !== 2}>
               <TransportationTab origin={origin} destination={destinations[0]?.value ?? ""}
-                departureDate={startDate} onEditDetails={(tab) => setActive(tab)} />
+                departureDate={startDate} onSaveTrip={saveTrip} onEditDetails={(tab) => setActive(tab)} />
             </section>
             <section className="trip-tab-panel" role="tabpanel" id="trip-panel-3" aria-labelledby="trip-tab-3" data-tab="3" hidden={active !== 3}>
               <h3>Plan your spending</h3>
@@ -152,8 +172,9 @@ export function TripForm({ trip, onClose }: { trip?: Doc<"trips">; onClose: () =
         </div>
         <footer className="trip-modal-footer">
           {error && <p className="search-error" role="alert">{error}</p>}
+          {createdId.current && <p className="field-hint" role="status">Your trip has been saved. Save again to keep any further edits.</p>}
           <div className="modal-footer-actions">
-            <button className="secondary-button" type="button" disabled={pending} onClick={onClose}>Cancel</button>
+            <button className="secondary-button" type="button" disabled={pending} onClick={onClose}>{createdId.current ? "Close" : "Cancel"}</button>
             <div className="button-row">
               {active > 0 && <button className="secondary-button" type="button" onClick={() => setActive(active - 1)}>Back</button>}
               {active < tabs.length - 1 && <button className="secondary-button" type="button" onClick={() => setActive(active + 1)}>Next</button>}

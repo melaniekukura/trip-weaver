@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as cityAirports from "../cityAirports.js";
 import type * as firecrawl from "../firecrawl.js";
 import type * as flightJobs from "../flightJobs.js";
 import type * as flightSchema from "../flightSchema.js";
@@ -27,6 +28,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  cityAirports: typeof cityAirports;
   firecrawl: typeof firecrawl;
   flightJobs: typeof flightJobs;
   flightSchema: typeof flightSchema;

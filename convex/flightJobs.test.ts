@@ -173,3 +173,43 @@ test("unreadable flight pages fail without saving invented or mock fares", async
   expect(result?.run.error).toContain("could not be verified");
   expect(result?.sources).toEqual([]);
 });
+
+test("city search resolves airports, saves cross-airport fares, and uses a distinct cache key", async () => {
+  const { default: cityMarkdown } = await import("./fixtures/google-flights-city.txt?raw");
+  const directory = [
+    ...["LHR", "LGW", "STN", "LTN", "LCY", "SEN"].map((code) => ({ code, city_code: "LON", iata_type: "airport", flightable: true })),
+    ...["JFK", "LGA", "EWR"].map((code) => ({ code, city_code: "NYC", iata_type: "airport", flightable: true })),
+  ];
+  fetchMock.mockImplementation(async (url) => new Response(JSON.stringify(String(url).includes("travelpayouts.com")
+    ? directory : { success: true, data: { markdown: cityMarkdown } })));
+  const { t, alice, bob, tripId } = await setup();
+  const flight = { origin: "LON", originType: "city" as const, destination: "NYC", destinationType: "city" as const, departureDate: "2026-10-15" };
+  const args = { tripId, flight };
+  const { runId } = await alice.mutation(api.flightJobs.start, args);
+  await expect(bob.query(api.flightJobs.latest, args)).rejects.toThrow("TRIP_NOT_FOUND");
+  await expect(bob.mutation(api.flightJobs.start, args)).rejects.toThrow("TRIP_NOT_FOUND");
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  const result = await alice.query(api.flightJobs.latest, args);
+  expect(result?.run.status).toBe("completed");
+  expect(result?.run.airportScope?.origin).toHaveLength(6);
+  expect(result?.run.airportScope?.destination).toEqual(["EWR", "JFK", "LGA"]);
+  expect(new Set(result?.sources.map((source) => source.flight.originAirport))).toEqual(new Set(["LHR", "LGW"]));
+  expect(new Set(result?.sources.map((source) => source.flight.destinationAirport))).toEqual(new Set(["JFK", "EWR"]));
+  expect(await alice.mutation(api.flightJobs.start, args)).toEqual({ runId, reused: true });
+  expect(await alice.query(api.flightJobs.latest, { tripId, flight: { ...flight, originType: "airport" } })).toBeNull();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test("city lookup failure produces an actionable error without spending Firecrawl credits", async () => {
+  fetchMock.mockResolvedValue(new Response("unavailable", { status: 503 }));
+  const { t, alice, args } = await setup();
+  const cityArgs = { ...args, flight: { ...args.flight, origin: "LON", originType: "city" as const } };
+  const { runId } = await alice.mutation(api.flightJobs.start, cityArgs);
+  await t.action(internal.flightJobs.execute, { runId });
+  const result = await alice.query(api.flightJobs.latest, cityArgs);
+  expect(result?.run.status).toBe("failed");
+  expect(result?.run.error).toContain("City airports could not be verified");
+  expect(result?.sources).toEqual([]);
+  expect(fetchMock).toHaveBeenCalledOnce();
+  expect(String(fetchMock.mock.calls[0][0])).toContain("travelpayouts.com");
+});

@@ -41,3 +41,34 @@ test("normalizes airport codes and constructs a fixed Google Flights URL", () =>
   expect(url.searchParams.get("curr")).toBe("USD");
   expect(url.searchParams.get("q")).toBe("Flights from DTW to LAX on October 15, 2026 one way 1 adult economy");
 });
+
+test("city searches retain flights from every included airport and reject unrelated routes", () => {
+  const cityRequest = { ...request, origin: "LON", originType: "city" as const, destination: "NYC", destinationType: "city" as const };
+  const scope = { origin: ["LHR", "LGW"], destination: ["JFK", "EWR"] };
+  const page = fixture.replaceAll("DTW", "LHR").replaceAll("LAX", "JFK") +
+    fixture.replaceAll("DTW", "LGW").replaceAll("LAX", "EWR").replaceAll("$169", "$99") +
+    fixture.replaceAll("DTW", "CDG").replaceAll("LAX", "JFK").replaceAll("$169", "$1");
+  const flights = parseFlightPage(page, cityRequest, scope);
+  expect(flights[0]).toMatchObject({ originAirport: "LGW", destinationAirport: "EWR", amount: 99 });
+  expect(flights.some((flight) => flight.originAirport === "LHR")).toBe(true);
+  expect(flights.some((flight) => flight.originAirport === "CDG")).toBe(false);
+  expect(() => parseFlightPage(page, cityRequest)).toThrow("AIRPORT_LOOKUP_FAILED");
+  const specific = parseFlightPage(page, { ...request, origin: "LHR", destination: "JFK" }, scope);
+  expect(specific.every((flight) => flight.originAirport === "LHR" && flight.destinationAirport === "JFK")).toBe(true);
+});
+
+test("city and airport scopes remain distinct after normalization", () => {
+  expect(validateFlightRequest({ ...request, origin: " lon ", originType: "city" })).toMatchObject({ origin: "LON", originType: "city" });
+  expect(validateFlightRequest({ ...request, originType: "airport" })).toEqual(request);
+});
+
+test("parses the live city-wide Google Flights excerpt with Economy labeling", async () => {
+  const { default: cityPage } = await import("./fixtures/google-flights-city.txt?raw");
+  const input = { origin: "LON", originType: "city" as const, destination: "NYC", destinationType: "city" as const, departureDate: "2026-10-15" };
+  const result = parseFlightPage(cityPage, input, { origin: ["LHR", "LGW", "LTN", "STN", "LCY", "SEN"], destination: ["JFK", "LGA", "EWR"] });
+  expect(new Set(result.map((flight) => flight.originAirport))).toEqual(new Set(["LHR", "LGW"]));
+  expect(new Set(result.map((flight) => flight.destinationAirport))).toEqual(new Set(["JFK", "EWR"]));
+  expect(new URL(flightSearchUrl(input)).searchParams.get("q")).toBe("Flights from LON to NYC on October 15, 2026 one way 1 adult economy");
+  expect(() => parseFlightPage(cityPage.replace("\nEconomy\n", "\nBusiness\n"), input,
+    { origin: ["LHR", "LGW"], destination: ["JFK", "EWR"] })).toThrow("FLIGHTS_UNAVAILABLE");
+});
