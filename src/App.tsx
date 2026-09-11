@@ -5,6 +5,8 @@ import { AuthForm } from "./AuthForm";
 import { IdleSession } from "./IdleSession";
 import { RouteIcon } from "./Icons";
 import { HomePage } from "./pages/HomePage";
+import { tripIdFromPath } from "./tripRoutes";
+import { TripPlannerPage } from "./pages/TripPlannerPage";
 import { TripsPage } from "./pages/TripsPage";
 import { FlightTrackerPage } from "./pages/FlightTrackerPage";
 import { InterestsPage } from "./pages/InterestsPage";
@@ -20,16 +22,17 @@ const pages = {
 
 type PagePath = keyof typeof pages;
 
-function currentPath(): PagePath {
+function currentPath(): string {
   const path = window.location.hash.slice(1);
-  return Object.hasOwn(pages, path) ? path as PagePath : "/";
+  return Object.hasOwn(pages, path) || tripIdFromPath(path) ? path : "/";
 }
 
 function SignedInApp() {
   const { signOut } = useAuthActions();
   const [signOutError, setSignOutError] = useState(false);
   const [path, setPath] = useState(currentPath);
-  const page = pages[path];
+  const tripId = tripIdFromPath(path);
+  const page = pages[tripId ? "/trips" : path as PagePath];
   const Page = page.component;
 
   useEffect(() => {
@@ -41,10 +44,10 @@ function SignedInApp() {
   }, []);
 
   useEffect(() => {
-    document.title = page.title === "Home" ? "Trip-Weaver" : `${page.title} | Trip-Weaver`;
+    document.title = tripId ? "Plan My Trip | Trip-Weaver" : page.title === "Home" ? "Trip-Weaver" : `${page.title} | Trip-Weaver`;
     document.getElementById("page-content")?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
-  }, [page]);
+  }, [page, path, tripId]);
 
   return (
     <div className="site-shell">
@@ -59,7 +62,7 @@ function SignedInApp() {
         </a>
         <nav className="desktop-nav" aria-label="Primary navigation">
           {(Object.keys(pages) as PagePath[]).filter((route) => route !== "/").map((route) => (
-            <a key={route} href={`#${route}`} aria-current={path === route ? "page" : undefined}>
+            <a key={route} href={`#${route}`} aria-current={path === route || (tripId && route === "/trips") ? "page" : undefined}>
               {pages[route].title}
             </a>
           ))}
@@ -73,7 +76,7 @@ function SignedInApp() {
       </header>
       <main id="page-content" className="page-content" tabIndex={-1} aria-label={page.title}>
         {signOutError && <p className="search-feedback search-error" role="alert">Unable to sign out. Please try again.</p>}
-        <Page />
+        {tripId ? <TripPlannerPage key={tripId} tripId={tripId} /> : <Page />}
       </main>
     </div>
   );

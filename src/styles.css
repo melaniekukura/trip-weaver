@@ -822,3 +822,41 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .hero .trip-modal { text-align: left; }
 .transportation-flights > .secondary-button { margin-top: 16px; }
 .location-options button { flex-shrink: 0; }
+
+.plan-trip-button {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  width: 100%; min-height: 58px; margin: 22px 0 16px; padding: 16px 20px; font-size: 18px;
+}
+.plan-trip-button:hover { background: #12b7b1; }
+.plan-trip-button:focus-visible { outline: 2px solid var(--indigo); outline-offset: 3px; }
+.plan-trip-button span { font-size: 24px; }
+.trip-planner-page {
+  display: flex; flex-direction: column; width: 100%; min-height: calc(100dvh - 68px);
+  margin: 0; padding: 32px clamp(24px, 4vw, 80px) 0;
+}
+.planner-back { display: inline-block; margin-bottom: 24px; color: var(--indigo); font-size: 14px; }
+.planner-back:hover { text-decoration: underline; }
+.planner-page-title { font-size: clamp(32px, 4vw, 44px); letter-spacing: -1px; margin-bottom: 28px; }
+.trip-planner-editor { display: flex; flex: 1; flex-direction: column; border: 0; border-radius: 0; background: transparent; }
+.trip-planner-editor .trip-modal-header { padding: 0 0 28px; background: transparent; color: var(--ink); }
+.trip-planner-editor .trip-modal-header .eyebrow { color: var(--indigo); }
+.trip-planner-editor .trip-modal-header h2 { font-size: clamp(26px, 3vw, 38px); }
+.trip-planner-editor .trip-modal-form { flex: 1; }
+.trip-planner-editor .trip-modal-body { flex: 1; padding: 36px 0 48px; overflow: visible; }
+.trip-planner-editor .trip-tab-panel { min-height: 320px; gap: 24px; }
+.trip-planner-editor .trip-tabs { padding: 0; gap: 24px; background: transparent; }
+.trip-planner-editor .trip-tabs button { flex: 0 0 auto; padding: 18px 24px; font-size: 15px; }
+.trip-planner-editor .trip-modal-footer { padding: 24px 0; background: transparent; }
+.trip-planner-editor .location-options { position: static; }
+.trip-planner-editor :is(.destination-stop, .transportation-flight-card, .flight-setup, .location-options,
+  .flight-finder-toggle, input:not([role="switch"]), textarea, select, button) { border-radius: 0; }
+.create-trip-panel p { max-width: 600px; margin: 0; font-size: 15px; line-height: 1.7; }
+.create-trip-panel .field-hint { font-size: 13px; }
+@media (max-width: 600px) {
+  .trip-planner-page { padding: 24px 16px 0; min-height: calc(100dvh - 105px); }
+  .trip-planner-editor .trip-modal-header { padding: 0 0 24px; }
+  .trip-planner-editor .trip-modal-body { padding: 28px 0 36px; }
+  .trip-planner-editor .trip-tabs { gap: 8px; }
+  .trip-planner-editor .trip-tabs button { padding: 16px 14px; font-size: 14px; }
+  .trip-planner-editor .trip-tab-panel { min-height: 260px; }
+}

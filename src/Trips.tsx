@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "../convex/_generated/api";
 import { TripForm } from "./TripForm";
 import type { Doc, Id } from "../convex/_generated/dataModel";
-import { FlightSearchPanel } from "./FlightSearchPanel";
+import { tripPlannerPath } from "./tripRoutes";
 
 function errorMessage(error: unknown) {
   if (error instanceof ConvexError && typeof error.data === "object" && error.data !== null &&
@@ -16,7 +16,6 @@ export function Trips() {
   const { results, status, loadMore } = usePaginatedQuery(api.trips.list, {}, { initialNumItems: 12 });
   const remove = useMutation(api.trips.remove);
   const [editor, setEditor] = useState<Doc<"trips"> | "new" | null>(null);
-  const [flightTripId, setFlightTripId] = useState<Id<"trips"> | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Id<"trips"> | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
@@ -50,6 +49,7 @@ export function Trips() {
             <p>{trip.travelers} {trip.travelers === 1 ? "traveler" : "travelers"}
               {trip.budget !== null && ` · ${new Intl.NumberFormat("en-US", { style: "currency", currency: trip.currency }).format(trip.budget)} total budget`}</p>
             {trip.interests.length > 0 && <p className="field-hint">{trip.interests.join(" · ")}</p>}
+            <a className="primary-button plan-trip-button" href={`#${tripPlannerPath(trip._id)}`}>Plan My Trip <span aria-hidden="true">→</span></a>
             {confirmDelete === trip._id ? <div className="delete-confirmation">
               <p>Delete “{trip.name}”? This cannot be undone.</p>
               <div className="button-row"><button className="danger-button" disabled={deleting} onClick={() => void deleteTrip(trip._id)}>{deleting ? "Deleting…" : "Delete trip"}</button>
@@ -58,11 +58,7 @@ export function Trips() {
               <button className="secondary-button" disabled={editor !== null} onClick={() => setEditor(trip)}>Edit</button>
               <button className="text-button" disabled={editor !== null || deleting} onClick={() => { setConfirmDelete(trip._id); setError(""); }}>Delete</button>
             </div>}
-            <button className="text-button" aria-expanded={flightTripId === trip._id}
-              onClick={() => setFlightTripId(flightTripId === trip._id ? null : trip._id)}>
-              {flightTripId === trip._id ? "Close flight search" : "Find flights"}
-            </button>
-            {flightTripId === trip._id && <FlightSearchPanel key={trip._id} trip={trip} />}
+
           </article>
         ))}
       </div>
