@@ -613,6 +613,44 @@ footer a:focus-visible {
   border-radius: 4px; background: white; color: var(--ink); font: inherit;
 }
 .trip-form textarea { resize: vertical; }
+.accessibility-editor { display: grid; gap: 16px; width: 100%; }
+.trip-form .accessibility-editor > label { font-size: 20px; font-weight: 600; }
+.accessibility-search { display: flex; gap: 12px; }
+.trip-form .accessibility-search input { flex: 1; min-height: 64px; padding: 18px 20px; font-size: 17px; }
+.accessibility-search .primary-button { flex-shrink: 0; }
+.accessibility-editor .field-hint { margin: 0; font-size: 14px; }
+.accessibility-status { margin: 0; color: var(--indigo); font-size: 14px; }
+.accessibility-status:empty { display: none; }
+.accessibility-selected, .accessibility-browse { display: grid; gap: 24px; }
+.accessibility-browse { margin-top: 16px; }
+.accessibility-category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; align-items: start; }
+.accessibility-category-grid details { border: 1px solid var(--gray); background: white; }
+.accessibility-category-grid summary { padding: 20px; cursor: pointer; font-weight: 600; color: var(--indigo); }
+.accessibility-category-grid summary:focus-visible { outline: 2px solid var(--indigo); outline-offset: 3px; }
+.accessibility-category-grid ul { list-style: none; margin: 0; padding: 0 12px 12px; }
+.accessibility-category-grid button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 12px; border: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.accessibility-category-grid button > span:first-child { flex: 1; }
+.accessibility-category-grid button:hover:not(:disabled) { background: #f7f7f7; }
+.accessibility-category-grid button:disabled { cursor: default; color: #626262; }
+.accessibility-added { font-size: 12px; }
+.accessibility-cards { display: grid; gap: 12px; margin: 8px 0 0; padding: 0; list-style: none; }
+.accessibility-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  min-height: 76px; padding: 14px 16px 14px 24px; border: 1px solid var(--gray);
+  border-left: 4px solid var(--teal); background: white; color: var(--ink);
+}
+.accessibility-card span { overflow-wrap: anywhere; line-height: 1.5; }
+.accessibility-card button {
+  flex: 0 0 44px; height: 44px; border: 0; background: transparent;
+  color: var(--ink); font: inherit; font-size: 28px; cursor: pointer;
+}
+.accessibility-card button:hover { background: #f7f7f7; }
+.accessibility-empty { margin: 8px 0 0; padding: 28px 24px; border: 1px dashed var(--gray); color: #626262; line-height: 1.6; }
+@media (max-width: 600px) {
+  .accessibility-search { flex-direction: column; }
+  .trip-form .accessibility-search input { font-size: 16px; padding: 16px; }
+  .accessibility-card { padding-left: 16px; }
+}
 .trip-form input:focus-visible, .trip-form textarea:focus-visible, .trip-form select:focus-visible,
 button:focus-visible { outline: 2px solid var(--indigo); outline-offset: 3px; }
 .form-row { display: flex; gap: 16px; }

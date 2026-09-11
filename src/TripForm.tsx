@@ -8,6 +8,7 @@ import type { DestinationStop } from "./DestinationsEditor";
 import { tripPreferences } from "./tripPreferences";
 import { tripPlannerPath } from "./tripRoutes";
 import { TransportationTab } from "./TransportationTab";
+import { AccessibilityTab } from "./AccessibilityTab";
 import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 
@@ -181,11 +182,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
                   <textarea name="interests" rows={4} maxLength={1650} defaultValue={trip?.interests.join(", ")} placeholder="Food, museums, hiking" /></label>
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-5" aria-labelledby="trip-tab-5" data-tab="5" hidden={active !== 5}>
-                <h3>Travel comfortably</h3>
-                <p className="field-hint">Note any access requirements to consider when planning your itinerary.</p>
-                <label>Accessibility notes (optional)
-                  <textarea name="accessibility" rows={5} maxLength={2000} defaultValue={trip?.accessibility ?? ""}
-                    placeholder="For example: step-free routes, accessible rooms, or regular rest breaks" /></label>
+                <AccessibilityTab initialValue={trip?.accessibility} />
               </section>
             </>}
           </fieldset>
