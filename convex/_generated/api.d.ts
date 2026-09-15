@@ -9,9 +9,12 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as bookingLinks from "../bookingLinks.js";
 import type * as cityAirports from "../cityAirports.js";
 import type * as firecrawl from "../firecrawl.js";
+import type * as flightDiagnostics from "../flightDiagnostics.js";
 import type * as flightJobs from "../flightJobs.js";
+import type * as flightPlanFields from "../flightPlanFields.js";
 import type * as flightSchema from "../flightSchema.js";
 import type * as flightSearch from "../flightSearch.js";
 import type * as flights from "../flights.js";
@@ -29,9 +32,12 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  bookingLinks: typeof bookingLinks;
   cityAirports: typeof cityAirports;
   firecrawl: typeof firecrawl;
+  flightDiagnostics: typeof flightDiagnostics;
   flightJobs: typeof flightJobs;
+  flightPlanFields: typeof flightPlanFields;
   flightSchema: typeof flightSchema;
   flightSearch: typeof flightSearch;
   flights: typeof flights;

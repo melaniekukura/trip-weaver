@@ -33,6 +33,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
   const [error, setError] = useState("");
   const [active, setActive] = useState(0);
   const [startDate, setStartDate] = useState(trip?.startDate ?? initialValues?.startDate ?? "");
+  const [endDate, setEndDate] = useState(trip?.endDate ?? "");
   const [origin, setOrigin] = useState(trip?.origin ?? initialValues?.origin ?? "");
   const [destinations, setDestinations] = useState<DestinationStop[]>(() =>
     (trip?.destinations ?? initialValues?.destinations ?? []).map((value, index) => ({ id: `saved-${index}`, value })));
@@ -144,7 +145,8 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
               <div className="form-row">
                 <label>Start date<input name="startDate" type="date" required min="1900-01-01" max="9999-12-31"
                   value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
-                <label>End date<input name="endDate" type="date" required min={startDate || "1900-01-01"} max="9999-12-31" defaultValue={trip?.endDate} /></label>
+                <label>End date<input name="endDate" type="date" required min={startDate || "1900-01-01"} max="9999-12-31"
+                  value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
               </div>
               <label>Travelers<input name="travelers" type="number" min={1} max={100} step={1} required defaultValue={trip?.travelers ?? 1} /></label>
             </section>
@@ -161,8 +163,8 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
             </section>}
             {planning && <>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-2" aria-labelledby="trip-tab-2" data-tab="2" hidden={active !== 2}>
-                <TransportationTab origin={origin} destination={destinations[0]?.value ?? ""}
-                  departureDate={startDate} onSaveTrip={saveTrip} onEditDetails={(tab) => setActive(tab)} />
+                <TransportationTab tripId={savedTrip?._id} origin={origin} destinations={destinations}
+                  departureDate={startDate} returnDate={endDate} onReturnDateChange={setEndDate} onSaveTrip={saveTrip} onEditDetails={(tab) => setActive(tab)} />
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-3" aria-labelledby="trip-tab-3" data-tab="3" hidden={active !== 3}>
                 <h3>Plan your spending</h3>

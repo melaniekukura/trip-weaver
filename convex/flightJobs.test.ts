@@ -61,6 +61,7 @@ test("provider errors become sanitized failed runs and allow an explicit retry",
   expect(failed?.run.status).toBe("failed");
   expect(failed?.run.error).toContain("out of credits");
   expect(failed?.run.error).not.toContain("test-secret");
+  expect(failed?.run.diagnostic).toMatchObject({ stage: "outbound_scrape", code: "FIRECRAWL_CREDITS_EXHAUSTED" });
   const retry = await alice.mutation(api.flightJobs.start, args);
   expect(retry.runId).not.toBe(runId);
 });
@@ -259,7 +260,50 @@ test("return searches enforce ownership and selection, cache per outbound, and s
   expect(result?.run.status).toBe("completed");
   expect(result?.sources[0].flight.amount).toBe(273);
   expect(result?.sources[0].flight.departure).toBe("10:38 PM on Thu, Oct 22");
+  const failedRefresh = await alice.mutation(api.flightJobs.start, { ...returnArgs, refresh: true });
+  await t.mutation(internal.flightJobs.fail, { runId: failedRefresh.runId, message: "Transient failure" });
+  const callsBeforeReuse = fetchMock.mock.calls.length;
+  expect(await alice.mutation(api.flightJobs.start, returnArgs)).toEqual({ runId: returning.runId, reused: true });
+  expect(fetchMock.mock.calls.length).toBe(callsBeforeReuse);
+  expect((await alice.query(api.flightJobs.latest, { ...returnArgs, runId: returning.runId }))?.sources[0].flight.amount).toBe(273);
+  expect(await alice.query(api.flightJobs.latest, { ...returnArgs, runId })).toBeNull();
+  await expect(bob.query(api.flightJobs.latest, { ...returnArgs, runId: returning.runId })).rejects.toThrow();
+  await expect(alice.mutation(api.flightJobs.start, { ...returnArgs, refresh: true })).rejects.toThrow("RESEARCH_RATE_LIMITED");
+
   expect((await alice.mutation(api.flightJobs.start, returnArgs)).reused).toBe(true);
   expect(await alice.query(api.flightJobs.latest, { ...returnArgs, outboundSourceId: out!.sources[1]._id })).toBeNull();
   expect(fetchMock.mock.calls.some(([, options]) => options?.method === "DELETE")).toBe(true);
+  vi.advanceTimersByTime(16 * 60000);
+  const expired = await alice.mutation(api.flightJobs.start, returnArgs);
+  expect(expired.reused).toBe(false);
+  expect(expired.runId).not.toBe(returning.runId);
+
+});
+
+
+test("return browser diagnostics reach the owner without exposing provider content", async () => {
+  const { default: roundtrip } = await import("./fixtures/google-flights-roundtrip.txt?raw");
+  const { t, alice, bob, args } = await setup();
+  const flight = { ...args.flight, tripType: "round-trip" as const, returnDate: "2026-10-22" };
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown: roundtrip } })));
+  const outgoing = await alice.mutation(api.flightJobs.start, { ...args, flight });
+  await t.action(internal.flightJobs.execute, { runId: outgoing.runId });
+  const out = await alice.query(api.flightJobs.latest, { ...args, flight });
+  const returnArgs = { tripId: args.tripId, flight, outboundSourceId: out!.sources[0]._id };
+  fetchMock.mockImplementation(async (url, options) => new Response(JSON.stringify(
+    options?.method === "DELETE" ? { success: true } : String(url).endsWith("/execute")
+      ? { success: true, exitCode: 0, result: JSON.stringify({ browserFailure: true, stage: "outbound_match",
+        reason: "outbound_ambiguous", matchCount: 2, labelCount: 12, stderr: "test-secret" }) }
+      : { success: true, id: "test-session" },
+  )));
+  const { runId } = await alice.mutation(api.flightJobs.start, returnArgs);
+  await t.action(internal.flightJobs.execute, { runId });
+  const failed = await alice.query(api.flightJobs.latest, returnArgs);
+  expect(failed?.run.diagnostic).toEqual({ stage: "outbound_match", reason: "outbound_ambiguous",
+    code: "FLIGHTS_UNAVAILABLE", matchCount: 2, labelCount: 12 });
+  expect(failed?.run.status).toBe("failed");
+  expect(failed?.sources).toEqual([]);
+  expect(JSON.stringify(failed)).not.toContain("test-secret");
+  await expect(bob.query(api.flightJobs.latest, returnArgs)).rejects.toThrow();
+  expect(fetchMock.mock.calls.at(-1)?.[1]?.method).toBe("DELETE");
 });
