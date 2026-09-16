@@ -53,13 +53,20 @@ PR review passed all 46 tests, TypeScript lint, and the production build; earlie
 User confirmed browser creation, reload persistence, retrieval after signing back in, second-account isolation, and the temporarily shortened timeout. Step one is complete; the original timeout is restored.
 Password reset and email verification remain pre-launch follow-ups. No public deployment; Convex static hosting remains planned.
 
+### 2026-09-12 - 2ffeb13 and development verification
+Merged authentication and flight work into `main`; added a dedicated trip-planning page, destination ordering, location selection, and transportation setup (`src/pages/TripPlannerPage.tsx`, `src/TripForm.tsx`, `src/DestinationsEditor.tsx`).
+Replaced the initial sights feature with flight-only search: one-way and round-trip options, observed USD fares, source links, and separate outgoing/return time, stop, and price filters (`src/FlightSearchPanel.tsx`, `src/ReturnFlightPicker.tsx`).
+Added owned, queued searches with 15-minute caching, request limits, and deletion cleanup using registered Workpool and Rate Limiter components (`convex/flightJobs.ts`, `convex/convex.config.ts`). Firecrawl browser selection retrieves matching returns and displays one combined round-trip price (`convex/returnFlights.ts`).
+Verified the paired-flight flow against the local backend and real Firecrawl, including persisted results and cache reuse. Merge checks passed tests, TypeScript lint, and build; browser visual verification remains pending.
+Diagnosed a signup hang caused by the frontend pointing at a stopped local backend while Convex selected cloud development. Confirmed cloud health and provided the URL-alignment fix; signup after that change has not been verified.
+No public frontend deployment is recorded. Observed fares are not confirmed checkout inventory; itinerary saving of selected flights, broader passenger/cabin support, email verification, and password reset remain follow-ups.
+
 ### 2026-09-15 - 837f2a7
 Built the dedicated Plan My Trip editor and per-stop transportation cards, with segmented trip controls, independent outgoing/return filters, compact selections, and one combined round-trip total (`src/TripForm.tsx`, `src/TransportationTab.tsx`, `src/ReturnFlightPicker.tsx`); includes work since the previous entry through `2037145` and `837f2a7`.
 Connected real Firecrawl searches to Convex research runs and sources, using registered workpool and rate-limiter components, ownership checks, duplicate-job reuse, and a 15-minute result cache (`convex/flightJobs.ts`, `convex/convex.config.ts`).
 Persisted selected flights, externally completed booking status, and final-plan confirmation; added direct airline booking-link lookup and fixed rejected refreshes losing selections and stale bookings becoming uneditable (`convex/trips.ts`, `convex/flightPlanFields.ts`, `convex/bookingLinks.ts`). Booking remains external; Trip-Weaver references are not airline confirmation codes.
 Added safe failed-step diagnostics, one same-session output-retrieval recovery attempt, reuse of successful returns after failed refreshes, and bounded waits for matching return rows instead of an exact page heading (`convex/firecrawl.ts`, `convex/returnFlights.ts`, `src/FlightSearchError.tsx`).
 Verification during development passed 173 tests and frontend/backend type checks. The user verified successful return selection and airline-link retrieval; the latest loading-recovery change passed automated tests and was deployed to dev, but live recovery remains unverified. Browser extraction can still fail; no public frontend deployment is recorded.
-
 
 ### 2026-09-16 - working tree
 Added homebound-journey prompts in Destinations and Transportation, route-specific “not needed” acknowledgement, leg removal, per-leg departure dates, and two-flight booking counts for round trips; final confirmation checks homeward coverage on the backend (`src/TripForm.tsx`, `src/TransportationTab.tsx`, `convex/homeJourney.ts`, `convex/trips.ts`).
