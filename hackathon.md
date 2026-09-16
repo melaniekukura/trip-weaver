@@ -2,7 +2,7 @@
 
 - **Project:** Trip-Weaver
 - **Event:** Convex All Gas Hackathon
-- **What it does:** Private multi-city trip planning with Firecrawl flight searches, outgoing and return filters, homebound-leg checks, Google Flights booking options, airline-search backups, and booking-status tracking.
+- **What it does:** Private multi-city trip planning with Firecrawl flight searches, outgoing and return filters, homebound-leg checks, Google Flights booking options, airline-search backups, booking-status tracking, and interest-based discovery of restaurants, activities, and events.
 - **Live app:** not deployed
 - **Repo:** private
 - **Frontend:** not deployed
@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-04T19:25:03Z
-- **Last updated:** 2026-09-16T21:15:41Z
+- **Last updated:** 2026-09-16T22:52:55Z
 
 ## Log
 
@@ -75,3 +75,10 @@ Changed the booking handoff to the selected itinerary’s Google Flights booking
 Added bounded navigation retries, same-session booking-output recovery, and network diagnostics. Increased the booking-link burst allowance from three to six, retaining ten-per-hour replenishment, and displayed retry timing (`convex/firecrawl.ts`, `convex/flightDiagnostics.ts`, `convex/bookingLinks.ts`).
 Verification passed 211 tests and frontend/backend TypeScript checks; backend changes were deployed to personal dev. A live lookup reached a selected itinerary’s Google Flights booking page, but subsequent user attempts exposed unreadable output and the app’s rate limit; the latest recovery changes are automatically tested, with live recovery still unverified.
 No public frontend deployment or completed airline purchase was verified. Browser-based extraction remains a reliability limitation; temporary diagnostics were removed. This entry records uncommitted changes after `837f2a7`.
+
+### 2026-09-16 - 2981837
+Added destination- and interest-based discovery to Plan My Trip, with individual interest entry, removable colored pills, a Find dropdown populated from those interests, and saved ideas. Searches save current trip details first and include both activities and events (`src/InterestsEditor.tsx`, `src/InterestDiscovery.tsx`, `src/TripForm.tsx`).
+Added owned search runs and favorites with realtime results, six-hour reuse of successful matching searches, explicit refresh, request limits, and trip-deletion cleanup using the existing Workpool and Rate Limiter components (`convex/interestSchema.ts`, `convex/interestJobs.ts`).
+Changed discovery from generic listicles to individual detail pages: follow actual source links, retain source-supported descriptions and optional venue/date/price details, remove similar packages, and spread results across sources. Food searches now separately explore local restaurants, tasting menus, and food experiences (`convex/firecrawl.ts`, `convex/interestSearch.ts`, `convex/interestDiscovery.ts`, `convex/interestDiversity.ts`).
+Added event-date guidance and rejection of recognizable date ranges outside the trip, plus partial-result warnings when sources cannot be read (`convex/interestDetails.ts`, `convex/interestDates.ts`). Dates and booking availability still require confirmation with the source; saved ideas are not reservations.
+Development verification passed 234 tests, TypeScript lint, and the production build. Live Firecrawl checks improved a single food-tour result to five food results, including three restaurants on their official websites; no suitable events were confirmed in the final test. Backend changes were deployed to personal dev; no public frontend deployment is recorded.
