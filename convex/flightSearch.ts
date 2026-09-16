@@ -1,3 +1,4 @@
+import { flightFailure } from "./flightDiagnostics";
 import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
 
@@ -61,13 +62,13 @@ export function parseFlightPage(markdown: string, input: FlightRequest, scope?: 
   const destinationAirports = new Set(request.destinationType === "city" ? scope!.destination : [request.destination]);
   const text = markdown.replace(/\u00a0/g, " ").replace(/[\u200b-\u200d]/g, "").replace(/\n[ \t]*\n+/g, "\n");
   const header = text.split("## Filters")[0];
-  const fail = (): never => { throw new ConvexError({ code: "FLIGHTS_UNAVAILABLE", message: "Matching flight prices could not be verified. Try again or open Google Flights." }); };
+  if (!header.includes("# Flight search\n")) return flightFailure("outbound_parse", "search_page_not_ready");
   const roundTrip = request.tripType === "round-trip";
   const journeyLabel = roundTrip ? "Round trip" : "One way";
   const datesLabel = `departing ${request.departureDate}${roundTrip ? ` and returning ${request.returnDate}` : ""}`;
   if (!header.includes(`# Flight search\n${journeyLabel}\n`) || !/\nEconomy(?: \(include Basic\))?\n/.test(header) ||
     !text.includes("Prices include required taxes + fees for 1 adult.") || !/Currency\s*USD\b/.test(text) ||
-    !text.includes(`${datesLabel}\n`)) return fail();
+    !text.includes(`${datesLabel}\n`)) return flightFailure("outbound_parse", "context_mismatch");
   const dateLabel = new Date(`${request.departureDate}T00:00:00Z`).toLocaleDateString("en-US", {
     weekday: "short", month: "short", day: "numeric", timeZone: "UTC",
   });
@@ -93,6 +94,6 @@ export function parseFlightPage(markdown: string, input: FlightRequest, scope?: 
       originAirport: lines[6], destinationAirport: lines[9] };
     if (!flights.some((flight) => JSON.stringify(flight) === JSON.stringify(option))) flights.push(option);
   }
-  if (flights.length === 0) return fail();
+  if (flights.length === 0) return flightFailure("outbound_parse", "no_outgoing_fares", { labelCount: blocks.length, matchCount: 0 });
   return flights.sort((a, b) => a.amount - b.amount).slice(0, 5);
 }

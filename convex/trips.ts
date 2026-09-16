@@ -7,6 +7,7 @@ import { mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import schema from "./schema";
 import { flightPlanItinerary } from "./flightPlanFields";
+import { homeJourneyStatus } from "./homeJourney";
 import { tripFields, validateTrip } from "./tripFields";
 
 async function requireUser(ctx: QueryCtx) {
@@ -66,7 +67,8 @@ export const update = mutation({
       throw new ConvexError({ code: "TRIP_CHANGED", message: "This trip changed in another window. Reopen it before saving." });
     }
     await ctx.db.patch("trips", tripId, {
-      ...(trip.flightPlan && flightPlanItinerary(trip) !== flightPlanItinerary(changes)
+      ...(trip.flightPlan && (flightPlanItinerary(trip) !== flightPlanItinerary(changes) ||
+        (changes.homeReturnNotNeededFor !== undefined && changes.homeReturnNotNeededFor !== trip.homeReturnNotNeededFor))
         ? { flightPlan: { ...trip.flightPlan, confirmed: false, revision: trip.flightPlan.revision + 1 } } : {}),
       ...validateTrip(changes), updatedAt: Math.max(Date.now(), trip.updatedAt + 1),
     });
@@ -104,6 +106,7 @@ export const changeFlightPlan = mutation({
       if (!trip.destinations.every((_, index) => legs.some(item => item.index === index && item.itinerary === itinerary && item.booked))) {
         throw new ConvexError({ message: "Book every current leg before confirming the flight plan." });
       }
+      if (homeJourneyStatus(trip, legs) === "missing") throw new ConvexError({ message: "Add and book your journey home, or mark it as not needed, before confirming." });
     } else if (args.action === "select") {
       if (leg?.booked && leg.itinerary === itinerary) throw new ConvexError({ message: "Edit the booked leg before changing its flight." });
       const outbound = args.outboundId ? await ctx.db.get("researchSources", args.outboundId) : null;
@@ -115,6 +118,9 @@ export const changeFlightPlan = mutation({
         run.flightRequest.departureDate < trip.startDate || run.flightRequest.departureDate > trip.endDate ||
         (args.index === 0 && run.flightRequest.departureDate !== trip.startDate) ||
         (run.flightRequest.returnDate && run.flightRequest.returnDate !== trip.endDate)) throw new ConvexError({ message: "Choose a flight from a completed search for this leg." });
+      if (trip.destinations.length > 1 && run.flightRequest.tripType === "round-trip") {
+        throw new ConvexError({ message: "For multi-city trips, select one-way flights for each leg, including the journey home." });
+      }
       const returning = args.returnId ? await ctx.db.get("researchSources", args.returnId) : null;
       if (args.returnId) {
         const returnRun = returning ? await ctx.db.get("researchRuns", returning.runId) : null;

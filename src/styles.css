@@ -963,3 +963,12 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .transport-booking-footer .airline-booking-link { flex-basis: 100%; }
 .transport-booking-footer p { margin: 6px 0; }
 .transport-leg .chosen-flight-card p { font-size: 14px; }
+
+.home-journey-prompt { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 16px 20px; margin: 16px 0; border: 1px solid #f5c28b; border-radius: 6px; background: #fff0da; color: #604425; }
+.home-journey-prompt .secondary-button { border-color: #c89151; color: #604425; background: white; }
+.home-journey-prompt .text-button { color: #604425; }
+.home-journey-prompt p { margin: 8px 0 0; }
+.home-journey-choice { display: flex; align-items: center; gap: 16px; margin: 16px 0; }
+
+.transport-remove-leg { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.transport-remove-leg p { margin: 0; }

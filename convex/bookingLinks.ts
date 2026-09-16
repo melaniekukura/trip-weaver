@@ -11,8 +11,9 @@ import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
 const args = { tripId: v.id("trips"), outboundId: v.id("researchSources"), returnId: v.optional(v.id("researchSources")) };
-const bookingLink = v.object({ url: v.string(), provider: v.string(), amount: v.number() });
-const limiter = new RateLimiter(components.rateLimiter, { bookingLinks: { kind: "token bucket", rate: 10, period: HOUR, capacity: 3 } });
+const segment = v.object({ flightNumber: v.string(), origin: v.string(), destination: v.string(), departure: v.string(), arrival: v.string() });
+const bookingLink = v.object({ url: v.string(), outgoingSegments: v.array(segment), returnSegments: v.array(segment) });
+const limiter = new RateLimiter(components.rateLimiter, { bookingLinks: { kind: "token bucket", rate: 10, period: HOUR, capacity: 6 } });
 
 async function requireTrip(ctx: QueryCtx, tripId: Id<"trips">) {
   const ownerId = await getAuthUserId(ctx);
@@ -22,7 +23,7 @@ async function requireTrip(ctx: QueryCtx, tripId: Id<"trips">) {
 }
 
 export const selection = internalQuery({
-  args, returns: v.object({ url: v.string(), flight: flightOption, date: v.string(), roundTrip: v.boolean() }),
+  args, returns: v.object({ url: v.string(), flight: flightOption, date: v.string(), roundTrip: v.boolean(), outbound: flightOption, departureDate: v.string() }),
   handler: async (ctx, args) => {
     await requireTrip(ctx, args.tripId);
     const outbound = await ctx.db.get("researchSources", args.outboundId);
@@ -37,12 +38,12 @@ export const selection = internalQuery({
         returnRun.outboundSourceId !== outbound._id || JSON.stringify(returnRun.flightRequest) !== JSON.stringify(run.flightRequest)) {
         throw new ConvexError({ message: "Choose a matching return flight first." });
       }
-      return { url: returning.sourceUrl, flight: returning.flight, date: run.flightRequest.returnDate!, roundTrip: true };
+      return { url: returning.sourceUrl, flight: returning.flight, date: run.flightRequest.returnDate!, roundTrip: true, outbound: outbound.flight, departureDate: run.flightRequest.departureDate };
     }
     if (args.returnId) throw new ConvexError({ message: "This is a one-way search." });
     return { url: flightSearchUrl({ ...run.flightRequest, origin: outbound.flight.originAirport ?? run.flightRequest.origin,
       destination: outbound.flight.destinationAirport ?? run.flightRequest.destination, originType: "airport", destinationType: "airport" }),
-      flight: outbound.flight, date: run.flightRequest.departureDate, roundTrip: false };
+      flight: outbound.flight, date: run.flightRequest.departureDate, roundTrip: false, outbound: outbound.flight, departureDate: run.flightRequest.departureDate };
   },
 });
 
@@ -51,7 +52,8 @@ export const reserve = internalMutation({
   handler: async (ctx, { tripId }) => {
     const trip = await requireTrip(ctx, tripId);
     const result = await limiter.limit(ctx, "bookingLinks", { key: trip.ownerId });
-    if (!result.ok) throw new ConvexError({ message: "Too many booking-link requests. Please try again later." });
+    if (!result.ok) throw new ConvexError({ code: "BOOKING_RATE_LIMITED", retryAfter: result.retryAfter,
+      message: `Booking-link limit reached. Try again in ${Math.max(1, Math.ceil(result.retryAfter / 60000))} minute(s). You can still use the airline search links below.` });
     return null;
   },
 });
@@ -78,6 +80,7 @@ export function decodeBookingResult(response: Record<string, unknown>): unknown 
   if (typeof response.stdout === "string" && response.stdout.length <= 500000) {
     const line = response.stdout.split("\n").reverse().find(line => line.startsWith("TRIP_WEAVER_BOOKING:"));
     if (line) candidates.push(line.slice("TRIP_WEAVER_BOOKING:".length));
+    candidates.push(response.stdout.trim());
   }
   candidates.push(response.result);
   for (const candidate of candidates) {
@@ -91,12 +94,30 @@ export function decodeBookingResult(response: Record<string, unknown>): unknown 
     }
     if ("url" in value && "provider" in value) return value;
   }
+  console.warn("Unrecognized booking browser output", JSON.stringify({ resultType: typeof response.result,
+    resultLength: typeof response.result === "string" ? response.result.length : null,
+    stdoutLength: typeof response.stdout === "string" ? response.stdout.length : null,
+    hasMarker: typeof response.stdout === "string" && response.stdout.includes("TRIP_WEAVER_BOOKING:") }));
   return flightFailure("browser_result", candidates.some(value => value != null) ? "invalid_output" : "missing_output");
+}
+
+export function parseGoogleBookingLink(raw: unknown) {
+  if (!raw || typeof raw !== "object" || !("url" in raw) || typeof raw.url !== "string") {
+    throw new ConvexError({ message: "The selected itinerary’s booking page is unavailable." });
+  }
+  const url = new URL(raw.url);
+  if (url.origin !== "https://www.google.com" || url.username || url.password || url.pathname !== "/travel/flights/booking" ||
+    !url.searchParams.get("tfs") || !url.searchParams.get("tfu") || raw.url.length > 20000) {
+    throw new ConvexError({ message: "The selected itinerary’s booking page could not be verified." });
+  }
+  const segments = (key: "outgoingSegments" | "returnSegments") =>
+    sanitizeFlightDiagnostic({ stage: "booking_options", reason: "unavailable", itinerarySegments: key in raw ? (raw as Record<string, unknown>)[key] : [] }, "booking_options").itinerarySegments ?? [];
+  return { url: url.href, outgoingSegments: segments("outgoingSegments"), returnSegments: segments("returnSegments") };
 }
 
 export const resolve = action({
   args, returns: bookingLink,
-  handler: async (ctx, args): Promise<{ url: string; provider: string; amount: number }> => {
+  handler: async (ctx, args) => {
     const selected = await ctx.runQuery(internal.bookingLinks.selection, args);
     const target = new URL(selected.url);
     if (target.origin !== "https://www.google.com" || !["/travel/flights", "/travel/flights/search"].includes(target.pathname)) {
@@ -104,14 +125,17 @@ export const resolve = action({
     }
     await ctx.runMutation(internal.bookingLinks.reserve, { tripId: args.tripId });
     try {
-      const response = await executeReturnBrowser(bookingBrowserCode(selected.url, selected.flight, selected.date, selected.roundTrip));
-      return parseBookingLink(decodeBookingResult(response));
+      const response = await executeReturnBrowser(bookingBrowserCode(selected.url, selected.flight, selected.date, selected.roundTrip, { flight: selected.outbound, date: selected.departureDate }), {
+        decode: decodeBookingResult,
+        code: 'await page.evaluate(() => globalThis.__tripWeaverBookingOutput).then(output => { console.log("TRIP_WEAVER_BOOKING:" + output); return output; })',
+      });
+      return parseGoogleBookingLink(decodeBookingResult(response));
     } catch (error) {
       if (error instanceof ConvexError && typeof error.data === "object" && error.data && "message" in error.data && !("code" in error.data)) throw error;
       const diagnostic = diagnoseFlightFailure(error, "browser_result");
       const reference = crypto.randomUUID();
-      console.warn("Airline booking link failed", JSON.stringify({ reference, diagnostic }));
-      throw new ConvexError({ message: "The airline booking link could not be retrieved. Please try again.", diagnostic, reference });
+      console.warn("Google booking options failed", JSON.stringify({ reference, diagnostic }));
+      throw new ConvexError({ message: "The booking options could not be retrieved. Try again or use the airline search links below.", diagnostic, reference });
     }
   },
 });

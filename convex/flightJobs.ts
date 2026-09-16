@@ -169,9 +169,17 @@ export const execute = internalAction({
       stage = "airport_lookup";
       const scope = await resolveAirportScope(run.flightRequest);
       stage = "outbound_scrape";
-      const response = await scrapeFlightPage(run.query);
+      let response = await scrapeFlightPage(run.query);
       stage = "outbound_parse";
-      const flights = parseFlightPage(response.markdown, run.flightRequest, scope);
+      let flights;
+      try { flights = parseFlightPage(response.markdown, run.flightRequest, scope); }
+      catch (error) {
+        if (diagnoseFlightFailure(error, stage).reason !== "search_page_not_ready") throw error;
+        stage = "outbound_scrape";
+        response = await scrapeFlightPage(run.query, 10000);
+        stage = "outbound_parse";
+        flights = parseFlightPage(response.markdown, run.flightRequest, scope);
+      }
       stage = "save_results";
       await ctx.runMutation(internal.flightJobs.finish, { runId, airportScope: scope, sources: flights.map((flight) => ({
         title: flight.airline, category: "flights" as const, description: `${flight.duration} · ${flight.stops}`,

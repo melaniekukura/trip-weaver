@@ -67,10 +67,10 @@ test("saved bookings restore as locked cards and enable the confirmation banner"
   const source = { _id: "flight", tripId: "trip", sourceUrl: "https://www.google.com/travel/flights",
     flight: { airline: "Delta", departure: "8:00 AM", arrival: "10:00 AM", duration: "5 hr", stops: "Nonstop", amount: 129 } };
   const itinerary = flightPlanItinerary({ origin: "DTW", destinations: ["LAX"], startDate: "2026-10-15", endDate: "2026-10-22" });
-  const trip = { origin: "DTW", destinations: ["LAX"], startDate: "2026-10-15", endDate: "2026-10-22", flightPlan: { revision: 3, confirmed: true, legs: [{ index: 0, itinerary, booked: true, reference: "TW-TEST",
+  const trip = { homeReturnNotNeededFor: itinerary, origin: "DTW", destinations: ["LAX"], startDate: "2026-10-15", endDate: "2026-10-22", flightPlan: { revision: 3, confirmed: true, legs: [{ index: 0, itinerary, booked: true, reference: "TW-TEST",
     outbound: source, request: { origin: "DTW", destination: "LAX", departureDate: "2026-10-15" } }] } };
   query.mockImplementation((_reference, args) => args === "skip" ? undefined : args?.flight ? { run: { status: "completed" }, sources: [source] } : trip);
-  const props = { tripId: "trip" as Id<"trips">, origin: "DTW", destinations: [{ id: "la", value: "LAX" }], departureDate: "2026-10-15", returnDate: "2026-10-22",
+  const props = { homeReturnNotNeededFor: itinerary, tripId: "trip" as Id<"trips">, origin: "DTW", destinations: [{ id: "la", value: "LAX" }], departureDate: "2026-10-15", returnDate: "2026-10-22",
     onSaveTrip: vi.fn(), onEditDetails: vi.fn() };
   const booked = renderToStaticMarkup(createElement(TransportationTab, props));
   for (const text of ["✓ Booked", "TW-TEST", "All legs booked", "Flight plan confirmed ✓", ">Edit</button>"]) expect(booked).toContain(text);
@@ -94,7 +94,7 @@ test("saved round trips show compact selections and booking controls inside the 
   const outbound = { _id: "outgoing", tripId: "trip", flight: { airline: "Delta", departure: "8:00 AM", arrival: "10:00 AM", duration: "2 hr", stops: "Nonstop", amount: 400 } };
   const returning = { ...outbound, _id: "returning", flight: { ...outbound.flight, departure: "4:00 PM", arrival: "6:00 PM", amount: 550 } };
   const itinerary = flightPlanItinerary({ origin: "DTW", destinations: ["LAX"], startDate: "2026-10-15", endDate: "2026-10-22" });
-  const trip = { origin: "DTW", destinations: ["LAX"], startDate: "2026-10-15", endDate: "2026-10-22", flightPlan: { revision: 2, confirmed: false, legs: [{ index: 0, itinerary, booked: false, outbound, returning,
+  const trip = { homeReturnNotNeededFor: itinerary, origin: "DTW", destinations: ["LAX"], startDate: "2026-10-15", endDate: "2026-10-22", flightPlan: { revision: 2, confirmed: false, legs: [{ index: 0, itinerary, booked: false, outbound, returning,
     request: { origin: "DTW", destination: "LAX", departureDate: "2026-10-15", returnDate: "2026-10-22", tripType: "round-trip" } }] } };
   query.mockImplementation((_reference, args) => args === "skip" || args?.flight ? undefined : trip);
   const html = renderToStaticMarkup(createElement(TransportationTab, {
@@ -104,16 +104,43 @@ test("saved round trips show compact selections and booking controls inside the 
   expect(html.match(/class="chosen-flight-card"/g)).toHaveLength(2);
   expect(html).toContain("Outgoing · ✓ Selected");
   expect(html).toContain("Return · ✓ Selected");
-  expect(html.match(/Get airline booking link/g)).toHaveLength(1);
+  expect(html.match(/Find booking options on Google Flights/g)).toHaveLength(1);
   const footer = html.slice(html.indexOf('class="transport-booking-footer"'), html.indexOf('class="flight-plan-banner'));
   expect(html).not.toContain("Your selected flights");
   expect(html).not.toContain("Selected flight plan");
   expect(footer).toContain("Total · $550");
-  expect(footer).toContain("Get airline booking link");
+  expect(footer).toContain("Find booking options on Google Flights");
   expect(footer).toContain("Mark as booked");
   expect(html).toContain("Ready to book · $550");
+  expect(html).toContain("0 / 2 legs booked");
   expect(html).toContain('aria-label="Trip type"');
   expect(html).not.toMatch(/<select[^>]*-type/);
   expect(html).toMatch(/type="date" min="2026-10-15"[^>]*value="2026-10-22"/);
   expect(html.indexOf('aria-label="Return flight selected"')).toBeLessThan(html.indexOf('class="transport-booking-footer"'));
+});
+
+test("multi-city home leg defaults to the end date and uses one-way searches", () => {
+  query.mockReturnValue(undefined);
+  const html = renderToStaticMarkup(createElement(TransportationTab, {
+    origin: "DTW", destinations: [{ id: "milan", value: "MIL" }, { id: "rome", value: "ROM" }, { id: "home", value: "DTW" }],
+    departureDate: "2026-10-15", returnDate: "2026-10-22", onSaveTrip: vi.fn(), onEditDetails: vi.fn(),
+  }));
+  expect(html).toContain("ROM → DTW");
+  expect(html).toContain("0 / 3 legs booked");
+  expect(html).not.toContain('aria-label="Trip type"');
+  expect(html).toMatch(/type="date"[^>]*value="2026-10-22"/);
+});
+
+test("removing a separate home stop restores the round-trip control on the remaining leg", () => {
+  query.mockReturnValue(undefined);
+  const props = { origin: "DTW", departureDate: "2026-10-15", returnDate: "2026-10-22", onSaveTrip: vi.fn(), onEditDetails: vi.fn(), onRemoveLeg: vi.fn() };
+  const destinations = [{ id: "milan", value: "MIL" }, { id: "home", value: "DTW" }];
+  const twoWays = renderToStaticMarkup(createElement(TransportationTab, { ...props, destinations }));
+  expect(twoWays.match(/>Remove leg<\/button>/g)).toHaveLength(2);
+  expect(twoWays).not.toContain('aria-label="Trip type"');
+  const single = renderToStaticMarkup(createElement(TransportationTab, { ...props, destinations: destinations.slice(0, 1) }));
+  expect(single).toContain('aria-label="Trip type"');
+  expect(single).toContain("Round trip");
+  expect(single).not.toContain(">Remove leg</button>");
+  expect(single).toContain("0 / 1 legs booked");
 });

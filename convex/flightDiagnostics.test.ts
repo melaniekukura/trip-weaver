@@ -11,3 +11,13 @@ test("diagnostics discard raw errors, secrets, unknown fields, and invalid metri
   expect(diagnoseFlightFailure(new Error("secret stack"), "return_parse"))
     .toEqual({ stage: "return_parse", reason: "unavailable", code: "SEARCH_FAILED" });
 });
+
+test("airline comparisons retain bounded flight labels and discard unrelated provider data", () => {
+  const result = diagnoseFlightFailure(new ConvexError({ code: "FLIGHTS_UNAVAILABLE", diagnostic: {
+    stage: "outbound_match", reason: "outbound_missing", selectedAirline: "LufthansaUnited",
+    airlineCandidates: [{ airline: "Lufthansa and United Airlines", otherDetailsMatch: true, url: "private" },
+      { airline: "https://example.com/private", otherDetailsMatch: true }, { airline: "x".repeat(201), otherDetailsMatch: false }],
+  } }), "browser_execute");
+  expect(result.selectedAirline).toBe("LufthansaUnited");
+  expect(result.airlineCandidates).toEqual([{ airline: "Lufthansa and United Airlines", otherDetailsMatch: true }]);
+});

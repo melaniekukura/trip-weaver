@@ -141,13 +141,13 @@ export const scrape = internalAction({
   },
 });
 
-export async function scrapeFlightPage(url: string) {
+export async function scrapeFlightPage(url: string, waitFor = 5000) {
   const target = new URL(url);
   if (target.origin !== "https://www.google.com" || target.pathname !== "/travel/flights") {
     fail("INVALID_URL", "Invalid flight search URL.");
   }
   const result = await request("scrape", {
-    url, formats: ["markdown"], onlyMainContent: false, maxAge: 0, waitFor: 5000, timeout: 60000,
+    url, formats: ["markdown"], onlyMainContent: false, maxAge: 0, waitFor, timeout: 60000,
   }, 70000);
   const data = object(result.data);
   const metadata = data.metadata == null ? {} : object(data.metadata);
@@ -158,7 +158,7 @@ export async function scrapeFlightPage(url: string) {
   return { markdown: data.markdown, retrievedAt: new Date().toISOString() };
 }
 
-export async function executeReturnBrowser(code: string, recoverReturnOutput = false) {
+export async function executeReturnBrowser(code: string, recoverOutput: boolean | { decode: (response: Record<string, unknown>) => unknown; code: string } = false) {
   const key = process.env.FIRECRAWL_API_KEY?.trim();
   if (!key) fail("FIRECRAWL_NOT_CONFIGURED", "Flight search is not configured.");
   async function browserRequest(path: string, body?: object, method = "POST", stage: DiagnosticStage = "browser_session") {
@@ -188,16 +188,20 @@ export async function executeReturnBrowser(code: string, recoverReturnOutput = f
     const result = await browserRequest(`interact/${session.id}/execute`, { code, language: "node" }, "POST", "browser_execute");
     if (result.exitCode !== 0 || result.killed) flightFailure("browser_execute", result.killed ? "browser_killed" : "browser_failed",
       typeof result.exitCode === "number" ? { exitCode: result.exitCode } : {});
-    if (recoverReturnOutput) {
-      try { decodeReturnBrowserResult(result); }
+    if (recoverOutput) {
+      const decode = typeof recoverOutput === "boolean" ? decodeReturnBrowserResult : recoverOutput.decode;
+      const recoveryCode = typeof recoverOutput === "boolean"
+        ? 'await page.evaluate(() => globalThis.__tripWeaverReturnOutput).then(output => { console.log("TRIP_WEAVER_RETURN:" + output); return output; })'
+        : recoverOutput.code;
+      try { decode(result); }
       catch (error) {
         const diagnostic = diagnoseFlightFailure(error, "browser_result");
         if (!["invalid_output", "missing_output"].includes(diagnostic.reason)) throw error;
         const recovered = await browserRequest(`interact/${session.id}/execute`, {
-          code: 'await page.evaluate(() => globalThis.__tripWeaverReturnOutput).then(output => { console.log("TRIP_WEAVER_RETURN:" + output); return output; })', language: "node",
+          code: recoveryCode, language: "node",
         }, "POST", "browser_execute");
         if (recovered.exitCode !== 0 || recovered.killed) throw error;
-        decodeReturnBrowserResult(recovered);
+        decode(recovered);
         return recovered;
       }
     }

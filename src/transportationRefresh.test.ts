@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({ query: vi.fn(), mutate: vi.fn(), states: vi.fn
 vi.mock("convex/react", () => ({ useQuery: mocks.query, useMutation: () => mocks.mutate, useAction: () => vi.fn() }));
 vi.mock("react", async importOriginal => ({ ...await importOriginal<typeof import("react")>(),
   useState: (initial: unknown) => [typeof initial === "function" ? initial() : initial, mocks.states],
+  useCallback: (callback: unknown) => callback,
+  useEffect: (effect: () => void) => effect(),
   useRef: (initial: unknown) => ({ current: initial }), useId: () => "test",
 }));
 
@@ -55,4 +57,21 @@ test.each([false, true])("outgoing refresh preserves selection and saves dates b
   expect(events).toEqual(["save", "search"]);
   expect(mocks.mutate).toHaveBeenCalledTimes(1);
   expect(mocks.mutate.mock.calls[0][0]).not.toHaveProperty("action");
+});
+
+test.each([true, false])("home prompt receives effective round-trip intent (single leg: %s)", single => {
+  const itinerary = flightPlanItinerary({ origin: "DTW", destinations: ["LAX"], startDate: request.departureDate, endDate: request.returnDate });
+  mocks.query.mockImplementation((_ref, args) => args === "skip" ? undefined : args?.flight ? { run: { status: "completed" }, sources: [] } :
+    { origin: "DTW", destinations: single ? ["LAX"] : ["LAX", "DTW"], startDate: request.departureDate, endDate: request.returnDate,
+      flightPlan: { revision: 1, legs: [{ index: 0, itinerary, request, outbound }] } });
+  const onRoundTripChange = vi.fn();
+  const tree = TransportationTab({ tripId: "trip" as Id<"trips">, origin: "DTW",
+    destinations: single ? [{ id: "la", value: "LAX" }] : [{ id: "la", value: "LAX" }, { id: "home", value: "DTW" }],
+    departureDate: request.departureDate, returnDate: request.returnDate,
+    onRoundTripChange, onEditDetails: vi.fn(), onSaveTrip: vi.fn() });
+  const leg = find(tree, type => typeof type === "function" && type.name === "TransportationLeg")!;
+  (leg.type as (props: unknown) => ReactNode)(leg.props);
+  expect(onRoundTripChange).toHaveBeenCalledWith(single);
+  const confirm = find(tree, (type, props) => type === "button" && props.children === "Confirm flight plan")!;
+  expect(confirm.props.disabled).toBe(true);
 });

@@ -1,3 +1,4 @@
+import { rankReturnFlights } from "../convex/airlineNames";
 import { SelectedFlightCard } from "./SelectedFlightCard";
 import { AirlineBookingLink } from "./AirlineBookingLink";
 import { FlightSearchError } from "./FlightSearchError";
@@ -25,7 +26,7 @@ export function ReturnFlightPicker({ tripId, request, outbound, onClose, selecte
   const [localSelection, setLocalSelection] = useState<Doc<"researchSources"> | null>(null);
   const [showOptions, setShowOptions] = useState(false);
   const busy = disabled || pending || result?.run.status === "pending" || result?.run.status === "running";
-  const options = result?.sources.filter(source => matchesFlightFilters(source.flight, filters)) ?? [];
+  const options = rankReturnFlights(result?.sources.filter(source => matchesFlightFilters(source.flight, filters)) ?? [], outbound.flight.airline);
   const selected = onSelectReturn ? selectedReturn : localSelection;
   async function search(refresh = false) {
     setPending(true); setError(""); setNotice("");
@@ -47,7 +48,7 @@ export function ReturnFlightPicker({ tripId, request, outbound, onClose, selecte
       <summary>Return flight filters</summary>
       <FlightFilterControls value={filters} onChange={setFilters} title="Return flight filters" leg="return" priceLabel="Maximum round-trip total (USD)" />
     </details>
-    <p className="field-hint">Return options match your selected outgoing flight. Prices cover both flights.</p>
+    <p className="field-hint">Prices cover both flights. Returns sharing an outgoing airline appear first, then other airlines; each group is sorted by price.</p>
     <button type="button" className="primary-button" disabled={busy || result === undefined} onClick={() => void search(false)}>
       {busy ? "Finding return flights…" : result?.run.status === "completed" ? "Use recent return flights" : "Find matching return flights"}
     </button>
@@ -60,9 +61,9 @@ export function ReturnFlightPicker({ tripId, request, outbound, onClose, selecte
     {selected && <button type="button" className="text-button" onClick={() => setShowOptions(!showOptions)}>{showOptions ? "Hide other return options" : "See other return options"}</button>}
     {result?.run.status === "completed" && <>
       <p className="field-hint">Observed {new Date(result.run.finishedAt!).toLocaleString()}. Local airport times; verify the final fare and availability before booking.</p>
-      {(!selected || showOptions) && <p role="status">Showing {Math.min(3, options.length)} of {result.sources.length} retrieved return flights.</p>}
+      {(!selected || showOptions) && <p role="status">Showing {options.length} of {result.sources.length} retrieved return flights.</p>}
       {(!selected || showOptions) && !options.length && <p>No retrieved return flights match. Adjust the return filters or try another outgoing flight.</p>}
-      {(!selected || showOptions) && <ul className="flight-search-results">{options.slice(0, 3).map(source => <li className={`observed-flight${selected?._id === source._id ? " is-selected" : ""}`} key={source._id}>
+      {(!selected || showOptions) && <ul className="flight-search-results">{options.map(source => <li className={`observed-flight${selected?._id === source._id ? " is-selected" : ""}`} key={source._id}>
         <div><strong>{source.flight.airline}</strong><p>{source.flight.departure} → {source.flight.arrival}</p><span>{source.flight.duration} · {source.flight.stops}</span></div>
         <div className="observed-fare"><strong>{money(source.flight.amount)}</strong><span>Both flights, observed total</span>
           <button type="button" className="secondary-button" aria-pressed={selected?._id === source._id} disabled={disabled} onClick={() => { setLocalSelection(source); setShowOptions(false); if (onSelectReturn) void onSelectReturn(source); }}>{selected?._id === source._id ? "Selected" : "Select return"}</button></div>
@@ -72,7 +73,7 @@ export function ReturnFlightPicker({ tripId, request, outbound, onClose, selecte
         <p><strong>Outgoing:</strong> {outbound.flight.airline} · {outbound.flight.departure} → {outbound.flight.arrival}</p>
         <p><strong>Return:</strong> {selected.flight.airline} · {selected.flight.departure} → {selected.flight.arrival}</p>
         <p><strong>Observed total: {money(selected.flight.amount)}</strong></p>
-        {!onSelectReturn && <AirlineBookingLink key={selected._id} tripId={tripId} outboundId={outbound._id} returnId={selected._id} needsReturn />}
+        {!onSelectReturn && <AirlineBookingLink key={selected._id} tripId={tripId} outbound={outbound} returning={selected} outboundId={outbound._id} returnId={selected._id} needsReturn />}
       </div>}
     </>}
   </section>;

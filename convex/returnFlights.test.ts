@@ -95,10 +95,10 @@ test("outbound matching tolerates airline list formatting but rejects different 
 });
 
 
-test("browser script and server agree on formatted multi-airline selections", async () => {
+test.each(["American, British AirwaysOperated by Envoy Air", "AmericanBritish Airways"])("browser script and server agree on formatted multi-airline selections: %s", async airline => {
   const { returnBrowserCode } = await import("./returnFlights");
   const label = fixture.selectedLabel.replace("Frontier", "American and British Airways");
-  const saved = { ...outbound, airline: "American, British AirwaysOperated by Envoy Air" };
+  const saved = { ...outbound, airline };
   const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
   const execute = new AsyncFunction("page", "return " + returnBrowserCode(request, saved));
   let selected = false;
@@ -208,4 +208,47 @@ test("return options recover from one loading timeout without relying on a headi
   expect(returnWaits).toBe(2);
   expect(navigations).toBe(1);
   expect(raw.labels).not.toContain(fixture.selectedLabel);
+});
+
+test("joined airline names accept a listed carrier but reject unrelated carriers or different flight details", async () => {
+  const { outboundLabelChecks } = await import("./returnFlights");
+  const saved = { ...outbound, airline: "LufthansaUnited" };
+  const label = fixture.selectedLabel.replace("Frontier", "United and Lufthansa");
+  expect(Object.values(outboundLabelChecks(label, saved, request.departureDate)).every(Boolean)).toBe(true);
+  expect(outboundLabelChecks(label.replace("United and Lufthansa", "Lufthansa"), saved, request.departureDate).airline).toBe(true);
+  expect(outboundLabelChecks(label.replace("United", "American"), saved, request.departureDate).airline).toBe(false);
+  expect(outboundLabelChecks(label.replace("6:30 AM", "7:30 AM"), saved, request.departureDate).departure).toBe(false);
+  expect(parseReturnResults({ ...fixture, selectedLabel: label }, request, saved).flights).toHaveLength(5);
+});
+
+test("failed browser matching records airline labels and joint non-airline agreement", async () => {
+  const { returnBrowserCode } = await import("./returnFlights");
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
+  const page = { evaluate: async () => {}, goto: async () => {}, locator: () => ({ ariaSnapshot: async () => fixture.initial }),
+    getByRole: () => ({ first: () => ({ waitFor: async () => {} }), evaluateAll: async () => [fixture.selectedLabel.replace("Frontier", "United Airlines")] }) };
+  const result = JSON.parse(await new AsyncFunction("page", "return " + returnBrowserCode(request, outbound))(page));
+  expect(result).toMatchObject({ reason: "outbound_missing", selectedAirline: "Frontier",
+    airlineCandidates: [{ airline: "United Airlines", otherDetailsMatch: true }] });
+});
+
+
+test.each([false, true])("listed-carrier fallback requires a unique match for every other detail (ambiguous: %s)", async ambiguous => {
+  const { returnBrowserCode } = await import("./returnFlights");
+  const saved = { ...outbound, airline: "LufthansaUnited" };
+  const label = fixture.selectedLabel.replace("Frontier", "Lufthansa");
+  let selected = false;
+  const page = { evaluate: async () => {}, goto: async () => {}, url: () => fixture.url,
+    locator: () => ({ ariaSnapshot: async () => fixture.initial }),
+    getByRole: () => ({ first: () => ({ waitFor: async () => {} }), waitFor: async () => {},
+      evaluateAll: async () => selected ? fixture.labels : ambiguous ? [label, label.replace("Lufthansa", "United")] : [label],
+      press: async () => { selected = true; } }) };
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
+  const result = JSON.parse(await new AsyncFunction("page", "return " + returnBrowserCode(request, saved))(page));
+  if (ambiguous) {
+    expect(result).toMatchObject({ reason: "outbound_ambiguous", matchCount: 2 });
+    expect(selected).toBe(false);
+  } else {
+    expect(result.selectedLabel).toBe(label);
+    expect(parseReturnResults(result, request, saved).flights).toHaveLength(5);
+  }
 });

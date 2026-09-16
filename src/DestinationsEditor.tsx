@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { LocationPicker } from "./LocationPicker";
 import { moveDestination } from "./locations";
@@ -5,6 +6,7 @@ import { moveDestination } from "./locations";
 export type DestinationStop = { id: string; value: string };
 
 type DestinationsEditorProps = {
+  homePrompt?: ReactNode;
   origin: string;
   stops: DestinationStop[];
   disabled: boolean;
@@ -12,7 +14,7 @@ type DestinationsEditorProps = {
   onStopsChange: (stops: DestinationStop[]) => void;
 };
 
-export function DestinationsEditor({ origin, stops, disabled, onOriginChange, onStopsChange }: DestinationsEditorProps) {
+export function DestinationsEditor({ origin, stops, disabled, onOriginChange, onStopsChange, homePrompt }: DestinationsEditorProps) {
   const [announcement, setAnnouncement] = useState("");
   const [dragging, setDragging] = useState<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
@@ -66,6 +68,7 @@ export function DestinationsEditor({ origin, stops, disabled, onOriginChange, on
           </li>
         ))}
       </ol>
+      {homePrompt}
       <div className="destination-add">
         <LocationPicker label="Add a destination" required={stops.length === 0} disabled={disabled || stops.length >= 20} clearOnSelect
           onSelect={(value) => {

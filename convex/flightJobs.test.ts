@@ -165,13 +165,15 @@ test("flight validation rejects past dates and missing route before charging cre
 test("unreadable flight pages fail without saving invented or mock fares", async () => {
   const { t, alice, args } = await setup();
   vi.setSystemTime(new Date("2026-09-11T12:00:00Z"));
-  fetchMock.mockResolvedValue(new Response(JSON.stringify({ success: true, data: { markdown: "Consent required" } })));
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown: "Loading results" } })));
   const flightArgs = { ...args, flight: { origin: "DTW", destination: "LAX", departureDate: "2026-10-15" } };
   const { runId } = await alice.mutation(api.flightJobs.start, flightArgs);
   await t.action(internal.flightJobs.execute, { runId });
   const result = await alice.query(api.flightJobs.latest, flightArgs);
   expect(result?.run.status).toBe("failed");
   expect(result?.run.error).toContain("could not be verified");
+  expect(result?.run.diagnostic?.reason).toBe("search_page_not_ready");
+  expect(fetchMock).toHaveBeenCalledTimes(2);
   expect(result?.sources).toEqual([]);
 });
 
@@ -306,4 +308,21 @@ test("return browser diagnostics reach the owner without exposing provider conte
   expect(JSON.stringify(failed)).not.toContain("test-secret");
   await expect(bob.query(api.flightJobs.latest, returnArgs)).rejects.toThrow();
   expect(fetchMock.mock.calls.at(-1)?.[1]?.method).toBe("DELETE");
+});
+
+
+test.each([true, false])("outgoing search retries only an unready page within the same run (unready: %s)", async unready => {
+  const { t, alice, args } = await setup();
+  fetchMock.mockImplementationOnce(async () => new Response(JSON.stringify({ success: true,
+    data: { markdown: unready ? "# Find and book cheap flights worldwide" : markdown.replace("CurrencyUSD", "CurrencyCAD") } })));
+  const { runId } = await alice.mutation(api.flightJobs.start, args);
+  await t.action(internal.flightJobs.execute, { runId });
+  const result = await alice.query(api.flightJobs.latest, args);
+  expect(result?.run._id).toBe(runId);
+  expect(result?.run.status).toBe(unready ? "completed" : "failed");
+  expect(fetchMock).toHaveBeenCalledTimes(unready ? 2 : 1);
+  if (unready) {
+    expect(result?.sources).toHaveLength(3);
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body)).waitFor).toBe(10000);
+  } else expect(result?.run.diagnostic?.reason).toBe("context_mismatch");
 });

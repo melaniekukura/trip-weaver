@@ -12,6 +12,7 @@ export const tripFields = v.object({
   travelers: v.number(),
   interests: v.array(v.string()),
   accessibility: v.optional(v.string()),
+  homeReturnNotNeededFor: v.optional(v.string()),
 });
 
 function invalid(message: string): never {
@@ -36,6 +37,7 @@ function date(value: string) {
 }
 
 export function validateTrip(input: Infer<typeof tripFields>) {
+  if (input.homeReturnNotNeededFor && input.homeReturnNotNeededFor.length > 6000) invalid("Invalid flight-home choice.");
   const startDate = date(input.startDate);
   const endDate = date(input.endDate);
   if (endDate < startDate) invalid("The end date must be on or after the start date.");
@@ -68,6 +70,7 @@ export function validateTrip(input: Infer<typeof tripFields>) {
     currency,
     travelers: input.travelers,
     interests: [...new Set(input.interests.map((value) => text(value, "Interest", 80)))],
+    ...(input.homeReturnNotNeededFor !== undefined ? { homeReturnNotNeededFor: input.homeReturnNotNeededFor } : {}),
     ...(accessibility !== undefined ? { accessibility } : {}),
   };
 }
