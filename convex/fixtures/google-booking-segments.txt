@@ -1,0 +1,3 @@
+      - text: "6:05 PM·Detroit Metropolitan Wayne County Airport (DTW) Travel time: 2 hr 4 min 8:09 PM·John F. Kennedy International Airport (JFK) Delta · Economy · Airbus A319 · DL 1316 Often delayed by 30+ min"
+      - text: "1 hr 56 min layover·New York (JFK) 10:05 PM·John F. Kennedy International Airport (JFK) Travel time: 7 hr 15 min· Overnight 11:20 AM+1·Adolfo Suárez Madrid-Barajas Airport (MAD) Air Europa · Economy · Boeing 787 · UX 92"
+      - text: "1 hr 30 min layover·Madrid (MAD) 12:50 PM+1·Adolfo Suárez Madrid-Barajas Airport (MAD) Travel time: 2 hr 5 min 2:55 PM+1·Milano Malpensa Airport (MXP) Air Europa · Economy · Boeing 737 · UX 1063 Plane and crew by Air Europa Express"

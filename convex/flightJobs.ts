@@ -9,6 +9,8 @@ import { internalAction, internalMutation, internalQuery, mutation, query } from
 import type { QueryCtx } from "./_generated/server";
 import { resolveAirportScope } from "./cityAirports";
 import { browseReturnFlights, scrapeFlightPage } from "./firecrawl";
+import { diagnoseFlightFailure, flightDiagnostic, flightFailure } from "./flightDiagnostics";
+import type { DiagnosticStage } from "./flightDiagnostics";
 import { sourceFields } from "./flightSchema";
 import schema from "./schema";
 import { flightRequest, flightSearchUrl, parseFlightPage, validateFlightRequest } from "./flightSearch";
@@ -66,8 +68,10 @@ export const start = mutation({
         throw new ConvexError({ code: "INVALID_FLIGHT_SEARCH", message: "Choose travel dates within the next 330 days." });
       }
     }
-    const existing = await ctx.db.query("researchRuns").withIndex("by_tripId_searchKey", (q) =>
-      q.eq("tripId", trip._id).eq("searchKey", details.searchKey)).order("desc").first();
+    const recent = await ctx.db.query("researchRuns").withIndex("by_tripId_searchKey", (q) =>
+      q.eq("tripId", trip._id).eq("searchKey", details.searchKey)).order("desc").take(20);
+    const existing = recent.find(run => run.status === "pending" || run.status === "running") ??
+      (!args.refresh ? (args.outboundSourceId ? recent.find(run => run.status === "completed" && (run.expiresAt ?? 0) > Date.now()) : recent[0]) : undefined);
     if (existing && (existing.status === "pending" || existing.status === "running" ||
       (!args.refresh && existing.status === "completed" && (existing.expiresAt ?? 0) > Date.now()))) {
       return { runId: existing._id, reused: true };
@@ -94,15 +98,15 @@ export const start = mutation({
 });
 
 export const latest = query({
-  args: { tripId: v.id("trips"), flight: flightRequest, outboundSourceId: v.optional(v.id("researchSources")) },
+  args: { tripId: v.id("trips"), flight: flightRequest, outboundSourceId: v.optional(v.id("researchSources")), runId: v.optional(v.id("researchRuns")) },
   returns: v.union(v.null(), v.object({ run: schema.doc("researchRuns"), sources: v.array(schema.doc("researchSources")) })),
   handler: async (ctx, args) => {
     const trip = await ownedTrip(ctx, args.tripId);
     await checkOutbound(ctx, trip._id, args.flight, args.outboundSourceId);
     const details = searchDetails(args.flight, args.outboundSourceId);
-    const run = await ctx.db.query("researchRuns").withIndex("by_tripId_searchKey", (q) =>
+    const run = args.runId ? await ctx.db.get("researchRuns", args.runId) : await ctx.db.query("researchRuns").withIndex("by_tripId_searchKey", (q) =>
       q.eq("tripId", trip._id).eq("searchKey", details.searchKey)).order("desc").first();
-    if (!run) return null;
+    if (!run || run.tripId !== trip._id || run.searchKey !== details.searchKey) return null;
     const sources = await ctx.db.query("researchSources").withIndex("by_runId", (q) => q.eq("runId", run._id)).take(5);
     return { run, sources };
   },
@@ -146,30 +150,45 @@ export const execute = internalAction({
   handler: async (ctx, { runId }) => {
     const run = await ctx.runMutation(internal.flightJobs.claim, { runId });
     if (!run || !run.flightRequest) return null;
+    let stage: DiagnosticStage = "outbound_lookup";
     try {
       if (run.outboundSourceId) {
         const outbound = await ctx.runQuery(internal.flightJobs.selectedOutbound, { runId });
-        if (!outbound) throw new Error("Outbound unavailable");
+        if (!outbound) flightFailure(stage, "outbound_missing");
+        stage = "browser_execute";
         const raw = await browseReturnFlights(returnBrowserCode(run.flightRequest, outbound.flight));
+        stage = "return_parse";
         const response = parseReturnResults(raw, run.flightRequest, outbound.flight);
+        stage = "save_results";
         await ctx.runMutation(internal.flightJobs.finish, { runId, sources: response.flights.map((flight) => ({
           title: flight.airline, category: "flights" as const, description: `${flight.duration} · ${flight.stops}`,
           destination: run.flightRequest.origin, sourceUrl: response.sourceUrl, retrievedAt: new Date().toISOString(), flight,
         })) });
         return null;
       }
+      stage = "airport_lookup";
       const scope = await resolveAirportScope(run.flightRequest);
-      const response = await scrapeFlightPage(run.query);
-      const flights = parseFlightPage(response.markdown, run.flightRequest, scope);
+      stage = "outbound_scrape";
+      let response = await scrapeFlightPage(run.query);
+      stage = "outbound_parse";
+      let flights;
+      try { flights = parseFlightPage(response.markdown, run.flightRequest, scope); }
+      catch (error) {
+        if (diagnoseFlightFailure(error, stage).reason !== "search_page_not_ready") throw error;
+        stage = "outbound_scrape";
+        response = await scrapeFlightPage(run.query, 10000);
+        stage = "outbound_parse";
+        flights = parseFlightPage(response.markdown, run.flightRequest, scope);
+      }
+      stage = "save_results";
       await ctx.runMutation(internal.flightJobs.finish, { runId, airportScope: scope, sources: flights.map((flight) => ({
         title: flight.airline, category: "flights" as const, description: `${flight.duration} · ${flight.stops}`,
         destination: run.destination, sourceUrl: run.query, retrievedAt: response.retrievedAt, flight,
       })) });
     } catch (error) {
-      const code = error instanceof ConvexError && typeof error.data === "object" && error.data !== null && "code" in error.data
-        ? String(error.data.code) : "";
+      const diagnostic = diagnoseFlightFailure(error, stage);
       await ctx.runMutation(internal.flightJobs.fail, {
-        runId, message: providerErrors[code] ?? "Flight search could not be completed. Please try again.",
+        runId, message: providerErrors[diagnostic.code] ?? "Flight search could not be completed. Please try again.", diagnostic,
       });
     }
     return null;
@@ -190,11 +209,12 @@ export const finish = internalMutation({
 });
 
 export const fail = internalMutation({
-  args: { runId: v.id("researchRuns"), message: v.string() }, returns: v.null(),
-  handler: async (ctx, { runId, message }) => {
+  args: { runId: v.id("researchRuns"), message: v.string(), diagnostic: v.optional(flightDiagnostic) }, returns: v.null(),
+  handler: async (ctx, { runId, message, diagnostic }) => {
     const run = await ctx.db.get("researchRuns", runId);
     if (run && (run.status === "pending" || run.status === "running")) {
-      await ctx.db.patch("researchRuns", runId, { status: "failed", finishedAt: Date.now(), error: message });
+      if (diagnostic) console.error("flight_search_failed", { runId, ...diagnostic });
+      await ctx.db.patch("researchRuns", runId, { status: "failed", finishedAt: Date.now(), error: message, ...(diagnostic ? { diagnostic } : {}) });
     }
     return null;
   },
@@ -203,7 +223,8 @@ export const fail = internalMutation({
 export const onComplete = internalMutation({
   args: vOnCompleteValidator(v.object({ runId: v.id("researchRuns") })), returns: v.null(),
   handler: async (ctx, { context, result }) => {
-    await ctx.runMutation(internal.flightJobs.fail, { runId: context.runId,
+    if (result.kind === "success") return null;
+    await ctx.runMutation(internal.flightJobs.fail, { runId: context.runId, diagnostic: { stage: "worker", reason: "interrupted", code: "SEARCH_FAILED" },
       message: result.kind === "canceled" ? "Flight search was canceled. You can try again." : "Flight search was interrupted. You can try again." });
     return null;
   },

@@ -15,7 +15,7 @@ than inherited from a trip's traveler count or currency.
 5. Set separate **Return flight filters**, then **Find matching return flights**.
    This makes a Firecrawl browser request and can spend more credits than a scrape.
 6. Click **Select return** to see both legs and one observed combined total.
-7. Use **Review return options in Google Flights** to confirm the booking details.
+7. Use **Get airline booking link**, then **Book with [airline]**, to review and book the selected itinerary directly with the airline. Direct links may expire or be unavailable for some carriers.
    The link retains the outgoing selection; select the desired return there.
 
 Initial searches usually take 30–70 seconds. The initial page only provides
