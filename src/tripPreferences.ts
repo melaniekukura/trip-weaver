@@ -10,7 +10,7 @@ export function tripPreferences(data: FormData, saved: Preferences | undefined, 
   const value = (key: string) => String(data.get(key) ?? "").trim();
   return {
     budget: value("budget") === "" ? null : Number(value("budget")), currency: value("currency"),
-    interests: value("interests").split(",").map((item) => item.trim()).filter(Boolean),
+    interests: data.getAll("interests").map(item => String(item).trim()).filter(Boolean),
     accessibility: value("accessibility"),
   };
 }

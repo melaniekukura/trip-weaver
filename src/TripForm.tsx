@@ -10,6 +10,8 @@ import { tripPlannerPath } from "./tripRoutes";
 import { HomeJourneyPrompt } from "./HomeJourneyPrompt";
 import { homeJourneyStatus } from "../convex/homeJourney";
 import { flightPlanItinerary } from "../convex/flightPlanFields";
+import { InterestsEditor } from "./InterestsEditor";
+import { InterestDiscovery } from "./InterestDiscovery";
 import { TransportationTab } from "./TransportationTab";
 import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
@@ -36,6 +38,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
   const [error, setError] = useState("");
   const [active, setActive] = useState(0);
   const [startDate, setStartDate] = useState(trip?.startDate ?? initialValues?.startDate ?? "");
+  const [interests, setInterests] = useState(trip?.interests ?? []);
   const [endDate, setEndDate] = useState(trip?.endDate ?? "");
   const [origin, setOrigin] = useState(trip?.origin ?? initialValues?.origin ?? "");
   const [destinations, setDestinations] = useState<DestinationStop[]>(() =>
@@ -210,8 +213,8 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-4" aria-labelledby="trip-tab-4" data-tab="4" hidden={active !== 4}>
                 <h3>What do you enjoy?</h3>
                 <p className="field-hint">Save the things you would like to do and explore.</p>
-                <label>Interests (optional) <span className="field-hint">Separate with commas, up to 20 interests</span>
-                  <textarea name="interests" rows={4} maxLength={1650} defaultValue={trip?.interests.join(", ")} placeholder="Food, museums, hiking" /></label>
+                <InterestsEditor interests={interests} onChange={setInterests} />
+                <InterestDiscovery tripId={savedTrip?._id} interests={interests} destinations={destinations.map(stop => stop.value)} onSaveTrip={saveTrip} />
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-5" aria-labelledby="trip-tab-5" data-tab="5" hidden={active !== 5}>
                 <h3>Travel comfortably</h3>
