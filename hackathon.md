@@ -2,7 +2,7 @@
 
 - **Project:** Trip-Weaver
 - **Event:** Convex All Gas Hackathon
-- **What it does:** Private multi-city trip planning with Firecrawl flight searches, outgoing and return filters, homebound-leg checks, Google Flights booking options, airline-search backups, booking-status tracking, and interest-based discovery of restaurants, activities, and events with itinerary scheduling and notes.
+- **What it does:** Private multi-city trip planning with Firecrawl flight searches, booking-status tracking, and interest-based discovery of restaurants, activities, and events, brought together in a unified day-by-day itinerary.
 - **Live app:** not deployed
 - **Repo:** private
 - **Frontend:** not deployed
@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-04T19:25:03Z
-- **Last updated:** 2026-09-17T11:20:28Z
+- **Last updated:** 2026-09-17T16:16:47Z
 
 ## Log
 
@@ -90,3 +90,9 @@ Enabled city-only searches beyond the trip’s listed destinations without chang
 Redesigned Interests with a grouped planning panel, inline interest pills, a single search row, compact source-linked cards, collapsible results, and separate saved-idea and itinerary sections. Itinerary entries sort by date and expand for notes, editing, and full activity details (`src/TripForm.tsx`, `src/InterestDiscovery.tsx`, `src/styles.css`).
 Development checks passed 240 tests, TypeScript lint, and the production build; tests cover ownership, itinerary edits and validation, city-date derivation, and searches outside the trip route. Backend updates were deployed to personal dev. The user reviewed the UI; automated live-browser visual verification was unavailable. Search source availability and event coverage remain limitations.
 The Interests work through `594e803` was merged into `main` in PR #6 (`cbe6994`). No public frontend deployment or activity reservations are recorded.
+
+### 2026-09-17 - ca04150
+Added a final Itinerary tab that combines current-route booked transportation and planned activities into one date- and time-ordered schedule. Round-trip flights, booking references, activity notes, source links, and unscheduled activities remain visible in distinct timeline states (`src/TripItinerary.tsx`, `src/TripForm.tsx`).
+Excluded stale and unbooked transportation, warned when earlier-route bookings are omitted, and linked empty and populated states back to Transportation and Interests. External activity links retain the existing sanitized HTTP(S) source boundary and ownership-protected Convex favorites query.
+Standardized itinerary times to 12-hour display while preserving stored values and chronological ordering. Added responsive styling plus regression tests for grouping, stale records, cleared dates, time formats, final-tab order, and tab-to-panel accessibility wiring (`src/styles.css`, `src/TripItinerary.test.ts`, `src/TripFormTabs.test.ts`).
+Development checks passed 246 tests, TypeScript lint, the production build, and `git diff --check`. The work was merged into `main` in PR #7 (`a06b566`); no backend schema change or public deployment was required.
