@@ -1140,8 +1140,8 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .itinerary-email-action { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 28px; padding: 20px; border: 1px solid var(--gray); border-radius: 12px; background: #fff; }
 .itinerary-email-action strong { color: var(--indigo); }
 .itinerary-email-action p { margin: 5px 0 0; }
-.itinerary-email-status.is-sent { color: #176b55; font-weight: 700; }
-.itinerary-email-status.is-failed { color: #9b2c2c; }
+.itinerary-email-status.is-sent, .itinerary-email-status.is-delivered { color: #176b55; font-weight: 700; }
+.itinerary-email-status.is-failed, .itinerary-email-status.is-bounced, .itinerary-email-status.is-rejected { color: #9b2c2c; }
 .full-itinerary-actions { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--gray); font-size: 13px; }
 @media (max-width: 700px) {
   .full-itinerary-dates { align-items: flex-start; flex-direction: column; gap: 4px; }

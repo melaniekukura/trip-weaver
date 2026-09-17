@@ -5,7 +5,7 @@ import { components, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { itineraryEmailSnapshot } from "./emailSchema";
+import { agentMailEventType, itineraryEmailSnapshot } from "./emailSchema";
 import { flightPlanItinerary } from "./flightPlanFields";
 import schema from "./schema";
 
@@ -15,16 +15,17 @@ const limiter = new RateLimiter(components.rateLimiter, {
   itineraryEmailGlobal: { kind: "token bucket", rate: 100, period: HOUR, capacity: 20 },
 });
 
-async function requireUser(ctx: ReadCtx) {
+async function requireUser(ctx: ReadCtx, requireVerified = false) {
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get("users", userId) : null;
   if (!userId || !user) throw new ConvexError({ code: "UNAUTHENTICATED", message: "Sign in to email an itinerary." });
   if (!user.email) throw new ConvexError({ code: "EMAIL_UNAVAILABLE", message: "Your account does not have an email address." });
+  if (requireVerified && !user.emailVerificationTime) throw new ConvexError({ code: "EMAIL_UNVERIFIED", message: "Verify your account email before sending an itinerary." });
   return { userId, user };
 }
 
-async function requireTrip(ctx: ReadCtx, tripId: Id<"trips">) {
-  const { userId, user } = await requireUser(ctx);
+async function requireTrip(ctx: ReadCtx, tripId: Id<"trips">, requireVerified = false) {
+  const { userId, user } = await requireUser(ctx, requireVerified);
   const trip = await ctx.db.get("trips", tripId);
   if (!trip || trip.ownerId !== userId) throw new ConvexError({ code: "TRIP_NOT_FOUND", message: "This trip is unavailable." });
   return { trip, userId, user };
@@ -86,7 +87,7 @@ export const request = mutation({
   args: { tripId: v.id("trips"), requestId: v.string() },
   returns: v.id("emailDeliveries"),
   handler: async (ctx, { tripId, requestId }) => {
-    const { trip, userId, user } = await requireTrip(ctx, tripId);
+    const { trip, userId, user } = await requireTrip(ctx, tripId, true);
     if (!/^[A-Za-z0-9._~-]{1,128}$/.test(requestId)) throw new ConvexError({ message: "Invalid email request identifier." });
     const existing = await ctx.db.query("emailDeliveries").withIndex("by_ownerId_and_requestId", q => q.eq("ownerId", userId).eq("requestId", requestId)).unique();
     if (existing) {
@@ -116,13 +117,22 @@ export const latest = query({
   },
 });
 
+export const account = query({
+  args: {},
+  returns: v.object({ email: v.string(), verified: v.boolean() }),
+  handler: async (ctx) => {
+    const { user } = await requireUser(ctx);
+    return { email: user.email!, verified: Boolean(user.emailVerificationTime) };
+  },
+});
+
 export const retry = mutation({
   args: { deliveryId: v.id("emailDeliveries") },
   returns: v.null(),
   handler: async (ctx, { deliveryId }) => {
     const delivery = await ctx.db.get("emailDeliveries", deliveryId);
     if (!delivery) throw new ConvexError({ message: "This email delivery is unavailable." });
-    const { userId } = await requireTrip(ctx, delivery.tripId);
+    const { userId } = await requireTrip(ctx, delivery.tripId, true);
     if (delivery.ownerId !== userId) throw new ConvexError({ message: "This email delivery is unavailable." });
     if (delivery.status !== "failed") throw new ConvexError({ message: "Only failed deliveries can be retried." });
     if (delivery.attempts >= 3) throw new ConvexError({ message: "This delivery cannot be retried again. Request a new email instead." });
@@ -157,9 +167,55 @@ export const finish = internalMutation({
     const delivery = await ctx.db.get("emailDeliveries", deliveryId);
     if (!delivery || delivery.status !== "sending") return null;
     const now = Date.now();
-    await ctx.db.patch("emailDeliveries", deliveryId, result.status === "sent"
-      ? { status: "sent", agentmailMessageId: result.messageId, agentmailThreadId: result.threadId, sentAt: now, error: undefined, updatedAt: now }
-      : { status: "failed", error: result.error.slice(0, 500), updatedAt: now });
+    if (result.status === "failed") {
+      await ctx.db.patch("emailDeliveries", deliveryId, { status: "failed", error: result.error.slice(0, 500), failedAt: now, updatedAt: now });
+      return null;
+    }
+    const events = await ctx.db.query("agentmailWebhookEvents").withIndex("by_messageId", q => q.eq("messageId", result.messageId)).take(20);
+    let status: Doc<"emailDeliveries">["status"] = "sent";
+    let error: string | undefined;
+    let deliveredAt: number | undefined;
+    let failedAt: number | undefined;
+    for (const event of events) {
+      if (event.eventType === "message.delivered" && status === "sent") {
+        status = "delivered"; deliveredAt = event.occurredAt ?? event.receivedAt;
+      } else if (event.eventType === "message.bounced" || event.eventType === "message.rejected") {
+        status = event.eventType === "message.bounced" ? "bounced" : "rejected";
+        error = event.error; failedAt = event.occurredAt ?? event.receivedAt;
+      }
+      await ctx.db.patch("agentmailWebhookEvents", event._id, { processed: true, deliveryId });
+    }
+    await ctx.db.patch("emailDeliveries", deliveryId, { status, agentmailMessageId: result.messageId,
+      agentmailThreadId: result.threadId, sentAt: now, deliveredAt, failedAt, error, updatedAt: now });
+    return null;
+  },
+});
+
+export const recordWebhook = internalMutation({
+  args: { eventId: v.string(), eventType: agentMailEventType, messageId: v.string(),
+    occurredAt: v.optional(v.number()), error: v.optional(v.string()) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (await ctx.db.query("agentmailWebhookEvents").withIndex("by_eventId", q => q.eq("eventId", args.eventId)).unique()) return null;
+    const delivery = await ctx.db.query("emailDeliveries").withIndex("by_agentmailMessageId", q => q.eq("agentmailMessageId", args.messageId)).unique();
+    const now = Date.now();
+    const eventId = await ctx.db.insert("agentmailWebhookEvents", { ...args, processed: Boolean(delivery),
+      ...(delivery ? { deliveryId: delivery._id } : {}), receivedAt: now });
+    if (!delivery) return null;
+    const occurredAt = args.occurredAt ?? now;
+    if (args.eventType === "message.sent") {
+      if (delivery.status === "queued" || delivery.status === "sending") {
+        await ctx.db.patch("emailDeliveries", delivery._id, { status: "sent", sentAt: occurredAt, updatedAt: now });
+      }
+    } else if (args.eventType === "message.delivered") {
+      if (delivery.status !== "bounced" && delivery.status !== "rejected") {
+        await ctx.db.patch("emailDeliveries", delivery._id, { status: "delivered", deliveredAt: occurredAt, updatedAt: now });
+      }
+    } else {
+      await ctx.db.patch("emailDeliveries", delivery._id, { status: args.eventType === "message.bounced" ? "bounced" : "rejected",
+        error: args.error?.slice(0, 500), failedAt: occurredAt, updatedAt: now });
+    }
+    await ctx.db.patch("agentmailWebhookEvents", eventId, { processed: true });
     return null;
   },
 });

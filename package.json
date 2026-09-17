@@ -19,7 +19,8 @@
     "convex": "^1.45.0",
     "jose": "6.2.12",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "svix": "^2.5.0"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",

@@ -31,6 +31,16 @@ export const emailDeliveryStatus = v.union(
   v.literal("sending"),
   v.literal("sent"),
   v.literal("failed"),
+  v.literal("delivered"),
+  v.literal("bounced"),
+  v.literal("rejected"),
+);
+
+export const agentMailEventType = v.union(
+  v.literal("message.sent"),
+  v.literal("message.delivered"),
+  v.literal("message.bounced"),
+  v.literal("message.rejected"),
 );
 
 export const emailTables = {
@@ -45,6 +55,8 @@ export const emailTables = {
     attempts: v.number(),
     updatedAt: v.number(),
     sentAt: v.optional(v.number()),
+    deliveredAt: v.optional(v.number()),
+    failedAt: v.optional(v.number()),
     agentmailMessageId: v.optional(v.string()),
     agentmailThreadId: v.optional(v.string()),
     error: v.optional(v.string()),
@@ -52,4 +64,16 @@ export const emailTables = {
     .index("by_ownerId_and_requestId", ["ownerId", "requestId"])
     .index("by_tripId", ["tripId"])
     .index("by_agentmailMessageId", ["agentmailMessageId"]),
+  agentmailWebhookEvents: defineTable({
+    eventId: v.string(),
+    eventType: agentMailEventType,
+    messageId: v.string(),
+    occurredAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    processed: v.boolean(),
+    deliveryId: v.optional(v.id("emailDeliveries")),
+    receivedAt: v.number(),
+  })
+    .index("by_eventId", ["eventId"])
+    .index("by_messageId", ["messageId"]),
 };

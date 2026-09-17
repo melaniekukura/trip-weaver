@@ -9,6 +9,8 @@
  */
 
 import type * as agentmail from "../agentmail.js";
+import type * as agentmailClient from "../agentmailClient.js";
+import type * as agentmailWebhook from "../agentmailWebhook.js";
 import type * as airlineNames from "../airlineNames.js";
 import type * as auth from "../auth.js";
 import type * as bookingLinks from "../bookingLinks.js";
@@ -46,6 +48,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   agentmail: typeof agentmail;
+  agentmailClient: typeof agentmailClient;
+  agentmailWebhook: typeof agentmailWebhook;
   airlineNames: typeof airlineNames;
   auth: typeof auth;
   bookingLinks: typeof bookingLinks;
