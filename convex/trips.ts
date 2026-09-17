@@ -83,6 +83,7 @@ export const remove = mutation({
     await requireTrip(ctx, tripId);
     await ctx.db.delete("trips", tripId);
     await ctx.scheduler.runAfter(0, internal.flightJobs.cleanupTrip, { tripId });
+    await ctx.scheduler.runAfter(0, internal.interestJobs.cleanupTrip, { tripId });
     return null;
   },
 });

@@ -972,3 +972,133 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 .transport-remove-leg { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .transport-remove-leg p { margin: 0; }
+
+.interest-discovery { margin-top: 2rem; }
+.interest-discovery > .interest-search-actions { margin-top: 16px; }
+.interest-results { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 1rem; }
+.interest-result { border: 1px solid #C3C3C3; border-radius: 10px; padding: 1.25rem; background: #F7F7F7; color: #292929; overflow-wrap: anywhere; }
+.interest-result.is-saved { border-left: 4px solid #16CBC4; }
+.interest-result h4 { margin: .5rem 0; }
+.interest-result h4 a { color: #251F47; }
+.interest-result p { margin: .6rem 0; }
+
+.interests-editor { margin-bottom: 1.5rem; }
+.interests-editor > button { margin-top: .75rem; }
+.interest-pills { display: flex; flex-wrap: wrap; gap: .6rem; list-style: none; padding: 0; }
+.interest-pill { display: inline-flex; align-items: center; gap: .5rem; max-width: 100%; padding: .3rem .5rem .3rem .9rem; border: 1px solid #16CBC4; border-radius: 999px; background: #dff8f6; color: #292929; }
+.interest-pill:nth-child(3n + 2) { background: #eeecf6; border-color: #b7b0d1; color: #251F47; }
+.interest-pill:nth-child(3n) { background: #efefef; border-color: #C3C3C3; }
+.interest-pill span { overflow-wrap: anywhere; min-width: 0; }
+.trip-form .interest-pill button { border: 0; border-radius: 50%; background: transparent; color: inherit; min-width: 32px; min-height: 32px; padding: 0; font-size: 1.25rem; }
+.interest-pill button:hover { background: #ffffffa0; }
+
+.idea-itinerary { margin: 1rem 0; border-top: 1px solid #C3C3C3; padding-top: .75rem; }
+.itinerary-status { color: #251F47; font-weight: 700; }
+.itinerary-notes { white-space: pre-wrap; }
+.trip-form .idea-itinerary-fields { padding: 0; border: 0; min-width: 0; }
+.idea-itinerary-fields legend { font-weight: 700; margin-bottom: .75rem; }
+.idea-itinerary-fields .button-row { margin-top: .75rem; }
+
+.idea-description { margin: .6rem 0; }
+.idea-description summary { cursor: pointer; color: var(--indigo); }
+.idea-description summary:focus-visible { outline: 2px solid var(--indigo); outline-offset: 3px; }
+
+.city-stay-summary { border: 1px solid var(--gray); border-left: 4px solid var(--teal); padding: 16px; margin-bottom: 24px; background: white; }
+.city-stay-summary h3 { margin: 0; }
+.city-stay-summary > .button-row { justify-content: space-between; }
+.city-stays { list-style: none; margin: 0; padding: 0; }
+.city-stays li { display: grid; grid-template-columns: 1fr 2fr 2fr; gap: 16px; padding: 12px 0; overflow-wrap: anywhere; }
+.city-stays li + li { border-top: 1px solid var(--gray); }
+@media (max-width: 600px) { .city-stays li { grid-template-columns: 1fr; gap: 8px; } }
+
+.interest-other-city { margin-top: 16px; }
+
+.ideas-itinerary { margin-top: 2rem; border-top: 1px solid var(--gray); padding-top: 1rem; }
+.itinerary-list { list-style: none; padding: 0; display: grid; gap: 12px; }
+.itinerary-activity { border: 1px solid var(--gray); border-left: 4px solid var(--teal); border-radius: 8px; background: white; overflow-wrap: anywhere; }
+.itinerary-activity > summary { cursor: pointer; padding: 16px; color: var(--indigo); }
+.itinerary-activity > summary:focus-visible { outline: 2px solid var(--indigo); outline-offset: 3px; }
+.itinerary-activity-meta { display: block; margin-top: 6px; color: var(--ink); font-size: 13px; }
+.itinerary-activity-body { border-top: 1px solid var(--gray); padding: 16px; }
+
+/* Compact Interests planner. */
+.interest-sr-only, .interest-city-field .location-picker > label, .interest-city-field .location-picker > .field-hint { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.trip-form [data-tab="4"] > h3 { margin-bottom: 4px; }
+.trip-form [data-tab="4"] > .field-hint { margin-top: 0; }
+.city-stay-summary { border: 0; padding: 0; background: transparent; margin: 24px 0; }
+.city-stay-summary h3 { font-size: 14px; }
+.city-stay-summary .text-button { font-size: 12px; padding: 4px 0; text-decoration: none; }
+.city-stays { margin-top: 8px; border: 1px solid var(--gray); border-radius: 8px; background: white; overflow: hidden; }
+.city-stays li { grid-template-columns: 1fr 3fr 3fr; padding: 12px 16px; font-size: 13px; }
+.interests-editor { margin: 24px 0 28px; }
+.interests-editor h4, .interest-discovery > h4 { margin: 0 0 8px; font-size: 14px; }
+.interest-pills { align-items: center; margin: 0; gap: 8px; }
+.interest-pill, .interest-pill:nth-child(3n), .interest-pill:nth-child(3n + 2) { background: #dff5ee; color: #254c43; border-color: transparent; padding: 2px 6px 2px 12px; font-size: 13px; }
+.trip-form .interest-pill button { min-width: 24px; min-height: 28px; font-size: 16px; }
+.interest-add { display: flex; align-items: center; gap: 6px; max-width: 100%; }
+.trip-form .interest-add input { border: 1px dashed var(--gray); border-radius: 999px; padding: 7px 12px; width: 170px; font-size: 13px; }
+.interest-add .secondary-button { padding: 6px 10px; font-size: 12px; }
+.interest-discovery { margin-top: 0; }
+.interest-search-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; align-items: start; gap: 12px; }
+.interest-search-row > *, .interest-city-field { min-width: 0; }
+.interest-search-row button { white-space: nowrap; min-height: 44px; }
+.trip-form .interest-search-row select, .trip-form .interest-search-row input { min-height: 44px; }
+.interest-search-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.interest-search-meta .text-button { font-size: 12px; padding: 4px; }
+.interest-results { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 16px; margin: 16px 0 28px; }
+.interest-result, .interest-result.is-saved { background: white; border: 1px solid var(--gray); padding: 16px; display: flex; flex-direction: column; align-items: flex-start; }
+.interest-result h4 { font-size: 15px; line-height: 1.35; margin: 0 0 8px; }
+.interest-result p { font-size: 13px; line-height: 1.45; margin: 0 0 8px; }
+.interest-result .idea-blurb { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.idea-source-details { font-size: 12px; margin-bottom: 8px; }
+.idea-source-details > summary { cursor: pointer; color: var(--indigo); }
+.idea-source-details > summary:focus-visible { outline: 2px solid var(--indigo); outline-offset: 3px; }
+.interest-result .idea-source { margin-top: auto; padding-top: 12px; font-size: 11px; }
+.interest-result > .secondary-button { font-size: 12px; padding: 8px 12px; white-space: nowrap; }
+.interest-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 28px; }
+.interest-section-heading h3 { font-size: 17px; margin: 0; }
+.interest-section-heading + .field-hint { margin: 4px 0 12px; }
+.saved-idea-grid .interest-result { position: relative; }
+.saved-idea-grid .interest-result > .field-hint { font-size: 11px; margin-bottom: 4px; }
+.saved-idea-grid .idea-itinerary { border: 0; padding: 0; margin: auto 24px 0 0; width: calc(100% - 24px); }
+.saved-idea-grid .idea-itinerary .secondary-button { padding: 8px 10px; font-size: 12px; white-space: nowrap; width: 100%; }
+.saved-idea-remove { position: absolute; right: 8px; bottom: 16px; padding: 6px; text-decoration: none; }
+.saved-idea-grid .idea-itinerary-fields .form-row { flex-direction: column; }
+.ideas-itinerary { border: 0; padding: 0; margin-top: 28px; }
+.itinerary-activity { border: 1px solid var(--gray); }
+.itinerary-activity > summary { display: flex; justify-content: space-between; align-items: center; gap: 16px; color: var(--ink); list-style: none; }
+.itinerary-activity > summary::-webkit-details-marker { display: none; }
+.itinerary-summary-content { min-width: 0; }
+.itinerary-activity-meta { margin-top: 4px; }
+.itinerary-show, .itinerary-hide { white-space: nowrap; color: #626262; font-size: 12px; }
+.itinerary-hide, .itinerary-activity[open] > summary .itinerary-show { display: none; }
+.itinerary-activity[open] > summary .itinerary-hide { display: inline; }
+.itinerary-activity-body .idea-itinerary { border: 0; margin: 0; padding: 0; }
+.itinerary-activity-body > .idea-source-details { margin: 12px 0 0; }
+.itinerary-activity-body .button-row { gap: 8px; }
+.itinerary-activity-body .button-row button { font-size: 12px; padding: 6px 8px; }
+@media (max-width: 650px) {
+  .interest-search-row { grid-template-columns: minmax(0, 1fr); }
+  .interest-search-row > button { justify-self: start; }
+  .city-stays li { grid-template-columns: 1fr; gap: 4px; }
+}
+
+.interest-results-toggle { display: flex; align-items: center; gap: 8px; width: fit-content; margin: 12px 0 16px; padding: 9px 12px; border-color: var(--teal); font-weight: 600; text-align: left; }
+.interest-results-toggle:hover { background: #dff8f6; }
+
+/* Separate planning context, discovery, shortlist, and itinerary. */
+.interests-planning-context { background: #ededee; border-radius: 12px; padding: 20px; margin: 24px 0 32px; }
+.interests-planning-context .city-stay-summary { margin: 0 0 24px; }
+.interests-planning-context .interests-editor { margin: 0; }
+.interest-explore-section { padding: 0 20px 28px; border-bottom: 1px solid var(--gray); }
+.interest-explore-section > h3 { margin: 0 0 16px; font-size: 18px; }
+.interest-saved-section { padding: 28px 20px; }
+.interest-saved-section > .interest-section-heading, .ideas-itinerary > .interest-section-heading { margin-top: 0; }
+.interest-saved-section > .interest-results { margin-bottom: 0; }
+.ideas-itinerary { margin: 8px 0 0; padding: 24px 20px; background: #e8f8f5; border-radius: 12px; }
+.ideas-itinerary .itinerary-list { margin-bottom: 0; }
+@media (max-width: 650px) {
+  .interests-planning-context, .ideas-itinerary { padding: 16px; }
+  .interest-explore-section { padding: 0 16px 24px; }
+  .interest-saved-section { padding: 24px 16px; }
+}
