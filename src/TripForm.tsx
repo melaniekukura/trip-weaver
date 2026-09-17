@@ -14,10 +14,11 @@ import { CityStaySummary } from "./CityStaySummary";
 import { InterestsEditor } from "./InterestsEditor";
 import { InterestDiscovery } from "./InterestDiscovery";
 import { TransportationTab } from "./TransportationTab";
+import { TripItinerary } from "./TripItinerary";
 import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 
-const planningTabs = ["Overview", "Destinations", "Transportation", "Budget", "Interests", "Accessibility"];
+const planningTabs = ["Overview", "Destinations", "Transportation", "Budget", "Interests", "Accessibility", "Itinerary"];
 const setupTabs = ["Overview", "Destinations", "Create my trip"];
 
 type InitialTrip = { origin: string; destinations: string[]; startDate: string };
@@ -226,6 +227,11 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
                 <label>Accessibility notes (optional)
                   <textarea name="accessibility" rows={5} maxLength={2000} defaultValue={trip?.accessibility ?? ""}
                     placeholder="For example: step-free routes, accessible rooms, or regular rest breaks" /></label>
+              </section>
+              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-6" aria-labelledby="trip-tab-6" data-tab="6" hidden={active !== 6}>
+                <TripItinerary tripId={savedTrip?._id} route={homeRoute} plan={liveTrip?.flightPlan}
+                  onOpenTransportation={() => { setActive(2); tabButtons.current[2]?.focus(); }}
+                  onOpenInterests={() => { setActive(4); tabButtons.current[4]?.focus(); }} />
               </section>
             </>}
           </fieldset>
