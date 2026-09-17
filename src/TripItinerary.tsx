@@ -3,6 +3,7 @@ import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import { flightPlanItinerary } from "../convex/flightPlanFields";
 import { transportLocationLabel } from "./transportationLegs";
+import { ItineraryEmailAction } from "./ItineraryEmailAction";
 
 type TripRoute = Pick<Doc<"trips">, "origin" | "destinations" | "startDate" | "endDate">;
 type Favorite = Doc<"interestFavorites">;
@@ -112,12 +113,13 @@ function ItineraryEntry({ item }: { item: ItineraryItem }) {
   </li>;
 }
 
-export function TripItinerary({ tripId, route, plan, onOpenTransportation, onOpenInterests }: {
+export function TripItinerary({ tripId, route, plan, onOpenTransportation, onOpenInterests, onSaveTrip }: {
   tripId?: Id<"trips">;
   route: TripRoute;
   plan?: Doc<"trips">["flightPlan"];
   onOpenTransportation: () => void;
   onOpenInterests: () => void;
+  onSaveTrip?: () => Promise<Id<"trips"> | null>;
 }) {
   const favorites = useQuery(api.interestJobs.favorites, tripId ? { tripId } : "skip");
   const days = itineraryDays(route, plan?.legs, favorites);
@@ -151,6 +153,7 @@ export function TripItinerary({ tripId, route, plan, onOpenTransportation, onOpe
       <div><h4>Still to schedule</h4><p className="field-hint">Add a date from Interests to place these plans on a day.</p></div>
       <ol>{unscheduled.map(item => <ItineraryEntry key={item.id} item={item} />)}</ol>
     </section>}
+    {tripId && onSaveTrip && <ItineraryEmailAction tripId={tripId} onSaveTrip={onSaveTrip} />}
     {!!itemCount && <div className="full-itinerary-actions"><span>Need to make a change?</span>
       <button type="button" className="text-button" onClick={onOpenTransportation}>Edit transportation</button>
       <button type="button" className="text-button" onClick={onOpenInterests}>Edit activities</button></div>}

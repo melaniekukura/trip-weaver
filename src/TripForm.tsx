@@ -230,6 +230,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-6" aria-labelledby="trip-tab-6" data-tab="6" hidden={active !== 6}>
                 <TripItinerary tripId={savedTrip?._id} route={homeRoute} plan={liveTrip?.flightPlan}
+                  onSaveTrip={saveTrip}
                   onOpenTransportation={() => { setActive(2); tabButtons.current[2]?.focus(); }}
                   onOpenInterests={() => { setActive(4); tabButtons.current[4]?.focus(); }} />
               </section>

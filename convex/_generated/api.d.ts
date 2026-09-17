@@ -8,10 +8,12 @@
  * @module
  */
 
+import type * as agentmail from "../agentmail.js";
 import type * as airlineNames from "../airlineNames.js";
 import type * as auth from "../auth.js";
 import type * as bookingLinks from "../bookingLinks.js";
 import type * as cityAirports from "../cityAirports.js";
+import type * as emailSchema from "../emailSchema.js";
 import type * as firecrawl from "../firecrawl.js";
 import type * as flightDiagnostics from "../flightDiagnostics.js";
 import type * as flightJobs from "../flightJobs.js";
@@ -30,6 +32,8 @@ import type * as interestDiversity from "../interestDiversity.js";
 import type * as interestJobs from "../interestJobs.js";
 import type * as interestSchema from "../interestSchema.js";
 import type * as interestSearch from "../interestSearch.js";
+import type * as itineraryEmailContent from "../itineraryEmailContent.js";
+import type * as itineraryEmails from "../itineraryEmails.js";
 import type * as returnFlights from "../returnFlights.js";
 import type * as tripFields from "../tripFields.js";
 import type * as trips from "../trips.js";
@@ -41,10 +45,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agentmail: typeof agentmail;
   airlineNames: typeof airlineNames;
   auth: typeof auth;
   bookingLinks: typeof bookingLinks;
   cityAirports: typeof cityAirports;
+  emailSchema: typeof emailSchema;
   firecrawl: typeof firecrawl;
   flightDiagnostics: typeof flightDiagnostics;
   flightJobs: typeof flightJobs;
@@ -63,6 +69,8 @@ declare const fullApi: ApiFromModules<{
   interestJobs: typeof interestJobs;
   interestSchema: typeof interestSchema;
   interestSearch: typeof interestSearch;
+  itineraryEmailContent: typeof itineraryEmailContent;
+  itineraryEmails: typeof itineraryEmails;
   returnFlights: typeof returnFlights;
   tripFields: typeof tripFields;
   trips: typeof trips;
