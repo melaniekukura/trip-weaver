@@ -15,14 +15,7 @@ export function InterestsEditor({ interests, onChange }: { interests: string[]; 
     onChange([...interests, interest]); setDraft(""); setError(""); input.current?.focus();
   }
   return <div className="interests-editor">
-    <label>Add an interest (optional)
-      <input ref={input} value={draft} maxLength={80} placeholder="For example: Food" aria-describedby={hintId}
-        onChange={event => { setDraft(event.target.value); setError(""); }}
-        onKeyDown={event => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); add(); } }} />
-    </label>
-    <button type="button" className="secondary-button" disabled={!draft.trim() || interests.length >= 20} onClick={add}>Add interest</button>
-    <p id={hintId} className="field-hint">Add one at a time with Enter or Add interest. {interests.length} / 20 interests. Saved when you save your trip or search.</p>
-    {error && <p role="alert" className="search-error">{error}</p>}
+    <h4>Your interests</h4>
     <ul className="interest-pills" aria-label="Your interests">
       {interests.map(interest => <li key={interest} className="interest-pill">
         <input type="hidden" name="interests" value={interest} />
@@ -31,7 +24,16 @@ export function InterestsEditor({ interests, onChange }: { interests: string[]; 
           onChange(interests.filter(value => value !== interest)); setError(""); input.current?.focus();
         }}>×</button>
       </li>)}
+      <li className="interest-add">
+        <label><span className="interest-sr-only">Add an interest</span>
+          <input ref={input} value={draft} maxLength={80} placeholder="Add an interest" aria-describedby={hintId}
+            onChange={event => { setDraft(event.target.value); setError(""); }}
+            onKeyDown={event => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); add(); } }} />
+        </label>
+        {draft.trim() && <button type="button" className="secondary-button" disabled={interests.length >= 20} onClick={add}>Add</button>}
+      </li>
     </ul>
-    {!interests.length && <p className="field-hint">No interests added yet.</p>}
+    <span id={hintId} className="interest-sr-only">Press Enter or Add to add one interest. Up to 20 interests. Saved when you save your trip or search.</span>
+    {error && <p role="alert" className="search-error">{error}</p>}
   </div>;
 }

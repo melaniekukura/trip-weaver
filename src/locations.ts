@@ -51,21 +51,22 @@ export function parseLocations(data: unknown): LocationOption[] {
 
 const cache = new Map<string, { expires: number; options: LocationOption[] }>();
 
-export async function searchLocations(query: string, signal?: AbortSignal): Promise<LocationOption[]> {
+export async function searchLocations(query: string, signal?: AbortSignal, citiesOnly = false): Promise<LocationOption[]> {
   const term = query.trim();
   if (term.length < 2) return [];
-  const cached = cache.get(term.toLowerCase());
+  const cacheKey = `${citiesOnly ? "cities" : "all"}:${term.toLowerCase()}`;
+  const cached = cache.get(cacheKey);
   if (cached && cached.expires > Date.now()) return cached.options;
   const url = new URL("https://autocomplete.travelpayouts.com/places2");
   url.searchParams.set("term", term);
   url.searchParams.set("locale", "en");
   url.searchParams.append("types[]", "city");
-  url.searchParams.append("types[]", "airport");
+  if (!citiesOnly) url.searchParams.append("types[]", "airport");
   const response = await fetch(url, { signal, credentials: "omit" });
   if (!response.ok) throw new Error("Location search is unavailable. Please try again.");
-  const options = parseLocations(await response.json());
+  const options = parseLocations(await response.json()).filter(option => !citiesOnly || !option.code);
   if (cache.size >= 50) cache.delete(cache.keys().next().value!);
-  cache.set(term.toLowerCase(), { expires: Date.now() + 300_000, options });
+  cache.set(cacheKey, { expires: Date.now() + 300_000, options });
   return options;
 }
 

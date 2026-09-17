@@ -9,7 +9,7 @@ import { internalAction, internalMutation, mutation, query } from "./_generated/
 import type { QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import schema from "./schema";
-import { discoveryItem, discoveryKind } from "./interestSchema";
+import { discoveryItem, discoveryKind, ideaItinerary } from "./interestSchema";
 import { diversifyIdeas } from "./interestDiversity";
 import { discoverSpecificIdeas } from "./interestDiscovery";
 import { foodInterest, interestQuery, interestSearchKey } from "./interestSearch";
@@ -27,7 +27,8 @@ async function ownedTrip(ctx: QueryCtx, tripId: Id<"trips">) {
   return trip;
 }
 function details(trip: Doc<"trips">, destination: string, kind: "activities" | "events" | "both", interest?: string) {
-  if (!trip.destinations.includes(destination)) throw new ConvexError({ message: "Choose one of this trip’s destinations." });
+  destination = destination.trim();
+  if (!destination || destination.length > 200 || /[\x00-\x1f\x7f]/.test(destination)) throw new ConvexError({ message: "Choose a city to explore (up to 200 characters)." });
   if (interest !== undefined && !trip.interests.includes(interest)) throw new ConvexError({ message: "Choose one of this trip’s interests." });
   return { destination, kind, startDate: trip.startDate, endDate: trip.endDate, interests: interest === undefined ? trip.interests : [interest] };
 }
@@ -162,6 +163,24 @@ export const save = mutation({
     if (existing) return null;
     if ((await ctx.db.query("interestFavorites").withIndex("by_tripId", q => q.eq("tripId", run.tripId)).take(100)).length >= 100) throw new ConvexError({ message: "Remove a saved idea before adding more (100 maximum)." });
     await ctx.db.insert("interestFavorites", { tripId: run.tripId, item });
+    return null;
+  },
+});
+export const updateItinerary = mutation({
+  args: { favoriteId: v.id("interestFavorites"), itinerary: v.union(ideaItinerary, v.null()) }, returns: v.null(),
+  handler: async (ctx, { favoriteId, itinerary }) => {
+    const favorite = await ctx.db.get("interestFavorites", favoriteId);
+    if (!favorite) throw new ConvexError({ message: "Saved idea is unavailable." });
+    await ownedTrip(ctx, favorite.tripId);
+    if (itinerary) {
+      const { date, time, notes } = itinerary;
+      if (date !== undefined && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(`${date}T00:00:00Z`)) || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date)) {
+        throw new ConvexError({ message: "Enter a valid itinerary date." });
+      }
+      if (time !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new ConvexError({ message: "Enter a valid itinerary time." });
+      if (notes !== undefined && notes.length > 4000) throw new ConvexError({ message: "Keep itinerary notes within 4,000 characters." });
+    }
+    await ctx.db.patch("interestFavorites", favoriteId, { itinerary: itinerary ?? undefined });
     return null;
   },
 });

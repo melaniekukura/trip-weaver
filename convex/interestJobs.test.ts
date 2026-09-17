@@ -68,7 +68,7 @@ test("anonymous and other-user access is refused for searches and favorites", as
     await expect(client.mutation(api.interestJobs.save, { runId, index: 0 })).rejects.toThrow("unavailable");
     await expect(client.mutation(api.interestJobs.removeFavorite, { favoriteId: favorite._id })).rejects.toThrow("unavailable");
   }
-  await expect(alice.mutation(api.interestJobs.start, { ...args, destination: "Unknown" })).rejects.toThrow("destinations");
+  await expect(alice.mutation(api.interestJobs.start, { ...args, destination: " " })).rejects.toThrow("Choose a city");
   await expect(alice.mutation(api.interestJobs.save, { runId, index: -1 })).rejects.toThrow("completed search result");
 });
 
@@ -135,4 +135,45 @@ test("searching one interest preserves trip interests and isolates cached result
   expect((await alice.query(api.trips.get, { tripId }))?.interests).toEqual(["Art", "Food"]);
   expect(await alice.mutation(api.interestJobs.start, { ...args, interest: "Food" })).toEqual({ ...food, reused: true });
   await expect(alice.mutation(api.interestJobs.start, { ...args, interest: "Hiking" })).rejects.toThrow("Choose one of this trip’s interests");
+});
+
+test("saved ideas support optional itinerary details, edits and removal without deleting the idea", async () => {
+  const { t, alice, bob, tripId } = await setup();
+  const favoriteId = await t.run(ctx => ctx.db.insert("interestFavorites", { tripId, item: {
+    kind: "activities", title: "Restaurant", description: "Dinner", url: "https://example.org/dinner", destination: "Milan", retrievedAt: "2026-09-17T00:00:00Z",
+  } }));
+  for (const client of [t, bob]) {
+    await expect(client.mutation(api.interestJobs.updateItinerary, { favoriteId, itinerary: {} })).rejects.toThrow("unavailable");
+  }
+  await alice.mutation(api.interestJobs.updateItinerary, { favoriteId, itinerary: {} });
+  expect((await alice.query(api.interestJobs.favorites, { tripId }))[0].itinerary).toEqual({});
+  const itinerary = { date: "2026-10-03", time: "19:30", notes: "Confirmation: TEST-123\nMeet at entrance" };
+  await alice.mutation(api.interestJobs.updateItinerary, { favoriteId, itinerary });
+  expect((await alice.query(api.interestJobs.favorites, { tripId }))[0].itinerary).toEqual(itinerary);
+  for (const invalid of [{ date: "2026-02-30" }, { date: "tomorrow" }, { time: "25:30" }, { notes: "x".repeat(4001) }]) {
+    await expect(alice.mutation(api.interestJobs.updateItinerary, { favoriteId, itinerary: invalid })).rejects.toThrow();
+  }
+  expect((await alice.query(api.interestJobs.favorites, { tripId }))[0].itinerary).toEqual(itinerary);
+  await alice.mutation(api.interestJobs.updateItinerary, { favoriteId, itinerary: { notes: "Plan later" } });
+  expect((await alice.query(api.interestJobs.favorites, { tripId }))[0].itinerary).toEqual({ notes: "Plan later" });
+  await alice.mutation(api.interestJobs.updateItinerary, { favoriteId, itinerary: null });
+  const favorites = await alice.query(api.interestJobs.favorites, { tripId });
+  expect(favorites).toHaveLength(1); expect(favorites[0].itinerary).toBeUndefined();
+});
+
+
+test("other-city searches have separate results without modifying the trip route", async () => {
+  const { t, alice, bob, tripId, args } = await setup();
+  const otherArgs = { ...args, destination: "Florence, Italy", interest: "Food" };
+  const original = await alice.mutation(api.interestJobs.start, args);
+  const other = await alice.mutation(api.interestJobs.start, otherArgs);
+  expect(other.runId).not.toBe(original.runId);
+  const saved = await alice.query(api.interestJobs.latest, otherArgs);
+  expect(saved).toMatchObject({ destination: "Florence, Italy", interests: ["Food"] });
+  expect((await alice.query(api.trips.get, { tripId }))?.destinations).toEqual(trip.destinations);
+  for (const client of [t, bob]) {
+    await expect(client.mutation(api.interestJobs.start, otherArgs)).rejects.toThrow("unavailable");
+    await expect(client.query(api.interestJobs.latest, otherArgs)).rejects.toThrow("unavailable");
+  }
+  await expect(alice.mutation(api.interestJobs.start, { ...args, destination: "x".repeat(201) })).rejects.toThrow("Choose a city");
 });

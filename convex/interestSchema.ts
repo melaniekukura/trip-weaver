@@ -7,6 +7,7 @@ export const discoveryItem = v.object({
   venue: v.optional(v.string()), dates: v.optional(v.string()), price: v.optional(v.string()),
   interest: v.optional(v.string()), detailed: v.optional(v.boolean()), url: v.string(), destination: v.string(), retrievedAt: v.string(),
 });
+export const ideaItinerary = v.object({ date: v.optional(v.string()), time: v.optional(v.string()), notes: v.optional(v.string()) });
 export const interestTables = {
   interestRuns: defineTable({
     tripId: v.id("trips"), destination: v.string(), kind: discoveryKind, searchKey: v.string(),
@@ -15,6 +16,6 @@ export const interestTables = {
     results: v.array(discoveryItem), warnings: v.array(v.string()), error: v.optional(v.string()),
     workId: v.optional(v.string()), finishedAt: v.optional(v.number()), expiresAt: v.optional(v.number()),
   }).index("by_tripId_searchKey", ["tripId", "searchKey"]).index("by_tripId", ["tripId"]),
-  interestFavorites: defineTable({ tripId: v.id("trips"), item: discoveryItem })
+  interestFavorites: defineTable({ tripId: v.id("trips"), item: discoveryItem, itinerary: v.optional(ideaItinerary) })
     .index("by_tripId", ["tripId"]).index("by_tripId_url", ["tripId", "item.url"]),
 };

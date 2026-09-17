@@ -10,6 +10,7 @@ import { tripPlannerPath } from "./tripRoutes";
 import { HomeJourneyPrompt } from "./HomeJourneyPrompt";
 import { homeJourneyStatus } from "../convex/homeJourney";
 import { flightPlanItinerary } from "../convex/flightPlanFields";
+import { CityStaySummary } from "./CityStaySummary";
 import { InterestsEditor } from "./InterestsEditor";
 import { InterestDiscovery } from "./InterestDiscovery";
 import { TransportationTab } from "./TransportationTab";
@@ -211,9 +212,12 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
                 </div>
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-4" aria-labelledby="trip-tab-4" data-tab="4" hidden={active !== 4}>
-                <h3>What do you enjoy?</h3>
-                <p className="field-hint">Save the things you would like to do and explore.</p>
+                <h3>Interests &amp; activities</h3>
+                <p className="field-hint">Save what you want to do, then add it to your itinerary.</p>
+                <div className="interests-planning-context">
+                <CityStaySummary route={homeRoute} plan={liveTrip?.flightPlan} onOpenTransportation={() => { setActive(2); tabButtons.current[2]?.focus(); }} />
                 <InterestsEditor interests={interests} onChange={setInterests} />
+                </div>
                 <InterestDiscovery tripId={savedTrip?._id} interests={interests} destinations={destinations.map(stop => stop.value)} onSaveTrip={saveTrip} />
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-5" aria-labelledby="trip-tab-5" data-tab="5" hidden={active !== 5}>
