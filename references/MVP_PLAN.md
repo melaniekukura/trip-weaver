@@ -44,9 +44,9 @@ retaining all saved fields after reload, retrieving the trip after signing out
 and back in, and isolation from a second account. All 46 tests, lint, and build
 also passed during the PR review. Step 1 is complete.
 
-**Before public launch:** implement password reset and email verification with
-email delivery. The existing flight demo's free-text date input remains separate
-from the saved-trip form, which sends structured start and end dates.
+**Before public launch:** implement password reset. AgentMail-backed email
+verification is complete. The existing flight demo's free-text date input remains
+separate from the saved-trip form, which sends structured start and end dates.
 
 ## 2. Editable itineraries
 
@@ -103,22 +103,29 @@ can add to their trip.
 
 ## 5. AgentMail itinerary delivery
 
-- [ ] Configure the AgentMail integration and backend secrets.
-- [ ] Add an explicit “Email my itinerary” action.
-- [ ] Send a snapshot of the saved itinerary to the user's verified address.
-- [ ] Record which itinerary version was sent and its delivery status.
-- [ ] Prevent duplicate sends during retries and expose actionable failures.
+- [x] Configure the AgentMail integration and backend secrets.
+- [x] Add an explicit “Email my itinerary” action.
+- [x] Send a snapshot of the saved itinerary to the user's verified address.
+- [x] Record which itinerary version was sent and its delivery status.
+- [x] Prevent duplicate sends during retries and expose actionable failures.
 
 **Done when:** the user receives the requested itinerary and can see whether
 delivery succeeded.
+
+**Verification, September 17:** the user received and entered an AgentMail
+verification code, sent an itinerary from the UI, and confirmed its delivery
+status. Signed webhooks track sent, delivered, bounced, and rejected events.
+Automated checks cover duplicate requests, retry ownership, immutable snapshots,
+webhook deduplication, and out-of-order delivery events. All 254 tests, lint, and
+the production build passed before the feature was committed in `a75580e`.
 
 ## 6. MVP verification
 
 - [ ] Test unauthenticated requests and cross-user access to all trip resources.
 - [ ] Test invalid dates and itinerary inputs.
 - [ ] Test provider failures and interrupted research.
-- [ ] Test duplicate requests and email retry behavior.
-- [ ] Run `npm test`, `npm run lint`, and `npm run build`.
+- [x] Test duplicate requests and email retry behavior.
+- [x] Run `npm test`, `npm run lint`, and `npm run build`.
 - [ ] Verify the complete create → research → save → email flow.
 
 **Done when:** the complete flow works, with recoverable errors when a provider is

@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-04T19:25:03Z
-- **Last updated:** 2026-09-17T16:16:47Z
+- **Last updated:** 2026-09-17T22:03:09Z
 
 ## Log
 
@@ -96,3 +96,13 @@ Added a final Itinerary tab that combines current-route booked transportation an
 Excluded stale and unbooked transportation, warned when earlier-route bookings are omitted, and linked empty and populated states back to Transportation and Interests. External activity links retain the existing sanitized HTTP(S) source boundary and ownership-protected Convex favorites query.
 Standardized itinerary times to 12-hour display while preserving stored values and chronological ordering. Added responsive styling plus regression tests for grouping, stale records, cleared dates, time formats, final-tab order, and tab-to-panel accessibility wiring (`src/styles.css`, `src/TripItinerary.test.ts`, `src/TripFormTabs.test.ts`).
 Development checks passed 246 tests, TypeScript lint, the production build, and `git diff --check`. The work was merged into `main` in PR #7 (`a06b566`); no backend schema change or public deployment was required.
+
+### 2026-09-17 - c8705d7
+Added AgentMail itinerary delivery from the final Itinerary tab. Each request saves an immutable, owner-scoped snapshot, queues an internal action, sends escaped HTML and plain text with an idempotency key, and exposes reactive queued, sending, sent, failed, and retry states (`convex/itineraryEmails.ts`, `convex/agentmail.ts`, `src/ItineraryEmailAction.tsx`).
+Added per-user and global email limits, duplicate-request protection, bounded retries, deletion cleanup, and tests for authorization, snapshot immutability, HTML escaping, and retry ownership. Development checks passed 250 tests, TypeScript lint, the production build, and a push to personal dev.
+The user verified receipt through the UI. Email verification and webhook-confirmed delivery, bounce, and rejection states remained follow-ups at this commit.
+
+### 2026-09-17 - a75580e
+Added AgentMail-backed six-digit email verification for password accounts, including a 15-minute expiry, resend flow, and an explicit migration state for already signed-in unverified users (`convex/auth.ts`, `src/AuthForm.tsx`). Itinerary sends now require a verified account address.
+Added a signed AgentMail webhook endpoint with raw-body Svix verification, duplicate-event storage, out-of-order reconciliation, and reactive sent, delivered, bounced, and rejected states (`convex/agentmailWebhook.ts`, `convex/itineraryEmails.ts`, `convex/emailSchema.ts`).
+Development checks passed 254 tests, TypeScript lint, the production build, and a push to personal dev. The user completed the AgentMail verification-code sign-in flow and confirmed webhook-reported itinerary delivery in the UI.
