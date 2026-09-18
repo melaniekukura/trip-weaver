@@ -12,6 +12,7 @@ import type * as agentmail from "../agentmail.js";
 import type * as agentmailClient from "../agentmailClient.js";
 import type * as agentmailWebhook from "../agentmailWebhook.js";
 import type * as airlineNames from "../airlineNames.js";
+import type * as assistantSchema from "../assistantSchema.js";
 import type * as auth from "../auth.js";
 import type * as bookingLinks from "../bookingLinks.js";
 import type * as cityAirports from "../cityAirports.js";
@@ -37,6 +38,8 @@ import type * as interestSearch from "../interestSearch.js";
 import type * as itineraryEmailContent from "../itineraryEmailContent.js";
 import type * as itineraryEmails from "../itineraryEmails.js";
 import type * as returnFlights from "../returnFlights.js";
+import type * as tripAgent from "../tripAgent.js";
+import type * as tripAssistant from "../tripAssistant.js";
 import type * as tripFields from "../tripFields.js";
 import type * as trips from "../trips.js";
 
@@ -51,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   agentmailClient: typeof agentmailClient;
   agentmailWebhook: typeof agentmailWebhook;
   airlineNames: typeof airlineNames;
+  assistantSchema: typeof assistantSchema;
   auth: typeof auth;
   bookingLinks: typeof bookingLinks;
   cityAirports: typeof cityAirports;
@@ -76,6 +80,8 @@ declare const fullApi: ApiFromModules<{
   itineraryEmailContent: typeof itineraryEmailContent;
   itineraryEmails: typeof itineraryEmails;
   returnFlights: typeof returnFlights;
+  tripAgent: typeof tripAgent;
+  tripAssistant: typeof tripAssistant;
   tripFields: typeof tripFields;
   trips: typeof trips;
 }>;
@@ -107,6 +113,7 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
+  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   researchPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"researchPool">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
 };

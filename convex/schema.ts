@@ -6,12 +6,14 @@ import { flightPlanFields } from "./flightPlanFields";
 import { interestTables } from "./interestSchema";
 import { flightTables } from "./flightSchema";
 import { emailTables } from "./emailSchema";
+import { assistantTables } from "./assistantSchema";
 
 export default defineSchema({
   ...authTables,
   ...flightTables,
   ...interestTables,
   ...emailTables,
+  ...assistantTables,
   trips: defineTable(tripFields.extend({
     flightPlan: v.optional(flightPlanFields),
     ownerId: v.id("users"),

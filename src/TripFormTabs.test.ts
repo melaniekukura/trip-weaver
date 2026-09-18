@@ -16,6 +16,8 @@ vi.mock("convex/react", async () => {
   return {
     useConvex: () => ({ query: vi.fn() }),
     useMutation: () => vi.fn(),
+    useAction: () => vi.fn(),
+    usePaginatedQuery: () => ({ results: [], status: "Exhausted", loadMore: vi.fn() }),
     useQuery: (reference: Parameters<typeof server.getFunctionName>[0], args: unknown) => {
       if (args === "skip") return undefined;
       if (server.getFunctionName(reference) === "trips:get") return trip;
@@ -25,7 +27,7 @@ vi.mock("convex/react", async () => {
   };
 });
 
-test("Itinerary is the final planning tab and every tab controls its matching panel", () => {
+test("Itinerary is the final planning tab and the assistant stays outside the form", () => {
   const html = renderToStaticMarkup(createElement(TripForm, { trip, mode: "page", onClose: vi.fn() }));
   const tabs = [...html.matchAll(/role="tab" id="trip-tab-(\d+)" aria-controls="trip-panel-(\d+)"[^>]*>([^<]+)<\/button>/g)];
   expect(tabs.map(match => match[3])).toEqual(["Overview", "Destinations", "Transportation", "Budget", "Interests", "Accessibility", "Itinerary"]);
@@ -33,4 +35,7 @@ test("Itinerary is the final planning tab and every tab controls its matching pa
     expect(panelIndex).toBe(tabIndex);
     expect(html).toContain(`role="tabpanel" id="trip-panel-${tabIndex}" aria-labelledby="trip-tab-${tabIndex}"`);
   }
+  expect(html.match(/<form/g)).toHaveLength(1);
+  expect(html).toContain('<aside class="trip-assistant-rail" aria-label="Trip planning assistant">');
+  expect(html.indexOf("</form>")).toBeLessThan(html.indexOf("trip-assistant-rail"));
 });

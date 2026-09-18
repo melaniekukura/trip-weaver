@@ -40,7 +40,7 @@ a {
 
 .site-shell {
   min-height: 100vh;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .page-content {
@@ -847,10 +847,14 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .planner-back { display: inline-block; margin-bottom: 24px; color: var(--indigo); font-size: 14px; }
 .planner-back:hover { text-decoration: underline; }
 .planner-page-title { font-size: clamp(32px, 4vw, 44px); letter-spacing: -1px; margin-bottom: 28px; }
-.trip-planner-editor { display: flex; flex: 1; flex-direction: column; border: 0; border-radius: 0; background: transparent; }
+.trip-planner-editor {
+  display: grid; flex: 1; grid-template-columns: minmax(0, 1fr) minmax(460px, 560px);
+  align-items: start; gap: clamp(28px, 3vw, 48px); border: 0; border-radius: 0; background: transparent;
+}
+.trip-planner-main { display: flex; min-width: 0; flex-direction: column; }
 .trip-planner-editor .trip-modal-header { padding: 0 0 28px; background: transparent; color: var(--ink); }
 .trip-planner-editor .trip-modal-header .eyebrow { color: var(--indigo); }
-.trip-planner-editor .trip-modal-header h2 { font-size: clamp(26px, 3vw, 38px); }
+.trip-planner-editor .trip-modal-header h2 { font-size: clamp(26px, 3vw, 38px); line-height: 1.2; }
 .trip-planner-editor .trip-modal-form { flex: 1; }
 .trip-planner-editor .trip-modal-body { flex: 1; padding: 36px 0 48px; overflow: visible; }
 .trip-planner-editor .trip-tab-panel { min-height: 320px; gap: 24px; }
@@ -860,8 +864,22 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .trip-planner-editor .location-options { position: static; }
 .trip-planner-editor :is(.destination-stop, .transportation-flight-card, .flight-setup, .location-options,
   .flight-finder-toggle, input:not([role="switch"]), textarea, select, button) { border-radius: 0; }
+.trip-assistant-rail {
+  position: fixed; z-index: 1; top: calc(50% + 34px); right: clamp(24px, 4vw, 80px);
+  width: 560px; min-width: 0; max-height: calc(100dvh - 116px);
+  margin-top: 0; padding: 24px; transform: translateY(-50%);
+  border: 1px solid var(--gray); background: #fff; box-shadow: 0 12px 32px rgb(37 31 71 / 7%);
+}
+.trip-assistant-rail .assistant-messages { min-height: 220px; max-height: min(360px, calc(100dvh - 485px)); }
 .create-trip-panel p { max-width: 600px; margin: 0; font-size: 15px; line-height: 1.7; }
 .create-trip-panel .field-hint { font-size: 13px; }
+@media (max-width: 1250px) {
+  .trip-planner-editor { grid-template-columns: minmax(0, 1fr); }
+  .trip-assistant-rail {
+    position: static; width: auto; max-height: none; margin: 0 0 32px; transform: none;
+  }
+  .trip-assistant-rail .assistant-messages { max-height: 360px; }
+}
 @media (max-width: 600px) {
   .trip-planner-page { padding: 24px 16px 0; min-height: calc(100dvh - 105px); }
   .trip-planner-editor .trip-modal-header { padding: 0 0 24px; }
@@ -1142,6 +1160,29 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .itinerary-email-action p { margin: 5px 0 0; }
 .itinerary-email-status.is-sent, .itinerary-email-status.is-delivered { color: #176b55; font-weight: 700; }
 .itinerary-email-status.is-failed, .itinerary-email-status.is-bounced, .itinerary-email-status.is-rejected { color: #9b2c2c; }
+.trip-assistant { display: grid; gap: 18px; }
+.trip-assistant-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.trip-assistant-heading h3 { margin: 0; }
+.trip-assistant-heading .eyebrow { margin: 0 0 4px; }
+.trip-assistant > .field-hint { margin: -6px 0 0; }
+.assistant-model { padding: 6px 10px; border-radius: 999px; background: #e8f8f5; color: var(--indigo); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.assistant-suggestions { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; }
+.assistant-suggestions button { flex: 0 0 auto; padding: 8px 10px; font-size: 12px; white-space: nowrap; }
+.assistant-messages { display: grid; gap: 12px; min-height: 180px; max-height: 480px; overflow-y: auto; padding: 18px; border: 1px solid var(--gray); border-radius: 12px; background: #fff; }
+.assistant-message { max-width: 85%; padding: 12px 14px; border-radius: 12px; background: #ededee; }
+.assistant-message.is-user { justify-self: end; background: #e8f8f5; }
+.assistant-message strong { color: var(--indigo); font-size: 12px; }
+.assistant-message-content { overflow-wrap: anywhere; font-size: 14px; line-height: 1.55; }
+.assistant-message-content > :first-child { margin-top: 5px; }
+.assistant-message-content > :last-child { margin-bottom: 0; }
+.assistant-message-content p { white-space: pre-wrap; }
+.assistant-message-content :is(ul, ol) { margin: 8px 0 0; padding-left: 22px; }
+.assistant-message-content li + li { margin-top: 5px; }
+.assistant-message-content a { color: var(--indigo); text-decoration: underline; }
+.assistant-message-content code { padding: 1px 4px; background: rgb(37 31 71 / 8%); font-size: 12px; }
+.assistant-empty, .assistant-thinking { align-self: center; margin: auto; color: #626262; text-align: center; }
+.assistant-compose { display: grid; gap: 8px; }
+.assistant-compose button { justify-self: end; }
 .full-itinerary-actions { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--gray); font-size: 13px; }
 @media (max-width: 700px) {
   .full-itinerary-dates { align-items: flex-start; flex-direction: column; gap: 4px; }

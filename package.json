@@ -13,13 +13,19 @@
   },
   "dependencies": {
     "@auth/core": "0.41.3",
+    "@convex-dev/agent": "^0.7.3",
     "@convex-dev/auth": "0.0.95",
     "@convex-dev/rate-limiter": "0.3.2",
     "@convex-dev/workpool": "0.4.11",
+    "@openrouter/ai-sdk-provider": "^3.0.0",
     "convex": "^1.45.0",
     "jose": "6.2.12",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-markdown": "^10.1.0",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "svix": "^2.5.0"
   },
   "devDependencies": {
