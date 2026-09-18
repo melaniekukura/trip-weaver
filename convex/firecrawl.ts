@@ -108,7 +108,7 @@ export const search = internalAction({
     if (!Number.isInteger(limit) || limit < 1 || limit > 5) fail("INVALID_LIMIT", "Search limits must be integers from 1 to 5.");
     const result = await request("search", {
       query, limit, sources: [{ type: "web" }], timeout: 30000,
-      ...(args.includeContent ? { scrapeOptions: { formats: ["markdown"], onlyMainContent: true } } : {}),
+      ...(args.includeContent ? { scrapeOptions: { formats: ["markdown"], onlyMainContent: true, maxCredits: 500 } } : {}),
     });
     const data = object(result.data);
     if (!Array.isArray(data.web)) fail("FIRECRAWL_INVALID_RESPONSE", "Firecrawl returned invalid search results.");
