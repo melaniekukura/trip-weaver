@@ -27,7 +27,7 @@ vi.mock("convex/react", async () => {
   };
 });
 
-test("Itinerary is the final planning tab and the assistant stays outside the form", () => {
+test("Itinerary is the final planning tab and the assistant opens from a drawer", () => {
   const html = renderToStaticMarkup(createElement(TripForm, { trip, mode: "page", onClose: vi.fn() }));
   const tabs = [...html.matchAll(/role="tab" id="trip-tab-(\d+)" aria-controls="trip-panel-(\d+)"[^>]*>([^<]+)<\/button>/g)];
   expect(tabs.map(match => match[3])).toEqual(["Overview", "Transportation", "Interests", "Accessibility", "Itinerary"]);
@@ -41,8 +41,9 @@ test("Itinerary is the final planning tab and the assistant stays outside the fo
   expect(overview).toContain("Add a destination");
   expect(html.match(/class="destinations-editor"/g)).toHaveLength(1);
   expect(html.match(/<form/g)).toHaveLength(1);
-  expect(html).toContain('<aside class="trip-assistant-rail" aria-label="Trip planning assistant">');
-  expect(html.indexOf("</form>")).toBeLessThan(html.indexOf("trip-assistant-rail"));
+  expect(html).toContain('aria-controls="trip-assistant-drawer" aria-expanded="false"');
+  expect(html).toContain('id="trip-assistant-drawer" class="trip-assistant-drawer" aria-label="Trip planning assistant" aria-hidden="true" inert=""');
+  expect(html.indexOf("</form>")).toBeLessThan(html.indexOf('id="trip-assistant-drawer"'));
 });
 
 test("new trips start with a disabled save button", () => {

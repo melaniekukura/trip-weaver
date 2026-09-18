@@ -46,6 +46,10 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
   const [active, setActive] = useState(0);
   const [name, setName] = useState(trip?.name ?? "");
   const [travelers, setTravelers] = useState(String(trip?.travelers ?? 1));
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantMounted, setAssistantMounted] = useState(false);
+  const assistantToggle = useRef<HTMLButtonElement>(null);
+  const assistantClose = useRef<HTMLButtonElement>(null);
   const [startDate, setStartDate] = useState(trip?.startDate ?? initialValues?.startDate ?? "");
   const [interests, setInterests] = useState(trip?.interests ?? []);
   const [endDate, setEndDate] = useState(trip?.endDate ?? "");
@@ -165,6 +169,16 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
     onClose();
   }
 
+  function toggleAssistant() {
+    const nextOpen = !assistantOpen;
+    if (nextOpen) setAssistantMounted(true);
+    setAssistantOpen(nextOpen);
+    requestAnimationFrame(() => {
+      if (nextOpen) assistantClose.current?.focus();
+      else assistantToggle.current?.focus();
+    });
+  }
+
   const destinationFields = <>
     <h3>Where are you headed?</h3>
     <DestinationsEditor origin={origin} stops={destinations} disabled={pending}
@@ -251,9 +265,19 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
   );
 
   if (planning) return <section className="trip-planner-editor" aria-labelledby="editor-title">
+    <button ref={assistantToggle} className={`assistant-toggle${assistantOpen ? " is-open" : ""}`} type="button"
+      aria-label={assistantOpen ? "Close AI chat" : "Ask Trip-Weaver"}
+      aria-controls="trip-assistant-drawer" aria-expanded={assistantOpen} onClick={toggleAssistant}>
+      <span aria-hidden="true">✦</span>
+      <span className="assistant-toggle-label">{assistantOpen ? "Close AI chat" : "Ask Trip-Weaver"}</span>
+    </button>
     <div className="trip-planner-main">{content}</div>
-    <aside className="trip-assistant-rail" aria-label="Trip planning assistant">
-      <TripAssistant tripId={savedTrip?._id} />
+    <aside id="trip-assistant-drawer" className={`trip-assistant-drawer${assistantOpen ? " is-open" : ""}`}
+      aria-label="Trip planning assistant" aria-hidden={!assistantOpen} inert={!assistantOpen}
+      onKeyDown={(event) => { if (event.key === "Escape") toggleAssistant(); }}>
+      <button ref={assistantClose} className="assistant-drawer-close" type="button" aria-label="Close AI chat"
+        onClick={toggleAssistant}>×</button>
+      {assistantMounted && <TripAssistant tripId={savedTrip?._id} />}
     </aside>
   </section>;
   return <dialog ref={dialog} className="trip-modal" aria-labelledby="editor-title" onCancel={(event) => {
