@@ -19,9 +19,7 @@ test("round-trip totals use the combined return fare once, and incomplete return
   expect(transportationTotals({ ...trip, flightPlan: { ...plan, legs: [{ ...roundTrip, returning: { ...leg.outbound, flight: { ...leg.outbound.flight, amount: 250.75 } } }] } }).flightTotal).toBe(501.5);
 });
 
-test("excludes outdated itineraries and preserves ride counts when estimates are switched off", () => {
-  const budget = { revision: 1, includeRides: false, rides: [{ mode: "bus" as const, count: 3, price: 2.35 }, { mode: "taxi" as const, count: 2, price: 20 }] };
-  const input = { ...trip, transportationBudget: budget, flightPlan: { revision: 1, confirmed: false, legs: [{ ...leg, itinerary: "old route" }] } };
-  expect(transportationTotals(input)).toMatchObject({ staleCount: 1, flightTotal: 0, rideTotal: 47.05, total: 0 });
-  expect(transportationTotals({ ...input, transportationBudget: { ...budget, includeRides: true } }).total).toBe(47.05);
+test("excludes outdated itineraries", () => {
+  expect(transportationTotals({ ...trip, flightPlan: { revision: 1, confirmed: false, legs: [{ ...leg, itinerary: "old route" }] } }))
+    .toMatchObject({ staleCount: 1, flightTotal: 0 });
 });

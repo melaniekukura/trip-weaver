@@ -1248,6 +1248,10 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .budget-total { border-top: 2px solid var(--teal); font-size: 22px; }
 .budget-rides-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
 .budget-rides-heading h4 { margin: 0; }
+.budget-destination-rides { display: grid; gap: 16px; padding-top: 24px; border-top: 1px solid var(--gray); }
+.budget-destination-rides details { max-width: 360px; margin-top: 10px; font-size: 13px; }
+.budget-destination-rides summary { cursor: pointer; color: var(--indigo); }
+.budget-destination-rides blockquote { margin: 12px 0; padding-left: 12px; border-left: 2px solid var(--teal); }
 .budget-include-rides { display: flex; align-items: center; gap: 12px; cursor: pointer; }
 .budget-include-rides input { appearance: none; width: 44px; height: 26px; border: 1px solid var(--gray); border-radius: 20px; background: var(--gray); cursor: pointer; flex-shrink: 0; }
 .budget-include-rides input::before { content: ""; display: block; width: 20px; height: 20px; margin: 2px; background: white; border-radius: 50%; transition: transform 150ms; }
@@ -1313,3 +1317,17 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 .budget-daily-plot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; }
 .budget-daily-axis { display: flex; flex-direction: column; justify-content: space-between; height: 260px; margin-top: 24px; color: #626262; font-size: 11px; text-align: right; }
+
+.interest-access-group { margin-top: 28px; }
+.interest-access-unmatched { border-top: 2px solid #ef762a; padding-top: 24px; }
+.idea-accessibility { display: grid; gap: 8px; list-style: none; margin: 12px 0; padding: 0; font-size: 13px; }
+.idea-accessibility li { display: grid; gap: 6px; padding: 10px 12px; border-left: 4px solid; }
+.idea-accessibility-not-met { color: #8a2500; background: #ffdfc6; border-color: #e75b15; }
+.idea-accessibility-unverified { color: #684700; background: #fff3cf; border-color: #d99a00; }
+.idea-accessibility-met { color: #12534d; background: #dcf5ed; border-color: var(--teal); }
+.idea-accessibility a { color: inherit; text-decoration: underline; }
+
+.budget-overview-breakdown { display: grid; gap: 0; max-width: 720px; margin: 24px 0; }
+.budget-overview-breakdown > div { display: flex; justify-content: space-between; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--gray); }
+.budget-overview-breakdown dt { display: flex; align-items: center; gap: 10px; }
+.budget-overview-breakdown dd { margin: 0; text-align: right; font-weight: 600; }

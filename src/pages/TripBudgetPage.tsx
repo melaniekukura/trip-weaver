@@ -39,7 +39,7 @@ export function BudgetWorkflow({ tripName, trip, fees }: { tripName: string; tri
         {tabs.map((tab, index) => <section key={tab} className="trip-tab-panel" role="tabpanel" tabIndex={0}
           id={`budget-panel-${index}`} aria-labelledby={`budget-tab-${index}`} hidden={active !== index}>
           <h3>{tab === "Overview" ? "Budget overview" : tab}</h3>
-          {index === 0 && (trip ? <BudgetCostSummary trip={trip} fees={fees?.results} /> : <p><strong>Total Cost:</strong> --</p>)}
+          {index === 0 && (trip ? <BudgetCostSummary trip={trip} fees={fees?.results} breakdown /> : <p><strong>Total Cost:</strong> --</p>)}
           {index === 1 && trip && <TransportationBudget trip={trip} />}
           {index === 2 && trip && <ExtraFees trip={trip} data={fees} />}
           {index === 3 && trip && <BudgetGraphs trip={trip} fees={fees?.results} />}

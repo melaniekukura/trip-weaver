@@ -46,3 +46,30 @@ test("saved ideas stay compact and itinerary entries remain collapsed with edita
   expect(html).toContain("Edit itinerary details"); expect(html).toContain("Add to itinerary");
   expect(shortlist).toContain("Saved museum"); expect(shortlist).not.toContain("Long museum description");
 });
+
+test("matching activities come first, unknown access is distinct, and barriers are highlighted below", () => {
+  const item = { kind: "activities", description: "Visitor information", destination: "Paris", retrievedAt: "2026-09-18" };
+  const evidence = (conforms: boolean) => [{ requirement: "Step-free access", conforms, evidence: conforms ? "A step-free entrance is available." : "Access is via stairs only.", sourceUrl: "https://example.org/access" }];
+  query.mockImplementation(reference => {
+    const name = getFunctionName(reference);
+    if (name === "trips:get") return { destinations: ["Paris"], interests: ["Art"], accessibility: "Step-free access" };
+    if (name === "interestJobs:favorites") return [];
+    return { _id: "run", status: "completed", startDate: "2026-10-01", endDate: "2026-10-09", interests: ["Art"], warnings: [], results: [
+      { ...item, title: "Tower with stairs", url: "https://example.org/tower", accessibilityEvidence: evidence(false) },
+      { ...item, title: "Museum without access details", url: "https://example.org/museum" },
+      { ...item, title: "Accessible gallery", url: "https://example.org/gallery", accessibilityEvidence: evidence(true) },
+    ] };
+  });
+  const props = { tripId: "trip" as Id<"trips">, destinations: ["Paris"], interests: ["Art"], onSaveTrip: vi.fn() };
+  const html = renderToStaticMarkup(createElement(InterestDiscovery, props));
+  expect(html.indexOf("Accessible gallery")).toBeLessThan(html.indexOf("Museum without access details"));
+  expect(html.indexOf("Museum without access details")).toBeLessThan(html.indexOf("Tower with stairs"));
+  expect(html).toContain("Does not meet: Step-free access");
+  expect(html).toContain("Not confirmed: Step-free access");
+  expect(html).toContain('class="idea-accessibility-not-met"');
+  expect(html).toContain("Access is via stairs only.");
+  expect(html.match(/>Save idea</g)).toHaveLength(3);
+  const cleared = renderToStaticMarkup(createElement(InterestDiscovery, { ...props, accessibility: "" }));
+  expect(cleared).not.toContain("Does not meet:");
+  expect(cleared).not.toContain("Does not meet all accessibility requirements");
+});

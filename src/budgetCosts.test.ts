@@ -1,3 +1,4 @@
+import { localSearchKey } from "../convex/localTransportationFields";
 import { expect, test } from "vitest";
 import type { Doc } from "../convex/_generated/dataModel";
 import type { FeeResult } from "../convex/extraFeeResearch";
@@ -6,11 +7,11 @@ import { flightPlanItinerary } from "../convex/flightPlanFields";
 const trip = { origin: "DTW", destinations: ["LAX"], travelers: 2, startDate: "2026-10-01", endDate: "2026-10-03" } as Doc<"trips">;
 const fee = { target: { id: "fee", category: "activities", title: "Museum", quantity: 2, date: "2026-10-02", unit: "per person", query: "", context: "" }, status: "priced", amount: 10, currency: "EUR" } as FeeResult;
 test("overview, cards and charts share totals while keeping currencies separate", () => {
-  const input = { ...trip, transportationBudget: { revision: 1, includeRides: true, rides: [{ mode: "taxi" as const, count: 2, price: 25 }] } };
+  const input = { ...trip, localTransportation: [{ destination: "LAX", searchKey: localSearchKey(trip, "LAX"), generation: 1, enabled: true, rides: [{ mode: "taxi" as const, count: 2, status: "priced" as const, amount: 25, currency: "USD" }] }] };
   const costs = budgetCosts(input, [fee, { ...fee, status: "unknown" }]);
   expect(costs.totals).toEqual({ USD: 50, EUR: 20 });
   expect(costs.unknown).toBe(1);
-  expect(budgetCosts({ ...input, transportationBudget: { ...input.transportationBudget, includeRides: false } }, [fee]).totals).toEqual({ EUR: 20 });
+  expect(budgetCosts({ ...input, localTransportation: input.localTransportation.map(row => ({ ...row, enabled: false })) }, [fee]).totals).toEqual({ EUR: 20 });
 });
 test("daily allocations preserve every cent for bulk costs and split round trips once", () => {
   const source = { flight: { amount: 100.01, airline: "Airline" } } as Doc<"researchSources">;
@@ -27,4 +28,15 @@ test("daily allocations preserve every cent for bulk costs and split round trips
 test("out-of-trip activity dates remain in totals but are not silently reassigned to a trip day", () => {
   const costs = budgetCosts(trip, [{ ...fee, target: { ...fee.target, date: "2026-11-01" } }]);
   expect(dailyCosts(trip.startDate, trip.endDate, costs.entries)?.unscheduledCents).toBe(2000);
+});
+
+test("ignores removed destinations, stale dates, disabled destinations and legacy generic estimates", () => {
+  const row = { destination: "LAX", searchKey: localSearchKey(trip, "LAX"), generation: 1, enabled: true,
+    rides: [{ mode: "bus" as const, count: 3, status: "priced" as const, amount: 2.35, currency: "EUR" }] };
+  const input = { ...trip, localTransportation: [row] };
+  expect(budgetCosts(input).totals).toEqual({ EUR: 7.05 });
+  expect(budgetCosts({ ...input, destinations: ["Paris"] }).totals).toEqual({});
+  expect(budgetCosts({ ...input, endDate: "2026-10-06" }).totals).toEqual({});
+  expect(budgetCosts({ ...trip, transportationBudget: { revision: 1, includeRides: true, rides: [{ mode: "bus", count: 3, price: 3 }] } }).totals).toEqual({});
+  expect(budgetCosts({ ...input, localTransportation: [{ ...row, rides: [{ mode: "bus", count: 2, status: "unknown" }] }] })).toMatchObject({ totals: {}, unknown: 1 });
 });

@@ -1,13 +1,16 @@
+import { activityAccessibilityEvidence, activityAccessibilityExtraction, parseActivityAccessibility } from "./activityAccessibility";
+import type { Infer } from "convex/values";
 import { v } from "convex/values";
 import { safeDiscoveryUrl, discoveryPreview } from "./interestSearch";
 
-export const detailItem = v.object({ title: v.string(), description: v.string(), url: v.string(),
+export const detailItem = v.object({ accessibilityEvidence: v.optional(v.array(activityAccessibilityEvidence)), title: v.string(), description: v.string(), url: v.string(),
   venue: v.optional(v.string()), dates: v.optional(v.string()), price: v.optional(v.string()) });
 export const detailPage = v.object({ rejection: v.optional(v.string()), items: v.array(detailItem), candidates: v.array(v.object({ title: v.string(), url: v.string() })) });
 const nullableText = { type: ["string", "null"] };
 export const interestExtractionSchema = {
-  type: "object", required: ["pageType", "relevant", "name", "excerpt", "venue", "dates", "price", "candidates"],
+  type: "object", required: ["pageType", "relevant", "name", "excerpt", "venue", "dates", "price", "candidates", "accessibility"],
   properties: {
+    accessibility: activityAccessibilityExtraction,
     pageType: { type: "string", enum: ["individual", "collection", "unrelated"] }, relevant: { type: "boolean" },
     name: nullableText, excerpt: nullableText, venue: nullableText, dates: nullableText, price: nullableText,
     candidates: { type: "array", maxItems: 6, items: { type: "object", required: ["name", "url"],
@@ -18,8 +21,8 @@ const normalized = (value: string) => value.replace(/!\[[^\]]*\]\([^)]*\)/g, " "
 export function collectionTitle(title: string) {
   return /\b(?:top\s+\d+|\d+\s+best|best\s+(?:things|places|attractions)|things to do|all events|what['’]?s on|travel guide|event calendar)\b/i.test(title);
 }
-export function parseInterestPage(raw: unknown, markdown: string, sourceUrl: string, links: string[]) {
-  const empty: { rejection?: string; items: { title: string; description: string; url: string; venue?: string; dates?: string; price?: string }[]; candidates: { title: string; url: string }[] } = { items: [] as { title: string; description: string; url: string; venue?: string; dates?: string; price?: string }[], candidates: [] as { title: string; url: string }[] };
+export function parseInterestPage(raw: unknown, markdown: string, sourceUrl: string, links: string[], requirements: string[] = []) {
+  const empty: Infer<typeof detailPage> = { items: [], candidates: [] };
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return empty;
   const data = raw as Record<string, unknown>;
   const source = safeDiscoveryUrl(sourceUrl);
@@ -39,6 +42,7 @@ export function parseInterestPage(raw: unknown, markdown: string, sourceUrl: str
     const dates = supported(data.dates, 200) ?? (dateLines.length ? dateLines.join(" · ") : undefined);
     if (!title || !description) empty.rejection = !title ? "unsupported_name" : "unsupported_excerpt";
     if (title && description && !collectionTitle(title)) empty.items.push({ title, description, url: source,
+      ...(requirements.length ? { accessibilityEvidence: parseActivityAccessibility(data.accessibility, markdown, source, requirements) } : {}),
       ...(supported(data.venue, 200) ? { venue: supported(data.venue, 200) } : {}),
       ...(dates ? { dates } : {}),
       ...(supported(data.price, 120) ? { price: supported(data.price, 120) } : {}) });

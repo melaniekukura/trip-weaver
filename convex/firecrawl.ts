@@ -249,7 +249,7 @@ export async function browseReturnFlights(code: string) {
 }
 
 export const interestPage = internalAction({
-  args: { restaurants: v.optional(v.boolean()), url: v.string(), destination: v.string(), interests: v.array(v.string()), kind: v.union(v.literal("activities"), v.literal("events")), startDate: v.string(), endDate: v.string() },
+  args: { accessibility: v.optional(v.array(v.string())), restaurants: v.optional(v.boolean()), url: v.string(), destination: v.string(), interests: v.array(v.string()), kind: v.union(v.literal("activities"), v.literal("events")), startDate: v.string(), endDate: v.string() },
   returns: detailPage,
   handler: async (_ctx, args) => {
     const url = webUrl(args.url);
@@ -259,6 +259,7 @@ Trip dates: ${args.startDate} through ${args.endDate}. Exclude events explicitly
 For food interests, include individual restaurants and cafes as well as markets, tours and cooking classes. Prefer their own websites with menus and visitor information; a restaurant homepage for one venue is an individual page. Do not infer table availability or treat menu prices as a complete meal price.
 Classify directories, calendars, listicles and homepages promoting multiple unrelated places/events as collection, not individual. Mark unrelated destinations/topics relevant=false.
 For an individual detail page, copy the actual name and a short continuous descriptive excerpt VERBATIM from the page. Copy venue, dates (including year if stated), and price VERBATIM; use null for missing facts. Never invent, combine or infer facts or availability.
+Accessibility requirements to check: ${JSON.stringify(args.accessibility ?? [])}. In the accessibility array, include ONLY these exact requirements where the page explicitly confirms support or explicitly describes a barrier. Copy a short continuous verbatim evidence excerpt and set conforms accordingly. A missing mention is UNKNOWN: omit it, never interpret silence as a failure or infer support from unrelated amenities. Do not diagnose suitability from the activity name. Keep activities with barriers as results, not rejections. For collection pages return an empty accessibility array.
 For a collection, return up to six named, relevant specific items with their actual detail-page hrefs from this page, preferring official venues/organizers and events in the trip dates. Choose DIFFERENT venues or experiences, not variations of the same attraction or reseller package. Do not return navigation, category pages, images, generic booking pages or invented URLs. For individual pages return no candidates.`;
     const result = await request("scrape", { url, formats: ["markdown", "links", { type: "json", schema: interestExtractionSchema, prompt }],
       onlyMainContent: true, maxAge: 21600000, timeout: 60000 }, 70000);
@@ -268,7 +269,7 @@ For a collection, return up to six named, relevant specific items with their act
     if (!data.json || typeof data.json !== "object" || typeof data.markdown !== "string") fail("FIRECRAWL_INVALID_RESPONSE", "The detail page did not contain readable structured content.");
     const sourceUrl = webUrl(metadata.url ?? metadata.sourceURL ?? url);
     const links = Array.isArray(data.links) ? data.links.filter((link): link is string => typeof link === "string").slice(0, 1000) : [];
-    return parseInterestPage(data.json, data.markdown.slice(0, 100000), sourceUrl, links);
+    return parseInterestPage(data.json, data.markdown.slice(0, 100000), sourceUrl, links, args.accessibility ?? []);
   },
 });
 

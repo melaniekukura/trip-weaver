@@ -48,10 +48,9 @@ export function Trips({ view = "trips" }: { view?: "trips" | "budget" }) {
             {!budgetView && <span className="result-label">{trip.origin}</span>}<h3>{trip.name}</h3>
             {!budgetView && <p>{trip.destinations.join(" → ")}</p>}
             {!budgetView && <p><time dateTime={trip.startDate}>{trip.startDate}</time> – <time dateTime={trip.endDate}>{trip.endDate}</time></p>}
-            <p>{trip.travelers} {trip.travelers === 1 ? "traveler" : "travelers"}
-              {!budgetView && trip.budget !== null && ` · ${new Intl.NumberFormat("en-US", { style: "currency", currency: trip.currency }).format(trip.budget)} total budget`}</p>
+            <p>{trip.travelers} {trip.travelers === 1 ? "traveler" : "travelers"}</p>
             {trip.interests.length > 0 && <p className="field-hint">{trip.interests.join(" · ")}</p>}
-            {budgetView && <TripCardCost trip={trip} />}
+            <TripCardCost trip={trip} />
             <a className="primary-button plan-trip-button" href={`#${tripPlannerPath(trip._id, budgetView ? "budget" : undefined)}`}>{budgetView ? "Show Budget" : "Plan My Trip"} <span aria-hidden="true">→</span></a>
             {!budgetView && (confirmDelete === trip._id ? <div className="delete-confirmation">
               <p>Delete “{trip.name}”? This cannot be undone.</p>

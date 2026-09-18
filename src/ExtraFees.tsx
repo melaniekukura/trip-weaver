@@ -1,3 +1,5 @@
+import { useBudgetCosts } from "./useBudgetCosts";
+import { BudgetConversionStatus } from "./BudgetConversionStatus";
 import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useRef, useState } from "react";
@@ -20,6 +22,7 @@ export function ExtraFees({ trip, data }: { trip: Doc<"trips">; data?: ExtraFeeD
   const dirty = JSON.stringify(settings) !== JSON.stringify(trip.extraFeeSettings ?? defaultFeeSettings);
   const results = data?.results ?? [];
   const subtotals = feeSubtotals(results);
+  const { costs, currency, error: conversionError, retry } = useBudgetCosts(trip, results);
   async function search() {
     if (lock.current) return;
     lock.current = true; setSaving(true); setError("");
@@ -32,6 +35,8 @@ export function ExtraFees({ trip, data }: { trip: Doc<"trips">; data?: ExtraFeeD
     } finally { lock.current = false; setSaving(false); }
   }
   return <div className="extra-fees">
+    <p className="budget-total" aria-live="polite">Extra fees total <strong>{costs ? formatCost(costs.extraFeeTotals[currency] ?? 0, currency) : conversionError ? "--" : "Calculating…"}</strong></p>
+    <BudgetConversionStatus error={conversionError} retry={retry} />
     <div className="fee-subtotals">{subtotals.map(subtotal => <article key={subtotal.category}>
       <h4>{costCategories.find(category => category.id === subtotal.category)!.label}</h4>
       <strong>{Object.entries(subtotal.amounts).map(([currency, amount]) => `${formatCost(amount, currency)} ${currency}`).join(" + ") || "--"}</strong>
@@ -56,7 +61,7 @@ export function ExtraFees({ trip, data }: { trip: Doc<"trips">; data?: ExtraFeeD
     {dirty && <p role="status" className="field-hint">Search to save and apply these fee settings.</p>}
     <div className="button-row"><button type="button" className="primary-button" disabled={saving || running || !data}
       onClick={() => void search()}>{saving ? "Starting…" : running ? "Researching fees…" : data?.run ? "Refresh fee prices" : "Search fee prices"}</button></div>
-    <p className="field-hint">Search uses Firecrawl credits. Prices are estimates for all travelers; unknown fees are not included in subtotals. Rental fees exclude the base rental price. Currencies are kept separate.</p>
+    <p className="field-hint">Search uses Firecrawl credits. Prices are estimates for all travelers; unknown fees are not included in subtotals. Rental fees exclude the base rental price. Original currencies are shown below.</p>
     {error && <p className="search-error" role="alert">{error}</p>}
     {!data && <p role="status">Loading extra fees…</p>}
     {data && !results.length && <p>No itinerary activities or selected flights yet. Add them in Plan My Trip, or enable rental-car fees.</p>}

@@ -46,7 +46,7 @@ test("both searches persist source-backed results, deduplicate jobs, and reuse c
   const run = await alice.query(api.interestJobs.latest, args);
   expect(run).toMatchObject({ status: "completed", warnings: [], interests: ["Art", "Food"] });
   expect(run?.results.map(result => result.kind)).toEqual(["activities", "activities", "activities", "events"]);
-  expect(fetchMock).toHaveBeenCalledTimes(10);
+  expect(fetchMock).toHaveBeenCalledTimes(14);
   expect(await alice.mutation(api.interestJobs.start, args)).toEqual({ ...first, reused: true });
   await alice.mutation(api.interestJobs.save, { runId: first.runId, index: 0 });
   await alice.mutation(api.interestJobs.save, { runId: first.runId, index: 0 });
@@ -78,7 +78,7 @@ test("one provider failure preserves the other category and allows retry instead
   const { runId } = await alice.mutation(api.interestJobs.start, args);
   await t.action(internal.interestJobs.execute, { runId });
   const run = await alice.query(api.interestJobs.latest, args);
-  expect(run?.status).toBe("completed"); expect(run?.results).toHaveLength(3); expect(run?.warnings).toHaveLength(1);
+  expect(run?.status).toBe("completed"); expect(run?.results).toHaveLength(4); expect(run?.warnings).toHaveLength(1);
   expect(JSON.stringify(run)).not.toContain("private error");
   expect((await alice.mutation(api.interestJobs.start, args)).runId).not.toBe(runId);
 });
@@ -176,4 +176,42 @@ test("other-city searches have separate results without modifying the trip route
     await expect(client.query(api.interestJobs.latest, otherArgs)).rejects.toThrow("unavailable");
   }
   await expect(alice.mutation(api.interestJobs.start, { ...args, destination: "x".repeat(201) })).rejects.toThrow("Choose a city");
+});
+
+test("accessibility changes invalidate results and requirements reach the detail extractor", async () => {
+  const { t, alice, args, tripId } = await setup();
+  const original = await alice.mutation(api.interestJobs.start, args);
+  const saved = await alice.query(api.trips.get, { tripId });
+  await alice.mutation(api.trips.update, { tripId, expectedUpdatedAt: saved.updatedAt, changes: { ...trip, accessibility: "Step-free access" } });
+  expect(await alice.query(api.interestJobs.latest, { ...args, runId: original.runId })).toBeNull();
+  const next = await alice.mutation(api.interestJobs.start, args);
+  await t.action(internal.interestJobs.execute, { runId: next.runId });
+  const run = await alice.query(api.interestJobs.latest, args);
+  expect(run?.accessibility).toEqual(["step-free access"]);
+  const scrapeCalls = fetchMock.mock.calls.map(([, options]) => JSON.parse(String(options?.body))).filter(body => body.url);
+  expect(scrapeCalls.length).toBeGreaterThan(0);
+  expect(scrapeCalls.every(body => body.formats[2].prompt.includes("step-free access"))).toBe(true);
+});
+
+test("sightseeing search includes major museums and monuments and retains more than five distinct attractions", async () => {
+  const { t } = await setup();
+  fetchMock.mockImplementation(async (_url, options) => {
+    const body = JSON.parse(String(options?.body));
+    if (body.url) {
+      const title = body.url.includes("museum") ? `Museum ${body.url.split("/").pop()}` : `Monument ${body.url.split("/").pop()}`;
+      return new Response(JSON.stringify({ success: true, data: { markdown: `${title}. Visitor information.`, links: [], metadata: { url: body.url },
+        json: { pageType: "individual", relevant: true, name: title, excerpt: "Visitor information.", candidates: [] } } }));
+    }
+    const category = body.query.includes("monuments") ? "monument" : "museum";
+    return new Response(JSON.stringify({ success: true, data: { web: Array.from({ length: 5 }, (_, index) => ({
+      title: `${category} ${index}`, url: `https://${category}${index}.example.org/${index}`,
+    })) } }));
+  });
+  const result = await t.action(internal.interestJobs.discover, { destination: "Paris", interests: ["Art"], kind: "activities", startDate: trip.startDate, endDate: trip.endDate });
+  expect(result.results).toHaveLength(10);
+  expect(result.results.some(item => item.title.startsWith("Museum"))).toBe(true);
+  expect(result.results.some(item => item.title.startsWith("Monument"))).toBe(true);
+  const queries = fetchMock.mock.calls.map(([, options]) => JSON.parse(String(options?.body)).query).filter(Boolean);
+  expect(queries.some(query => query.includes("major museums"))).toBe(true);
+  expect(queries.some(query => query.includes("famous monuments"))).toBe(true);
 });

@@ -1,3 +1,4 @@
+import { accessibilityRequirements } from "./accessibility";
 import { eventOutsideTrip } from "./interestDates";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { HOUR, RateLimiter } from "@convex-dev/rate-limiter";
@@ -12,7 +13,7 @@ import schema from "./schema";
 import { discoveryItem, discoveryKind, ideaItinerary } from "./interestSchema";
 import { diversifyIdeas } from "./interestDiversity";
 import { discoverSpecificIdeas } from "./interestDiscovery";
-import { foodInterest, interestQuery, interestSearchKey } from "./interestSearch";
+import { foodInterest, interestQuery, interestSearchKey, sightseeingInterest, sightseeingQuery } from "./interestSearch";
 
 const pool = new Workpool(components.researchPool, { maxParallelism: 2, retryActionsByDefault: false });
 const limiter = new RateLimiter(components.rateLimiter, {
@@ -30,7 +31,7 @@ function details(trip: Doc<"trips">, destination: string, kind: "activities" | "
   destination = destination.trim();
   if (!destination || destination.length > 200 || /[\x00-\x1f\x7f]/.test(destination)) throw new ConvexError({ message: "Choose a city to explore (up to 200 characters)." });
   if (interest !== undefined && !trip.interests.includes(interest)) throw new ConvexError({ message: "Choose one of this trip’s interests." });
-  return { destination, kind, startDate: trip.startDate, endDate: trip.endDate, interests: interest === undefined ? trip.interests : [interest] };
+  return { destination, kind, accessibility: accessibilityRequirements(trip.accessibility), startDate: trip.startDate, endDate: trip.endDate, interests: interest === undefined ? trip.interests : [interest] };
 }
 export const start = mutation({
   args: { ...searchArgs, refresh: v.optional(v.boolean()) }, returns: v.object({ runId: v.id("interestRuns"), reused: v.boolean() }),
@@ -79,7 +80,7 @@ export const finish = internalMutation({
   handler: async (ctx, { runId, results, warnings, error }) => {
     const run = await ctx.db.get("interestRuns", runId);
     if (!run || !["pending", "running"].includes(run.status) || !await ctx.db.get("trips", run.tripId)) return null;
-    await ctx.db.patch("interestRuns", runId, { results: results.slice(0, 10), warnings: warnings.slice(0, 2),
+    await ctx.db.patch("interestRuns", runId, { results: results.slice(0, 24), warnings: warnings.slice(0, 2),
       status: error ? "failed" : "completed", ...(error ? { error } : {}), finishedAt: Date.now(), expiresAt: Date.now() + 6 * HOUR });
     return null;
   },
@@ -90,24 +91,25 @@ export const execute = internalAction({
     const run = await ctx.runMutation(internal.interestJobs.claim, { runId });
     if (!run) return null;
     const result = await ctx.runAction(internal.interestJobs.discover, { destination: run.destination, interests: run.interests,
-      startDate: run.startDate, endDate: run.endDate, kind: run.kind });
+      startDate: run.startDate, endDate: run.endDate, kind: run.kind, accessibility: run.accessibility ?? [] });
     await ctx.runMutation(internal.interestJobs.finish, { runId, ...result });
     return null;
   },
 });
 export const discover = internalAction({
-  args: { destination: v.string(), interests: v.array(v.string()), startDate: v.string(), endDate: v.string(), kind: discoveryKind },
+  args: { accessibility: v.optional(v.array(v.string())), destination: v.string(), interests: v.array(v.string()), startDate: v.string(), endDate: v.string(), kind: discoveryKind },
   returns: v.object({ results: v.array(discoveryItem), warnings: v.array(v.string()), error: v.optional(v.string()) }),
   handler: async (ctx, run): Promise<{ results: Doc<"interestRuns">["results"]; warnings: string[]; error?: string }> => {
     const kinds: ("activities" | "events")[] = run.kind === "both" ? ["activities", "events"] : [run.kind];
     const activityInterests = (run.interests.length ? run.interests : ["Local culture", "Food"]).slice(0, 3);
-    const tasks = kinds.flatMap<{ kind: "activities" | "events"; interests: string[]; focus: string; restaurants?: "local" | "tasting" }>(kind => kind === "activities"
+    const tasks = kinds.flatMap<{ kind: "activities" | "events"; interests: string[]; focus: string; restaurants?: "local" | "tasting"; sights?: "museums" | "landmarks" }>(kind => kind === "activities"
       ? activityInterests.flatMap(interest => [
         ...(foodInterest(interest) ? [{ kind, interests: [interest], focus: interest, restaurants: "local" as const }, { kind, interests: [interest], focus: interest, restaurants: "tasting" as const }] : []),
+        ...(sightseeingInterest(interest) ? (["museums", "landmarks"] as const).map(sights => ({ kind, interests: [interest], focus: interest, sights })) : []),
         { kind, interests: [interest], focus: interest },
       ]) : [{ kind, interests: run.interests, focus: "Events" }]);
     const searches = await Promise.allSettled(tasks.map(task => ctx.runAction(internal.firecrawl.search, {
-      query: interestQuery({ ...run, interests: task.interests }, task.kind, task.restaurants), limit: 5,
+      query: task.sights ? sightseeingQuery(run.destination, task.sights) : interestQuery({ ...run, interests: task.interests }, task.kind, task.restaurants), limit: 5,
     })));
     const results: Doc<"interestRuns">["results"] = [];
     const warnings: string[] = [];
@@ -118,8 +120,8 @@ export const discover = internalAction({
         const response = searches[offset + index];
         if (response.status === "rejected") return { ...task, items: [], failedPages: 1 };
         const discovered = await discoverSpecificIdeas(response.value.results, url => ctx.runAction(internal.firecrawl.interestPage, {
-          url, restaurants: Boolean(task.restaurants), kind: task.kind, destination: run.destination, interests: task.interests, startDate: run.startDate, endDate: run.endDate,
-        }), { deadline, perHost: task.restaurants ? 2 : 1, maxItems: task.restaurants ? 5 : 3, maxDepth: task.kind === "events" ? 2 : 1, maxVisits: task.restaurants ? 8 : task.kind === "events" ? 5 : 4, activities: task.kind === "activities" });
+          url, accessibility: run.accessibility ?? [], restaurants: Boolean(task.restaurants), kind: task.kind, destination: run.destination, interests: task.interests, startDate: run.startDate, endDate: run.endDate,
+        }), { deadline, perHost: 3, maxItems: 8, maxDepth: 2, maxVisits: 10, activities: task.kind === "activities" });
         return { ...task, failedPages: discovered.failedPages, items: discovered.items.filter(item => task.kind !== "events" || !eventOutsideTrip(item.dates, run.startDate, run.endDate)).map(item => ({ ...item, kind: task.kind,
           ...(task.kind === "activities" ? { interest: task.focus } : {}), detailed: true, destination: run.destination, retrievedAt: new Date().toISOString() })) };
       }));
@@ -127,7 +129,7 @@ export const discover = internalAction({
     }
     for (const kind of kinds) {
       const groups = discoveries.filter(discovery => discovery.kind === kind);
-      const selected = diversifyIdeas(groups.map(group => group.items), kind === "events" ? 3 : 5, 2, kind === "activities");
+      const selected = diversifyIdeas(groups.map(group => group.items), kind === "events" ? 6 : 18, 4, kind === "activities");
       results.push(...selected);
       if (!selected.length) warnings.push(`No specific ${kind === "events" ? "events" : "activities"} passed the checks within the pages searched. This does not mean none are available.`);
       else {

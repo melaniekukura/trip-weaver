@@ -1,11 +1,12 @@
 import type { Infer } from "convex/values";
 import type { discoveryKind } from "./interestSchema";
 
-type Search = { destination: string; startDate: string; endDate: string; interests: string[]; kind: Infer<typeof discoveryKind> };
+type Search = { accessibility?: string[]; destination: string; startDate: string; endDate: string; interests: string[]; kind: Infer<typeof discoveryKind> };
 
 export function interestSearchKey(search: Search) {
-  return JSON.stringify(["interests-v6-dining", search.destination, search.kind, search.startDate, search.endDate,
-    [...new Set(search.interests.map(value => value.trim().toLowerCase()))].sort()]);
+  return JSON.stringify(["interests-v8-sights-accessibility", search.destination, search.kind, search.startDate, search.endDate,
+    [...new Set(search.interests.map(value => value.trim().toLowerCase()))].sort(),
+    [...new Set((search.accessibility ?? []).map(value => value.trim().toLowerCase()))].sort()]);
 }
 
 export const foodInterest = (interest: string) => /food|cook|culinar|gastron|restaurant|dining/i.test(interest);
@@ -38,4 +39,11 @@ export function discoveryPreview(value: string) {
   const plain = value.replace(/!\[[^\]]*\]\([^)]*\)/g, " ").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/<[^>]*>/g, " ").replace(/https?:\/\/\S+/g, " ").replace(/[#*_`\\]/g, "").replace(/\s+/g, " ").trim();
   return plain.length > 420 ? `${plain.slice(0, 417).replace(/\s+\S*$/, "")}…` : plain;
+}
+
+export const sightseeingInterest = (interest: string) => /art|museum|histor|cultur|sight|monument|touris|landmark|architect|attraction|explor/i.test(interest);
+export function sightseeingQuery(destination: string, category: "museums" | "landmarks") {
+  const city = destination.split(" — ")[0].replace(/\s*\([^)]*\)$/, "");
+  const topic = category === "museums" ? "major museums art galleries permanent collections" : "famous monuments landmarks tourist attractions historic sites";
+  return `${city} ${topic} official tourism visitor information`.slice(0, 500);
 }

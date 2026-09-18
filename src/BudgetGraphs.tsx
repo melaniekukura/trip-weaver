@@ -1,18 +1,29 @@
-import { useState } from "react";
+import { useBudgetCosts } from "./useBudgetCosts";
+import { BudgetConversionStatus } from "./BudgetConversionStatus";
+import { useId, useState } from "react";
 import type { Doc } from "../convex/_generated/dataModel";
 import type { FeeResult } from "../convex/extraFeeResearch";
 import { budgetCosts, costCategories, dailyCosts, formatCost } from "./budgetCosts";
 
 export function BudgetGraphs({ trip, fees }: { trip: Doc<"trips">; fees?: FeeResult[] }) {
-  const costs = budgetCosts(trip, fees);
-  const currencies = Object.keys(costs.totals).sort();
-  const [chosenCurrency, setCurrency] = useState("USD");
-  const currency = currencies.includes(chosenCurrency) ? chosenCurrency : currencies[0] ?? "USD";
+  const { costs, currency, error, retry, rateDate } = useBudgetCosts(trip, fees);
+  return <div className="budget-graphs">
+    <div className="budget-graphs-toolbar"><strong>Total Cost: {costs ? formatCost(costs.totals[currency] ?? 0, currency) : error ? "--" : "Calculating…"}</strong></div>
+    <BudgetConversionStatus error={error} retry={retry} rateDate={rateDate || undefined} />
+    {costs ? <BudgetCurrencyGraphs trip={trip} costs={costs} currency={currency} feesLoading={fees === undefined} />
+      : !error && <p role="status">Converting all costs to {currency}…</p>}
+  </div>;
+}
+
+function BudgetCurrencyGraphs({ trip, costs, currency, feesLoading }: {
+  trip: Doc<"trips">; costs: ReturnType<typeof budgetCosts>; currency: string; feesLoading: boolean;
+}) {
+  const chartId = useId();
   const [category, setCategory] = useState("all");
   const [focusedDate, setFocusedDate] = useState("");
   const entries = costs.entries.filter(entry => entry.currency === currency);
-  const total = entries.reduce((sum, entry) => sum + entry.cents, 0);
-  const categories = costCategories.map(item => ({ ...item, cents: entries.filter(entry => entry.category === item.id).reduce((sum, entry) => sum + entry.cents, 0) }));
+  const total = Math.round((costs.totals[currency] ?? 0) * 100);
+  const categories = costs.breakdown.map(item => ({ ...item, cents: Math.round((item.totals[currency] ?? 0) * 100) }));
   let offset = 0;
   const gradient = categories.filter(item => item.cents > 0).map(item => {
     const start = offset; offset += item.cents / total * 100;
@@ -26,23 +37,17 @@ export function BudgetGraphs({ trip, fees }: { trip: Doc<"trips">; fees?: FeeRes
   const dateLabel = (date: string) => new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
   const money = (cents: number) => formatCost(cents / 100, currency);
 
-  return <div className="budget-graphs">
-    <div className="budget-graphs-toolbar">
-      <span className="budget-report-period">{dateLabel(trip.startDate)} – {dateLabel(trip.endDate)}</span>
-      <label>Currency <select value={currency} onChange={event => setCurrency(event.target.value)}>
-        {(currencies.length ? currencies : ["USD"]).map(code => <option key={code}>{code}</option>)}
-      </select></label>
-    </div>
+  return <section className="budget-graphs" aria-label={`${currency} budget graphs`}>
+    <div className="budget-graphs-toolbar"><h4>{currency}</h4><span className="budget-report-period">{dateLabel(trip.startDate)} – {dateLabel(trip.endDate)}</span></div>
     <div className="budget-metrics">
       <article><span>Priced costs · {currency}</span><strong>{money(total)}</strong></article>
       <article><span>Daily average{category !== "all" ? " · selected category" : ""}</span><strong>{daily ? money(Math.round(dailyTotal / daily.days.length)) : "--"}</strong></article>
-      <article><span>Prices to confirm</span><strong>{fees === undefined ? "--" : costs.unknown}</strong></article>
+      <article><span>Prices to confirm</span><strong>{feesLoading ? "--" : costs.unknown}</strong></article>
     </div>
-    {(costs.unknown > 0 || fees === undefined) && <p role="status" className="field-hint">{fees === undefined ? "Loading extra fees…" : "Charts show priced items only. Unconfirmed fees are not counted as free."}</p>}
-    {currencies.length > 1 && <p className="field-hint">View one currency at a time. No exchange-rate conversion applied.</p>}
+    {(costs.unknown > 0 || feesLoading) && <p role="status" className="field-hint">{feesLoading ? "Loading extra fees…" : "Charts show priced items only. Unconfirmed fees are not counted as free."}</p>}
     <div className="budget-chart-grid">
-      <section className="budget-chart-card" aria-labelledby="category-chart-title">
-        <header><h4 id="category-chart-title">Cost by category</h4><span>{currency}</span></header>
+      <section className="budget-chart-card" aria-labelledby={`${chartId}-category`}>
+        <header><h4 id={`${chartId}-category`}>Cost by category</h4><span>{currency}</span></header>
         <div className="budget-pie-layout">
           <div className="budget-donut" role="img" aria-label={total > 0 ? `Cost breakdown: ${categories.filter(item => item.cents).map(item => `${item.label} ${money(item.cents)}`).join(", ")}` : "No priced costs yet"}
             style={{ background: total > 0 ? `conic-gradient(${gradient})` : "#e4e4e4" }}>
@@ -57,8 +62,8 @@ export function BudgetGraphs({ trip, fees }: { trip: Doc<"trips">; fees?: FeeRes
         </div>
         {!total && <p className="field-hint">Select transportation or research extra fees to build your breakdown.</p>}
       </section>
-      <section className="budget-chart-card" aria-labelledby="daily-chart-title">
-        <header><h4 id="daily-chart-title">Spending per day</h4>
+      <section className="budget-chart-card" aria-labelledby={`${chartId}-daily`}>
+        <header><h4 id={`${chartId}-daily`}>Spending per day</h4>
           <button className="text-button" type="button" onClick={() => setCategory("all")} disabled={category === "all"}>All categories</button></header>
         <p className="budget-chart-focus" aria-live="polite">{selectedDay ? `${dateLabel(selectedDay.date)} · ${money(selectedDay.cents)}` : category === "all" ? "All categories" : costCategories.find(item => item.id === category)?.label}</p>
         {daily ? <>
@@ -83,5 +88,5 @@ export function BudgetGraphs({ trip, fees }: { trip: Doc<"trips">; fees?: FeeRes
         <details className="budget-allocation-details"><summary>How daily costs are allocated</summary><p className="field-hint">Trip-wide and undated costs are spread evenly across the trip. Round-trip airfare is split across departure and return dates. These are planned costs, not payment dates.</p></details>
       </section>
     </div>
-  </div>;
+  </section>;
 }

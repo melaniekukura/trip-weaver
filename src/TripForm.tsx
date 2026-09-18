@@ -212,7 +212,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
                 <CityStaySummary route={homeRoute} plan={liveTrip?.flightPlan} onOpenTransportation={() => { setActive(1); tabButtons.current[1]?.focus(); }} />
                 <InterestsEditor interests={interests} onChange={setInterests} />
                 </div>
-                <InterestDiscovery tripId={savedTrip?._id} interests={interests} destinations={destinations.map(stop => stop.value)} onSaveTrip={saveTrip} />
+                <InterestDiscovery accessibility={accessibility} tripId={savedTrip?._id} interests={interests} destinations={destinations.map(stop => stop.value)} onSaveTrip={saveTrip} />
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-3" aria-labelledby="trip-tab-3" data-tab="3" hidden={active !== 3}>
                 <AccessibilityTab initialValue={trip?.accessibility} onChange={setAccessibility} />

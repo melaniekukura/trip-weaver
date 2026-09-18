@@ -1,17 +1,24 @@
+import { useBudgetCosts } from "./useBudgetCosts";
+import { BudgetConversionStatus } from "./BudgetConversionStatus";
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Doc } from "../convex/_generated/dataModel";
 import type { FeeResult } from "../convex/extraFeeResearch";
-import { budgetCosts, formatCost } from "./budgetCosts";
+import { formatCost } from "./budgetCosts";
 
-export function BudgetCostSummary({ trip, fees }: { trip: Doc<"trips">; fees?: FeeResult[] }) {
-  const costs = budgetCosts(trip, fees);
-  const totals = Object.entries(costs.totals);
+export function BudgetCostSummary({ trip, fees, breakdown = false }: { trip: Doc<"trips">; fees?: FeeResult[]; breakdown?: boolean }) {
+  const { costs, currency, native, error, retry, rateDate } = useBudgetCosts(trip, fees);
   return <div className="budget-cost-summary" aria-live="polite">
-    <p><strong>Total Cost:</strong> {totals.length ? totals.map(([currency, amount]) => `${formatCost(amount, currency)} ${currency}`).join(" + ") : "--"}</p>
-    {fees === undefined ? <p className="field-hint">Loading extra fees…</p> : costs.unknown > 0 &&
-      <p className="field-hint">Partial total · {costs.unknown} {costs.unknown === 1 ? "price" : "prices"} not confirmed.</p>}
-    {totals.length > 1 && <p className="field-hint">Currencies shown separately; no conversion applied.</p>}
+    <p><strong>Total Cost:</strong> {costs ? formatCost(costs.totals[currency] ?? 0, currency) : error ? "--" : "Calculating…"} <span className="field-hint">{currency}</span></p>
+    {breakdown && <dl className="budget-overview-breakdown" aria-label="Included costs">
+      {native.breakdown.map(category => <div key={category.id}>
+        <dt><span className="budget-legend-dot" style={{ background: category.color }} />{category.label}</dt>
+        <dd>{costs ? formatCost(costs.breakdown.find(item => item.id === category.id)?.totals[currency] ?? 0, currency) : "--"}</dd>
+      </div>)}
+    </dl>}
+    {fees === undefined ? <p className="field-hint">Loading extra fees…</p> : native.unknown > 0 &&
+      <p className="field-hint">Partial total · {native.unknown} {native.unknown === 1 ? "price" : "prices"} not confirmed.</p>}
+    <BudgetConversionStatus error={error} retry={retry} rateDate={rateDate || undefined} />
   </div>;
 }
 export function TripCardCost({ trip }: { trip: Doc<"trips"> }) {

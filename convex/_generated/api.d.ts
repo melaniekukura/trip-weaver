@@ -9,6 +9,7 @@
  */
 
 import type * as accessibility from "../accessibility.js";
+import type * as activityAccessibility from "../activityAccessibility.js";
 import type * as agentmail from "../agentmail.js";
 import type * as agentmailClient from "../agentmailClient.js";
 import type * as agentmailWebhook from "../agentmailWebhook.js";
@@ -41,6 +42,8 @@ import type * as interestSchema from "../interestSchema.js";
 import type * as interestSearch from "../interestSearch.js";
 import type * as itineraryEmailContent from "../itineraryEmailContent.js";
 import type * as itineraryEmails from "../itineraryEmails.js";
+import type * as localTransportation from "../localTransportation.js";
+import type * as localTransportationFields from "../localTransportationFields.js";
 import type * as returnFlights from "../returnFlights.js";
 import type * as transportationBudget from "../transportationBudget.js";
 import type * as tripAgent from "../tripAgent.js";
@@ -56,6 +59,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   accessibility: typeof accessibility;
+  activityAccessibility: typeof activityAccessibility;
   agentmail: typeof agentmail;
   agentmailClient: typeof agentmailClient;
   agentmailWebhook: typeof agentmailWebhook;
@@ -88,6 +92,8 @@ declare const fullApi: ApiFromModules<{
   interestSearch: typeof interestSearch;
   itineraryEmailContent: typeof itineraryEmailContent;
   itineraryEmails: typeof itineraryEmails;
+  localTransportation: typeof localTransportation;
+  localTransportationFields: typeof localTransportationFields;
   returnFlights: typeof returnFlights;
   transportationBudget: typeof transportationBudget;
   tripAgent: typeof tripAgent;
@@ -124,6 +130,7 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+  staticHosting: import("@convex-dev/static-hosting/_generated/component.js").ComponentApi<"staticHosting">;
   researchPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"researchPool">;
   rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
 };

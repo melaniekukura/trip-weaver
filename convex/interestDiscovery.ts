@@ -27,7 +27,7 @@ export async function discoverSpecificIdeas(seeds: { url: string; title: string 
       for (const item of page.items) if (!items.some(existing => existing.url === item.url ||
         (options.activities && sameActivity(existing, item))) && (!options.activities || items.filter(existing => sourceHost(existing.url) === sourceHost(item.url)).length < perHost)) items.push(item);
       if (next.depth < (options.maxDepth ?? 1)) {
-        const candidates = page.candidates.slice(0, 3).map(item => ({ url: item.url, depth: next.depth + 1 }));
+        const candidates = page.candidates.slice(0, 6).map(item => ({ url: item.url, depth: next.depth + 1 }));
         if (candidates.length) queue.unshift(candidates[0]);
         queue.push(...candidates.slice(1));
       }

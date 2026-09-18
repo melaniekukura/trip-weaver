@@ -7,7 +7,7 @@ import { BudgetCostSummary } from "./BudgetCostSummary";
 
 const trip = { _id: "trip", name: "Paris", origin: "DTW", destinations: ["Paris"], travelers: 2,
   startDate: "2026-10-01", endDate: "2026-10-03",
-  transportationBudget: { revision: 1, includeRides: true, rides: [{ mode: "taxi", count: 2, price: 25 }] },
+  localTransportation: [{ destination: "Paris", searchKey: JSON.stringify(["Paris", "2026-10-01", "2026-10-03"]), generation: 1, enabled: true, rides: [{ mode: "taxi", count: 2, status: "priced", amount: 25, currency: "USD" }] }],
 } as Doc<"trips">;
 
 test("cost summary and both accessible charts use the same saved transportation total", () => {
@@ -24,7 +24,7 @@ test("cost summary and both accessible charts use the same saved transportation 
 });
 
 test("empty graphs show no invented sample spending", () => {
-  const html = renderToStaticMarkup(createElement(BudgetGraphs, { trip: { ...trip, transportationBudget: undefined }, fees: [] }));
+  const html = renderToStaticMarkup(createElement(BudgetGraphs, { trip: { ...trip, localTransportation: undefined }, fees: [] }));
   expect(html).toContain("No priced costs yet");
   expect(html).not.toContain("conic-gradient");
 });

@@ -1,3 +1,4 @@
+import { checkAccessibility } from "../convex/accessibility";
 import { LocationPicker } from "./LocationPicker";
 import { IdeaItinerary } from "./IdeaItinerary";
 import { useMutation, useQuery } from "convex/react";
@@ -11,8 +12,8 @@ function errorMessage(error: unknown) {
   return data && typeof data === "object" && "message" in data ? String(data.message) : "Unable to complete this request. Please try again.";
 }
 
-export function InterestDiscovery({ tripId, destinations, interests, onSaveTrip }: {
-  tripId?: Id<"trips">; destinations: string[]; interests: string[]; onSaveTrip: () => Promise<Id<"trips"> | null>;
+export function InterestDiscovery({ tripId, destinations, interests, accessibility, onSaveTrip }: {
+  accessibility?: string; tripId?: Id<"trips">; destinations: string[]; interests: string[]; onSaveTrip: () => Promise<Id<"trips"> | null>;
 }) {
   const uniqueDestinations = [...new Set(destinations.filter(Boolean))];
   const [choice, setChoice] = useState("");
@@ -66,9 +67,28 @@ export function InterestDiscovery({ tripId, destinations, interests, onSaveTrip 
     {item.kind === "events" && !item.dates && <p className="field-hint">Event lead · Check dates with the organizer.</p>}
     {item.price && <p>Source-listed price: {item.price}</p>}
   </>;
+  const requirements = (accessibility ?? savedTrip?.accessibility ?? "").split("\n").map(value => value.trim()).filter(Boolean);
+  const checksFor = (item: Doc<"interestRuns">["results"][number]) => checkAccessibility(requirements, "activities", item.accessibilityEvidence ?? []);
+  const renderAccess = (item: Doc<"interestRuns">["results"][number]) => requirements.length > 0 &&
+    <ul className="idea-accessibility" aria-label="Accessibility requirements">{checksFor(item).checks.filter(check => check.status !== "not-applicable").map(check =>
+      <li key={check.requirement} className={`idea-accessibility-${check.status}`}>
+        <strong>{check.status === "not-met" ? "Does not meet" : check.status === "met" ? "Supported" : "Not confirmed"}: {check.requirement}</strong>
+        {check.status === "not-met" && item.accessibilityEvidence?.filter(evidence => !evidence.conforms && evidence.requirement.toLowerCase() === check.requirement.toLowerCase()).map((evidence, index) =>
+          <span key={index}>{evidence.evidence} <a href={evidence.sourceUrl} target="_blank" rel="noopener noreferrer">Source ↗</a></span>)}
+      </li>)}</ul>;
+  const resultGroups = [
+    { key: "matched", title: "Matches your accessibility requirements" },
+    { key: "unknown", title: "Accessibility not confirmed" },
+    { key: "unmatched", title: "Does not meet all accessibility requirements" },
+  ].map(group => ({ ...group, items: (run?.results ?? []).map((item, index) => ({ item, index })).filter(({ item }) => {
+    const checks = checksFor(item);
+    const key = checks.checks.some(check => check.status === "not-met") ? "unmatched" : checks.conforms ? "matched" : "unknown";
+    return key === group.key;
+  }) }));
   const renderIdea = (item: Doc<"interestRuns">["results"][number], compact = false, fullDetails = false) => <>
     {compact && <span className="field-hint">{cityLabel(item.destination)}</span>}
     <h4><a href={item.url} target="_blank" rel="noopener noreferrer">{item.title} ↗</a></h4>
+    {renderAccess(item)}
     {!compact && <>
       {fullDetails ? renderDetails(item) : <>
         {item.description && <p className="idea-blurb">{item.description}</p>}
@@ -114,13 +134,15 @@ export function InterestDiscovery({ tripId, destinations, interests, onSaveTrip 
       <p className="field-hint">Searched for {run.startDate} – {run.endDate} · {run.interests.join(", ") || "General recommendations"}. Search again after changing your dates or interests.</p>
       {run.warnings.map(warning => <p role="status" key={warning}>{warning}</p>)}
       {!run.results.length && <p>No results found. Try broader interests or another destination.</p>}
-      <ul className="interest-results">{run.results.map((item, index) => {
+      {resultGroups.filter(group => group.items.length > 0).map(group => <section key={group.key} className={`interest-access-group interest-access-${group.key}`} aria-label={requirements.length ? group.title : "Search results"}>
+      {requirements.length > 0 && <h3>{group.title}</h3>}
+      <ul className="interest-results">{group.items.map(({ item, index }) => {
         const saved = favorites?.some(favorite => favorite.item.url === item.url);
         return <li key={`${item.kind}:${item.url}`} className={`interest-result${saved ? " is-saved" : ""}`}>
           {renderIdea(item)}
           <button type="button" className="secondary-button" disabled={pending || saved || !favorites} onClick={() => void changeFavorite(() => save({ runId: run._id, index }))}>{saved ? "Saved ✓" : "Save idea"}</button>
         </li>;
-      })}</ul>
+      })}</ul></section>)}
       </div>
     </>}
     </section>
