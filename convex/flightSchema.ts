@@ -3,6 +3,8 @@ import { v } from "convex/values";
 
 import { flightRequest, flightOption } from "./flightSearch";
 
+import { flightDiagnostic } from "./flightDiagnostics";
+
 const flightTopic = v.literal("flights");
 export const sourceFields = v.object({
   title: v.string(), category: flightTopic, description: v.string(),
@@ -18,7 +20,7 @@ export const flightTables = {
     searchKey: v.string(), query: v.string(), tripUpdatedAt: v.number(),
     status: v.union(v.literal("pending"), v.literal("running"), v.literal("completed"), v.literal("failed")),
     workId: v.optional(v.string()), startedAt: v.optional(v.number()), finishedAt: v.optional(v.number()),
-    expiresAt: v.optional(v.number()), error: v.optional(v.string()),
+    expiresAt: v.optional(v.number()), error: v.optional(v.string()), diagnostic: v.optional(flightDiagnostic),
   }).index("by_tripId", ["tripId"]).index("by_tripId_searchKey", ["tripId", "searchKey"]),
   researchSources: defineTable(sourceFields.extend({ tripId: v.id("trips"), runId: v.id("researchRuns") }))
     .index("by_runId", ["runId"]).index("by_tripId", ["tripId"]),

@@ -1,18 +1,26 @@
-import { useConvex, useMutation } from "convex/react";
+import { useConvex, useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
 import { DestinationsEditor } from "./DestinationsEditor";
 import type { DestinationStop } from "./DestinationsEditor";
 import { tripPreferences } from "./tripPreferences";
 import { tripPlannerPath } from "./tripRoutes";
+import { HomeJourneyPrompt } from "./HomeJourneyPrompt";
+import { homeJourneyStatus } from "../convex/homeJourney";
+import { flightPlanItinerary } from "../convex/flightPlanFields";
+import { CityStaySummary } from "./CityStaySummary";
+import { InterestsEditor } from "./InterestsEditor";
+import { InterestDiscovery } from "./InterestDiscovery";
 import { TransportationTab } from "./TransportationTab";
 import { AccessibilityTab } from "./AccessibilityTab";
+import { TripItinerary } from "./TripItinerary";
+import { TripAssistant } from "./TripAssistant";
 import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 
-const planningTabs = ["Overview", "Destinations", "Transportation", "Budget", "Interests", "Accessibility"];
+const planningTabs = ["Overview", "Destinations", "Transportation", "Budget", "Interests", "Accessibility", "Itinerary"];
 const setupTabs = ["Overview", "Destinations", "Create my trip"];
 
 type InitialTrip = { origin: string; destinations: string[]; startDate: string };
@@ -35,9 +43,21 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
   const [error, setError] = useState("");
   const [active, setActive] = useState(0);
   const [startDate, setStartDate] = useState(trip?.startDate ?? initialValues?.startDate ?? "");
+  const [interests, setInterests] = useState(trip?.interests ?? []);
+  const [endDate, setEndDate] = useState(trip?.endDate ?? "");
   const [origin, setOrigin] = useState(trip?.origin ?? initialValues?.origin ?? "");
   const [destinations, setDestinations] = useState<DestinationStop[]>(() =>
     (trip?.destinations ?? initialValues?.destinations ?? []).map((value, index) => ({ id: `saved-${index}`, value })));
+  const [homeReturnNotNeededFor, setHomeReturnNotNeededFor] = useState(trip?.homeReturnNotNeededFor ?? "");
+  const liveTrip = useQuery(api.trips.get, savedTrip ? { tripId: savedTrip._id } : "skip");
+  const homeRoute = { origin, destinations: destinations.map(stop => stop.value), startDate, endDate, homeReturnNotNeededFor };
+  const [roundTripRoute, setRoundTripRoute] = useState("");
+  const routeKey = JSON.stringify([origin, destinations]);
+  const onRoundTripChange = useCallback((roundTrip: boolean) => {
+    setRoundTripRoute(roundTrip ? routeKey : "");
+  }, [routeKey]);
+  const homeStatus = destinations.length === 1 && roundTripRoute === routeKey
+    ? "covered" : homeJourneyStatus(homeRoute, liveTrip?.flightPlan?.legs);
   const dialog = useRef<HTMLDialogElement>(null);
   const tabButtons = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -71,7 +91,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
     tabButtons.current[next]?.focus();
   }
 
-  async function saveTrip(): Promise<Id<"trips"> | null> {
+  async function saveTrip(homeChange?: { stops: DestinationStop[]; waiver: string }): Promise<Id<"trips"> | null> {
     if (saveLock.current || !form.current) return null;
     const invalid = form.current.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(":invalid");
     if (invalid) {
@@ -85,7 +105,8 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
     const value = (key: string) => String(data.get(key) ?? "").trim();
     const changes = {
       name: value("name"), origin,
-      destinations: destinations.map((stop) => stop.value),
+      destinations: (homeChange?.stops ?? destinations).map((stop) => stop.value),
+      homeReturnNotNeededFor: homeChange?.waiver ?? homeReturnNotNeededFor,
       startDate: value("startDate"), endDate: value("endDate"),
       travelers: Number(value("travelers")),
       ...tripPreferences(data, savedTrip, planning),
@@ -110,6 +131,23 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
       return null;
     } finally { saveLock.current = false; setPending(false); }
   }
+
+  async function chooseHome(action: "add" | "not-needed" | "reset") {
+    if (pending || (action === "add" && destinations.length >= 20)) return;
+    const stops = action === "add" ? [...destinations, { id: crypto.randomUUID(), value: origin }] : destinations;
+    const waiver = action === "not-needed" ? flightPlanItinerary(homeRoute) : "";
+    if (savedTrip && !await saveTrip({ stops, waiver })) return;
+    setDestinations(stops); setHomeReturnNotNeededFor(waiver);
+  }
+  async function removeTransportationLeg(index: number) {
+    if (pending || destinations.length <= 1 || index < 0 || index >= destinations.length) return;
+    const stops = destinations.filter((_, position) => position !== index);
+    if (savedTrip && !await saveTrip({ stops, waiver: "" })) return;
+    setDestinations(stops); setHomeReturnNotNeededFor("");
+  }
+  const homePrompt = <HomeJourneyPrompt origin={origin} destination={destinations.at(-1)?.value ?? ""} status={homeStatus}
+    disabled={pending} full={destinations.length >= 20} onAdd={() => void chooseHome("add")}
+    onNotNeeded={() => void chooseHome("not-needed")} onReset={() => void chooseHome("reset")} />;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -146,7 +184,8 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
               <div className="form-row">
                 <label>Start date<input name="startDate" type="date" required min="1900-01-01" max="9999-12-31"
                   value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
-                <label>End date<input name="endDate" type="date" required min={startDate || "1900-01-01"} max="9999-12-31" defaultValue={trip?.endDate} /></label>
+                <label>End date<input name="endDate" type="date" required min={startDate || "1900-01-01"} max="9999-12-31"
+                  value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
               </div>
               <label>Travelers<input name="travelers" type="number" min={1} max={100} step={1} required defaultValue={trip?.travelers ?? 1} /></label>
             </section>
@@ -154,7 +193,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
               <h3>Where are you headed?</h3>
               <p className="field-hint">Add your starting point and each destination in travel order.</p>
               <DestinationsEditor origin={origin} stops={destinations} disabled={pending}
-                onOriginChange={setOrigin} onStopsChange={setDestinations} />
+                onOriginChange={setOrigin} onStopsChange={setDestinations} homePrompt={homePrompt} />
             </section>
             {!planning && <section className="trip-tab-panel create-trip-panel" role="tabpanel" id="trip-panel-2" aria-labelledby="trip-tab-2" data-tab="2" hidden={active !== 2}>
               <h3>Ready to plan your trip?</h3>
@@ -163,8 +202,8 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
             </section>}
             {planning && <>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-2" aria-labelledby="trip-tab-2" data-tab="2" hidden={active !== 2}>
-                <TransportationTab accessibility={accessibility} origin={origin} destination={destinations[0]?.value ?? ""}
-                  departureDate={startDate} onSaveTrip={saveTrip} onEditDetails={(tab) => setActive(tab)} />
+                <TransportationTab accessibility={accessibility} onRoundTripChange={onRoundTripChange} onRemoveLeg={removeTransportationLeg} routePending={pending} homePrompt={homePrompt} homeReturnNotNeededFor={homeReturnNotNeededFor} tripId={savedTrip?._id} origin={origin} destinations={destinations}
+                  departureDate={startDate} returnDate={endDate} onReturnDateChange={setEndDate} onSaveTrip={saveTrip} onEditDetails={(tab) => setActive(tab)} />
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-3" aria-labelledby="trip-tab-3" data-tab="3" hidden={active !== 3}>
                 <h3>Plan your spending</h3>
@@ -177,13 +216,22 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
                 </div>
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-4" aria-labelledby="trip-tab-4" data-tab="4" hidden={active !== 4}>
-                <h3>What do you enjoy?</h3>
-                <p className="field-hint">Save the things you would like to do and explore.</p>
-                <label>Interests (optional) <span className="field-hint">Separate with commas, up to 20 interests</span>
-                  <textarea name="interests" rows={4} maxLength={1650} defaultValue={trip?.interests.join(", ")} placeholder="Food, museums, hiking" /></label>
+                <h3>Interests &amp; activities</h3>
+                <p className="field-hint">Save what you want to do, then add it to your itinerary.</p>
+                <div className="interests-planning-context">
+                <CityStaySummary route={homeRoute} plan={liveTrip?.flightPlan} onOpenTransportation={() => { setActive(2); tabButtons.current[2]?.focus(); }} />
+                <InterestsEditor interests={interests} onChange={setInterests} />
+                </div>
+                <InterestDiscovery tripId={savedTrip?._id} interests={interests} destinations={destinations.map(stop => stop.value)} onSaveTrip={saveTrip} />
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-5" aria-labelledby="trip-tab-5" data-tab="5" hidden={active !== 5}>
                 <AccessibilityTab initialValue={trip?.accessibility} onChange={setAccessibility} />
+              </section>
+              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-6" aria-labelledby="trip-tab-6" data-tab="6" hidden={active !== 6}>
+                <TripItinerary tripId={savedTrip?._id} route={homeRoute} plan={liveTrip?.flightPlan}
+                  onSaveTrip={saveTrip}
+                  onOpenTransportation={() => { setActive(2); tabButtons.current[2]?.focus(); }}
+                  onOpenInterests={() => { setActive(4); tabButtons.current[4]?.focus(); }} />
               </section>
             </>}
           </fieldset>
@@ -204,7 +252,12 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
     </>
   );
 
-  if (planning) return <section className="trip-planner-editor" aria-labelledby="editor-title">{content}</section>;
+  if (planning) return <section className="trip-planner-editor" aria-labelledby="editor-title">
+    <div className="trip-planner-main">{content}</div>
+    <aside className="trip-assistant-rail" aria-label="Trip planning assistant">
+      <TripAssistant tripId={savedTrip?._id} />
+    </aside>
+  </section>;
   return <dialog ref={dialog} className="trip-modal" aria-labelledby="editor-title" onCancel={(event) => {
     event.preventDefault();
     if (!pending) onClose();

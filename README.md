@@ -102,8 +102,26 @@ to generate these and set them in the **local deployment's** environment setting
 Do not put signing keys in Vite variables or commit them. `SITE_URL` can be set to
 the frontend origin, normally `http://localhost:5173`.
 
-Password reset and email verification are not implemented yet. Add them with
-email delivery before public launch; account emails are currently unverified.
+New accounts receive a six-digit AgentMail verification code during sign-in. The
+code expires after 15 minutes. Existing unverified accounts must sign out and
+sign back in to complete verification. Password reset is not implemented yet.
+
+### AgentMail email delivery
+
+Verified users can send a saved itinerary snapshot to their account address from
+the final **Itinerary** tab. The UI shows queued, sending, sent, delivered,
+bounced, rejected, and retry states using signed AgentMail webhook events.
+
+Configure each Convex deployment with these backend environment variables:
+
+- `AGENTMAIL_API_KEY`
+- `AGENTMAIL_INBOX_ID`
+- `AGENTMAIL_WEBHOOK_SECRET`
+
+Set secrets interactively with `npx convex env set <NAME> --deployment <TARGET>`.
+In AgentMail, send `message.sent`, `message.delivered`, `message.bounced`, and
+`message.rejected` events to `<CONVEX_SITE_URL>/webhooks/agentmail`. Never put
+these values in Vite variables or commit them.
 
 ### Legacy mock flight action
 
