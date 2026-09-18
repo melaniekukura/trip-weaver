@@ -2,17 +2,17 @@
 
 - **Project:** Trip-Weaver
 - **Event:** Convex All Gas Hackathon
-- **What it does:** Private multi-city trip planning with Firecrawl research, a unified day-by-day itinerary, AgentMail delivery, and a trip-aware AI planning assistant.
+- **What it does:** Private multi-city trip planning with Firecrawl research, accessibility requirements, trip cost breakdowns, a unified day-by-day itinerary, AgentMail delivery, and a trip-aware AI planning assistant.
 - **Live app:** not deployed
 - **Repo:** private
-- **Frontend:** not deployed
+- **Frontend:** Convex static hosting (configured; public deployment not verified)
 - **Convex deployment:** not deployed
-- **Components:** @convex-dev/agent, @convex-dev/workpool (researchPool), @convex-dev/rate-limiter
+- **Components:** @convex-dev/agent, @convex-dev/workpool (researchPool), @convex-dev/rate-limiter, @convex-dev/static-hosting
 - **Convex features:** schema, tables, indexes, queries, realtime queries, paginated queries, mutations, actions, HTTP actions, scheduled functions
 - **Auth:** Convex Auth
 - **AI models:** openrouter/free
 - **Started:** 2026-09-04T19:25:03Z
-- **Last updated:** 2026-09-18T16:14:16Z
+- **Last updated:** 2026-09-18T19:08:55Z
 
 ## Log
 
@@ -112,3 +112,11 @@ Added a persistent, per-trip planning conversation using the registered Convex A
 Added owner-scoped threads and paginated messages, duplicate-request protection, per-user and global limits, provider failure handling, and cleanup when a trip is deleted (`convex/assistantSchema.ts`, `convex/tripAssistant.ts`, `convex/trips.ts`).
 Placed the assistant in a fixed, responsive rail beside every trip-planning tab, with persistent history, single-line suggested prompts, loading and error states, and sanitized Markdown and HTML rendering (`src/TripAssistant.tsx`, `src/AssistantMessageContent.tsx`, `src/TripForm.tsx`, `src/styles.css`).
 Development checks passed 259 tests, TypeScript lint, and the production build. The user verified grounded trip review responses and the persistent assistant layout in the UI. The free routed model can vary by availability and is presented as a preview.
+
+### 2026-09-18 - 63c2859 (tab-reorganization and accessibility backfill)
+Added searchable accessibility requirements, custom entries, removable cards, and eight categories covering activity level, mobility, vision, hearing, sensory comfort, transportation assistance, accommodation, and dietary/health needs. Used accommodation-focused wording such as “No strenuous activity.” Backfills `50d280e` and `c81187c` on `accessibility`: saved requirements feed a reusable evidence-based checker; outgoing, return, and selected flights remain visible with a triangle warning, “cannot confirm accessibility requirements,” when applicable requirements are unverified (`src/AccessibilityTab.tsx`, `src/FlightAccessibilityNotice.tsx`, `convex/accessibility.ts`, `convex/flightJobs.ts`). Current flight listings do not supply verified accessibility evidence. The branch also added a Firecrawl content-scrape credit setting (`79e5e77`) and merged newer planning features from main (`0fb1aa1`).
+Reorganized navigation around Trips, Budget, and About, removing the global Flight Tracker and Interests links. Added per-trip Budget cards with Show Budget and Total Cost, omitting edit/delete controls, dates, and locations; created a full-width Budget workflow with Overview, Transportation, Extra Fees, and Graphs, titled “Budget: {trip title}.” Persistent header buttons connect both workflows. Removed Budget from Plan My Trip and moved its destination controls into Overview, removing the planning Destinations tab while retaining the creation/edit modal. Removed redundant section descriptions and recorded the convention in `AGENTS.md` (`src/App.tsx`, `src/Trips.tsx`, `src/pages/TripBudgetPage.tsx`, `src/pages/TripPlannerPage.tsx`, `src/TripForm.tsx`, `src/styles.css`).
+Added transportation costs from current-route selected flights, multiplying fares by traveler count and counting a round-trip fare once. Added editable bus, metro, tram, local train, ferry, taxi, and ride-hailing estimates with ride-count controls and an inclusion switch; rental cars are excluded from this table. Convex persists ride settings with ownership checks, validation, and revision protection (`src/TransportationBudget.tsx`, `src/budgetCalculations.ts`, `convex/transportationBudget.ts`, `convex/trips.ts`). Default local ride prices are planning estimates, not destination-specific researched quotes; stale route selections are excluded.
+Added on-demand Firecrawl research for itinerary activity tickets and booking fees, fixed-price restaurant meals, checked baggage, and optional rental-car extras/parking. Category subtotals and an itemized table retain source links and price evidence, with missing or inapplicable prices marked unknown. Convex stores settings and indexed research runs, streams results through realtime queries, reuses matching runs for six hours, limits requests, queues actions through Workpool, and cleans up deleted trips; failed jobs preserve successful results (`src/ExtraFees.tsx`, `convex/extraFeeSchema.ts`, `convex/extraFeeResearch.ts`, `convex/extraFees.ts`, `convex/firecrawl.ts`). Rental fee research excludes the base rental price and refundable deposits.
+Added a colorful category donut and daily-spending bars with currency selection, category filtering, and accessible value labels. Undated costs are spread across trip days without losing cents; round-trip costs are split across departure and return dates. Shared calculations combine included transportation and priced extra fees into Total Cost in both Budget Overview and its trip cards, keep currencies separate, and flag incomplete totals (`src/BudgetGraphs.tsx`, `src/budgetCosts.ts`, `src/BudgetCostSummary.tsx`). No exchange-rate conversion or invented prices are used for missing research results.
+Development verification passed 288 tests and frontend/backend TypeScript checks after the final tab move; the production build passed earlier in the Budget work, and backend changes were synced to personal dev. Tests cover cost arithmetic, currency separation, daily allocation, ownership, stale edits, fee evidence, caching, worker failures, deletion cleanup, and tab wiring. Live fee research and browser visual verification remain unverified. Header component/hosting facts were refreshed from `convex/convex.config.ts` and `convex/http.ts`; hosting setup is not attributed to these branches, and no public deployment is claimed.
