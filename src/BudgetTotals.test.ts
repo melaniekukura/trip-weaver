@@ -68,3 +68,10 @@ test("missing or invalid exchange rates never silently drop foreign costs", () =
   const usdOnly = budgetCosts({ ...trip, localTransportation: undefined });
   expect(convertBudgetCosts(usdOnly, "USD")?.totals).toEqual({ USD: 200 });
 });
+
+test("New Trip appears in My Trips but not Budget", () => {
+  query.mockReturnValue({ run: null, results: [] });
+  paginated.mockReturnValue({ results: [], status: "Exhausted", loadMore: vi.fn() });
+  expect(renderToStaticMarkup(createElement(Trips, { view: "budget" }))).not.toContain("new-trip-button");
+  expect(renderToStaticMarkup(createElement(Trips, { view: "trips" }))).toContain("new-trip-button");
+});

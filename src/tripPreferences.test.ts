@@ -5,7 +5,7 @@ test("editing basics preserves preferences that are absent from the shortened mo
   const saved = { budget: 2500, currency: "EUR", interests: ["Museums"], accessibility: "Step-free access" };
   expect(tripPreferences(new FormData(), saved, false)).toEqual(saved);
   expect(tripPreferences(new FormData(), undefined, false)).toEqual({
-    budget: null, currency: "USD", interests: [], accessibility: "",
+    budget: null, currency: "USD", interests: [],
   });
 });
 

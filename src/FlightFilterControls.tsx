@@ -20,6 +20,7 @@ export function FlightFilterControls({ value, onChange, title = "Flight filters"
         <select id={`${id}-stops`} value={value.stops}
           onChange={(event) => onChange({ ...value, stops: event.target.value as Filters["stops"] })}>
           <option value="any">Any number of stops</option><option value="nonstop">Nonstop</option>
+          <option value="max-one">Up to 1 connection</option><option value="max-two">Up to 2 connections</option><option value="max-three">Up to 3 connections</option>
           <option value="one">Exactly 1 stop</option><option value="multiple">2 or more stops</option>
         </select>
       </label>

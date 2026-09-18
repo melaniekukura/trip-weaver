@@ -1,3 +1,5 @@
+import { tripCreationReady } from "./tripCreation";
+import { useDefaultOrigin } from "./profileDefaults";
 import { useConvex, useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -42,10 +44,12 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [active, setActive] = useState(0);
+  const [name, setName] = useState(trip?.name ?? "");
+  const [travelers, setTravelers] = useState(String(trip?.travelers ?? 1));
   const [startDate, setStartDate] = useState(trip?.startDate ?? initialValues?.startDate ?? "");
   const [interests, setInterests] = useState(trip?.interests ?? []);
   const [endDate, setEndDate] = useState(trip?.endDate ?? "");
-  const [origin, setOrigin] = useState(trip?.origin ?? initialValues?.origin ?? "");
+  const [origin, setOrigin] = useDefaultOrigin(trip?.origin ?? initialValues?.origin);
   const [destinations, setDestinations] = useState<DestinationStop[]>(() =>
     (trip?.destinations ?? initialValues?.destinations ?? []).map((value, index) => ({ id: `saved-${index}`, value })));
   const [homeReturnNotNeededFor, setHomeReturnNotNeededFor] = useState(trip?.homeReturnNotNeededFor ?? "");
@@ -149,8 +153,12 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
     disabled={pending} full={destinations.length >= 20} onAdd={() => void chooseHome("add")}
     onNotNeeded={() => void chooseHome("not-needed")} onReset={() => void chooseHome("reset")} />;
 
+  const creationReady = tripCreationReady({ name, origin, destinations: destinations.map(stop => stop.value),
+    startDate, endDate, travelers: Number(travelers) });
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!savedTrip && !creationReady) return;
     const tripId = await saveTrip();
     if (!tripId || planning) return;
     if (active === 2) window.location.hash = tripPlannerPath(tripId);
@@ -185,14 +193,14 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
           <fieldset disabled={pending}>
             <section className="trip-tab-panel" role="tabpanel" id="trip-panel-0" aria-labelledby="trip-tab-0" data-tab="0" hidden={active !== 0}>
               <h3>The essentials</h3>
-              <label>Trip name<input name="name" required maxLength={120} defaultValue={trip?.name} placeholder="Autumn in Japan" autoFocus={!planning} /></label>
+              <label>Trip name<input name="name" required maxLength={120} value={name} onChange={event => setName(event.target.value)} placeholder="Autumn in Japan" autoFocus={!planning} /></label>
               <div className="form-row">
                 <label>Start date<input name="startDate" type="date" required min="1900-01-01" max="9999-12-31"
                   value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
                 <label>End date<input name="endDate" type="date" required min={startDate || "1900-01-01"} max="9999-12-31"
                   value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
               </div>
-              <label>Travelers<input name="travelers" type="number" min={1} max={100} step={1} required defaultValue={trip?.travelers ?? 1} /></label>
+              <label>Travelers<input name="travelers" type="number" min={1} max={100} step={1} required value={travelers} onChange={event => setTravelers(event.target.value)} /></label>
               {planning && destinationFields}
             </section>
             {!planning && <section className="trip-tab-panel" role="tabpanel" id="trip-panel-1" aria-labelledby="trip-tab-1" data-tab="1" hidden={active !== 1}>
@@ -234,7 +242,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
             <div className="button-row">
               {active > 0 && <button className="secondary-button" type="button" onClick={() => setActive(active - 1)}>Back</button>}
               {active < tabs.length - 1 && <button className="secondary-button" type="button" onClick={() => setActive(active + 1)}>Next</button>}
-              <button className="primary-button" type="submit" disabled={pending}>{pending ? "Saving…" : !planning && active === 2 ? "Create my trip" : planning ? "Save changes" : "Save trip"}</button>
+              <button className="primary-button trip-save-button" type="submit" disabled={pending || (!savedTrip && !creationReady)}>{pending ? "Saving…" : !planning && active === 2 ? "Create my trip" : planning ? "Save changes" : "Save trip"}</button>
             </div>
           </div>
         </footer>

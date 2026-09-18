@@ -10,19 +10,20 @@ import { TripBudgetPage } from "./pages/TripBudgetPage";
 import { TripPlannerPage } from "./pages/TripPlannerPage";
 import { TripsPage } from "./pages/TripsPage";
 import { BudgetPage } from "./pages/BudgetPage";
-import { AboutPage } from "./pages/AboutPage";
+import { ProfilePage } from "./pages/ProfilePage";
 
 const pages = {
   "/": { title: "Home", component: HomePage },
   "/trips": { title: "Trips", component: TripsPage },
   "/budget": { title: "Budget", component: BudgetPage },
-  "/about": { title: "About", component: AboutPage },
+  "/profile": { title: "Profile", component: ProfilePage },
 };
 
 type PagePath = keyof typeof pages;
 
 function currentPath(): string {
   const path = window.location.hash.slice(1);
+  if (path === "/about") return "/profile";
   return Object.hasOwn(pages, path) || tripIdFromPath(path) ? path : "/";
 }
 

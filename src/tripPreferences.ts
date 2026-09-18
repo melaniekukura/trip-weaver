@@ -5,7 +5,7 @@ type Preferences = Pick<Doc<"trips">, "budget" | "currency" | "interests" | "acc
 export function tripPreferences(data: FormData, saved: Preferences | undefined, planning: boolean) {
   if (!planning) return {
     budget: saved?.budget ?? null, currency: saved?.currency ?? "USD",
-    interests: saved?.interests ?? [], accessibility: saved?.accessibility ?? "",
+    interests: saved?.interests ?? [], ...(saved ? { accessibility: saved.accessibility ?? "" } : {}),
   };
   const value = (key: string) => String(data.get(key) ?? "").trim();
   return {

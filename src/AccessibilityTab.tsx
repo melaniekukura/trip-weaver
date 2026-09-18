@@ -15,7 +15,7 @@ function categoryFor(value: string) {
   return categories.find(category => category.suggestions.some(suggestion => suggestion.toLowerCase() === value.toLowerCase()))?.name ?? "Custom requirements";
 }
 
-export function AccessibilityTab({ initialValue = "", onChange }: { initialValue?: string; onChange?: (value: string) => void }) {
+export function AccessibilityTab({ initialValue = "", onChange, compact = false }: { initialValue?: string; onChange?: (value: string) => void; compact?: boolean }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [requirements, setRequirements] = useState(() => initialValue.split("\n").map(value => value.trim()).filter(Boolean));
@@ -40,8 +40,16 @@ export function AccessibilityTab({ initialValue = "", onChange }: { initialValue
     input.current?.focus();
   }
 
+  const renderChip = (requirement: string) => <li className="accessibility-chip" key={requirement}>
+    <span>{requirement}</span>
+    <button type="button" aria-label={`Remove ${requirement}`} onClick={() => {
+      const remaining = requirements.filter(value => value !== requirement);
+      setRequirements(remaining); onChange?.(remaining.join("\n"));
+      setMessage(`Removed ${requirement}.`); input.current?.focus();
+    }}>×</button>
+  </li>;
   return <div className="accessibility-editor">
-    <label htmlFor={`${id}-requirement`}>Accessibility requirements</label>
+    <label className={compact ? "interest-sr-only" : undefined} htmlFor={`${id}-requirement`}>Accessibility requirements</label>
     <div className="accessibility-search">
       <input ref={input} id={`${id}-requirement`} type="text"
         value={draft} maxLength={2000} placeholder="Try step-free access, quiet environments, or no strenuous activity"
@@ -53,26 +61,16 @@ export function AccessibilityTab({ initialValue = "", onChange }: { initialValue
     </div>
     <input type="hidden" name="accessibility" value={requirements.join("\n")} />
     <p id={`${id}-status`} className="accessibility-status" role="status">{message}</p>
-    {requirements.length ? <div className="accessibility-selected" aria-label="Trip accessibility requirements">
-      {[...categories.map(category => category.name), "Custom requirements"].map(category => {
-        const selected = requirements.filter(requirement => categoryFor(requirement) === category);
-        return selected.length > 0 && <section key={category}>
-          <h3>{category}</h3>
-          <ul className="accessibility-cards">
-            {selected.map((requirement, index) => <li className="accessibility-card" key={`${index}-${requirement}`}>
-              <span>{requirement}</span>
-              <button type="button" aria-label={`Remove ${requirement}`} onClick={() => {
-                setRequirements(requirements.filter(value => value !== requirement));
-                onChange?.(requirements.filter(value => value !== requirement).join("\n"));
-                setMessage(`Removed ${requirement}.`);
-                input.current?.focus();
-              }}>×</button>
-            </li>)}
-          </ul>
-        </section>;
-      })}
-    </div> : <p className="accessibility-empty">Add the access needs and comforts that matter for your trip. Your requirements will appear here.</p>}
-    <section className="accessibility-browse" aria-label="Browse requirements by category">
+    {requirements.length > 0 && <div className="accessibility-selected" aria-label="Accessibility requirements">
+      {compact ? <ul className="accessibility-chips">{requirements.map(renderChip)}</ul> :
+        [...categories.map(category => category.name), "Custom requirements"].map(category => {
+          const selected = requirements.filter(requirement => categoryFor(requirement) === category);
+          return selected.length > 0 && <section key={category}><h3>{category}</h3>
+            <ul className="accessibility-chips">{selected.map(renderChip)}</ul>
+          </section>;
+        })}
+    </div>}
+    {!compact && <section className="accessibility-browse" aria-label="Browse requirements by category">
       <h3>Browse by category</h3>
       <div className="accessibility-category-grid">
         {categories.map(category => {
@@ -93,6 +91,6 @@ export function AccessibilityTab({ initialValue = "", onChange }: { initialValue
       {draft.trim() && !categories.some(category => category.suggestions.some(value =>
         `${category.name} ${value}`.toLowerCase().includes(draft.trim().toLowerCase()))) &&
         <p className="field-hint">No matching suggestions. Use Add requirement to save your own wording.</p>}
-    </section>
+    </section>}
   </div>;
 }

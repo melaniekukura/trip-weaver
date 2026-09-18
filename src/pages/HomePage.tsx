@@ -1,10 +1,12 @@
+import { OriginPicker } from "../OriginPicker";
+import { useDefaultOrigin } from "../profileDefaults";
 import { useState } from "react";
 import { Icon } from "../Icons";
 import { LocationPicker } from "../LocationPicker";
 import { TripForm } from "../TripForm";
 
 export function HomePage() {
-  const [origin, setOrigin] = useState("");
+  const [origin, setOrigin] = useDefaultOrigin();
   const [destination, setDestination] = useState("");
   const [date, setDate] = useState("");
   const [planning, setPlanning] = useState(false);
@@ -22,7 +24,7 @@ export function HomePage() {
         if (origin && destination) setPlanning(true);
       }}>
         <div className="search-field">
-          <LocationPicker label="Leaving from" value={origin} required onSelect={setOrigin} onClear={() => setOrigin("")} />
+          <OriginPicker label="Leaving from" value={origin} required onSelect={setOrigin} onClear={() => setOrigin("")} />
         </div>
         <div className="search-field">
           <LocationPicker label="Going to" value={destination} required onSelect={setDestination} onClear={() => setDestination("")} />

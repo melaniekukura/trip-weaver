@@ -44,3 +44,8 @@ test("Itinerary is the final planning tab and the assistant stays outside the fo
   expect(html).toContain('<aside class="trip-assistant-rail" aria-label="Trip planning assistant">');
   expect(html.indexOf("</form>")).toBeLessThan(html.indexOf("trip-assistant-rail"));
 });
+
+test("new trips start with a disabled save button", () => {
+  const html = renderToStaticMarkup(createElement(TripForm, { onClose: vi.fn() }));
+  expect(html).toMatch(/class="primary-button trip-save-button" type="submit" disabled=""/);
+});

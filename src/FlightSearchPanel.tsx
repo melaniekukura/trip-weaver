@@ -1,9 +1,12 @@
+import { useProfileFlightFilters } from "./profileDefaults";
+import { OriginPicker } from "./OriginPicker";
+import { useDefaultOrigin } from "./profileDefaults";
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useId, useState } from "react";
 import { ReturnFlightPicker } from "./ReturnFlightPicker";
 import { FlightFilterControls } from "./FlightFilterControls";
-import { emptyFlightFilters, matchesFlightFilters } from "./flightFilters";
+import { matchesFlightFilters } from "./flightFilters";
 import { api } from "../convex/_generated/api";
 import type { Doc } from "../convex/_generated/dataModel";
 import { FlightResults } from "./FlightResults";
@@ -14,7 +17,7 @@ import type { FlightRequest } from "../convex/flightSearch";
 
 export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
   const id = useId();
-  const [origin, setOrigin] = useState(trip.origin);
+  const [origin, setOrigin] = useDefaultOrigin(trip.origin);
   const [destination, setDestination] = useState(trip.destinations[0] ?? "");
   const [departureDate, setDepartureDate] = useState(trip.startDate);
   const [tripType, setTripType] = useState<"one-way" | "round-trip">("one-way");
@@ -28,7 +31,7 @@ export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [outbound, setOutbound] = useState<Doc<"researchSources"> | null>(null);
-  const [filters, setFilters] = useState({ ...emptyFlightFilters });
+  const [filters, setFilters] = useProfileFlightFilters();
   const visibleSources = research?.sources.filter((source) => matchesFlightFilters(source.flight, filters)) ?? [];
   const busy = pending || research?.run.status === "pending" || research?.run.status === "running";
 
@@ -59,7 +62,7 @@ export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
             <option value="one-way">One way</option><option value="round-trip">Round trip</option>
           </select>
         </label>
-        <LocationPicker label="From city or airport" value={origin} required onSelect={setOrigin} onClear={() => setOrigin("")} />
+        <OriginPicker label="From city or airport" value={origin} required onSelect={setOrigin} onClear={() => setOrigin("")} />
         <LocationPicker label="To city or airport" value={destination} required onSelect={setDestination} onClear={() => setDestination("")} />
         <label htmlFor={`${id}-date`}>Departure date
           <input id={`${id}-date`} type="date" required value={departureDate}

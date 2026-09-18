@@ -2,18 +2,19 @@ import { useEffect, useId, useRef, useState } from "react";
 import { locationSearchTerm, locationValue, searchLocations } from "./locations";
 import type { LocationOption } from "./locations";
 
-type LocationPickerProps = {
+export type LocationPickerProps = {
   label: string;
   value?: string;
   required?: boolean;
   disabled?: boolean;
   clearOnSelect?: boolean;
   citiesOnly?: boolean;
+  airportsOnly?: boolean;
   onSelect: (value: string) => void;
   onClear?: () => void;
 };
 
-export function LocationPicker({ label, value = "", required = false, disabled = false, clearOnSelect = false, citiesOnly = false, onSelect, onClear }: LocationPickerProps) {
+export function LocationPicker({ label, value = "", required = false, disabled = false, clearOnSelect = false, citiesOnly = false, airportsOnly = false, onSelect, onClear }: LocationPickerProps) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState(value);
@@ -24,7 +25,7 @@ export function LocationPicker({ label, value = "", required = false, disabled =
     term: "", options: [], error: "", loading: false,
   });
   const [retry, setRetry] = useState(0);
-  const options = lookup.term === search ? lookup.options : [];
+  const options = lookup.term === search ? lookup.options.filter(option => !airportsOnly || !!option.code) : [];
   const showOptions = open && (!citiesOnly || search.trim().length >= 2);
   const loading = open && search.trim().length >= 2 && (lookup.term !== search || lookup.loading);
 
@@ -45,8 +46,10 @@ export function LocationPicker({ label, value = "", required = false, disabled =
   }, [search, open, disabled, retry, citiesOnly]);
 
   useEffect(() => {
-    input.current?.setCustomValidity(required && query && !value ? (citiesOnly ? "Select a city from the suggestions." : "Select a city or airport from the suggestions.") : "");
-  }, [query, required, value, citiesOnly]);
+    input.current?.setCustomValidity((required || airportsOnly) && query && !value ? (airportsOnly ? "Select an airport from the suggestions." : citiesOnly ? "Select a city from the suggestions." : "Select a city or airport from the suggestions.") : "");
+  }, [query, required, value, citiesOnly, airportsOnly]);
+
+  useEffect(() => { if (value) setQuery(value); }, [value]);
 
   useEffect(() => {
     if (open) document.getElementById(`${id}-option-${active}`)?.scrollIntoView({ block: "nearest" });

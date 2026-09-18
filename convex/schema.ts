@@ -13,6 +13,8 @@ import { assistantTables } from "./assistantSchema";
 
 export default defineSchema({
   ...authTables,
+  profiles: defineTable({ defaultAccessibility: v.optional(v.string()), userId: v.id("users"), defaultAirport: v.union(v.string(), v.null()),
+    maxConnections: v.union(v.number(), v.null()), revision: v.number() }).index("by_userId", ["userId"]),
   ...flightTables,
   ...interestTables,
   ...emailTables,

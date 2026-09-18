@@ -33,15 +33,15 @@ export function Trips({ view = "trips" }: { view?: "trips" | "budget" }) {
     <section className="trips-section" id="my-trips" aria-labelledby="trips-title">
       <div className="trips-heading"><div><p className="eyebrow">Made for your next adventure</p>
         <h1 id="trips-title">{budgetView ? "Budget" : "My trips"}</h1></div>
-        <button disabled={editor !== null} className="primary-button new-trip-button" onClick={() => setEditor("new")}>
+        {!budgetView && <button disabled={editor !== null} className="primary-button new-trip-button" onClick={() => setEditor("new")}>
           <span aria-hidden="true">+</span> New Trip
-        </button>
+        </button>}
       </div>
       {editor && <TripForm key={editor === "new" ? "new" : editor._id}
         trip={editor === "new" ? undefined : editor} onClose={() => setEditor(null)} />}
       {error && <p className="search-error" role="alert">{error}</p>}
       {status === "LoadingFirstPage" ? <p role="status">Loading your trips…</p> :
-        results.length === 0 ? <p className="empty-state">Your next trip starts here. Add your destinations and dates to save a plan.</p> : null}
+        results.length === 0 ? <p className="empty-state">{budgetView ? <>No trip budgets yet. <a href="#/trips">Create a trip in My Trips.</a></> : "Your next trip starts here. Add your destinations and dates to save a plan."}</p> : null}
       <div className="trip-grid">
         {results.map((trip) => (
           <article className="saved-trip" key={trip._id}>

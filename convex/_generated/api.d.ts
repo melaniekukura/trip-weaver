@@ -44,6 +44,7 @@ import type * as itineraryEmailContent from "../itineraryEmailContent.js";
 import type * as itineraryEmails from "../itineraryEmails.js";
 import type * as localTransportation from "../localTransportation.js";
 import type * as localTransportationFields from "../localTransportationFields.js";
+import type * as profile from "../profile.js";
 import type * as returnFlights from "../returnFlights.js";
 import type * as transportationBudget from "../transportationBudget.js";
 import type * as tripAgent from "../tripAgent.js";
@@ -94,6 +95,7 @@ declare const fullApi: ApiFromModules<{
   itineraryEmails: typeof itineraryEmails;
   localTransportation: typeof localTransportation;
   localTransportationFields: typeof localTransportationFields;
+  profile: typeof profile;
   returnFlights: typeof returnFlights;
   transportationBudget: typeof transportationBudget;
   tripAgent: typeof tripAgent;

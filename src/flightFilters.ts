@@ -3,7 +3,7 @@ export type FlightFilters = {
   departureTo: string;
   arrivalFrom: string;
   arrivalTo: string;
-  stops: "any" | "nonstop" | "one" | "multiple";
+  stops: "any" | "nonstop" | "one" | "multiple" | "max-one" | "max-two" | "max-three";
   maxPrice: string;
 };
 
@@ -44,6 +44,8 @@ export function matchesFlightFilters(flight: FilterableFlight, filters: FlightFi
   const stopCount = flight.stops === "Nonstop" ? 0 : Number(flight.stops.match(/^(\d+) stops?$/)?.[1]);
   if (filters.stops === "nonstop" && stopCount !== 0) return false;
   if (filters.stops === "one" && stopCount !== 1) return false;
+  const maximum = { "max-one": 1, "max-two": 2, "max-three": 3 }[filters.stops as "max-one" | "max-two" | "max-three"];
+  if (maximum !== undefined && !(stopCount <= maximum)) return false;
   if (filters.stops === "multiple" && !(stopCount >= 2)) return false;
   if (filters.maxPrice !== "" && !flightFilterError(filters) && flight.amount > Number(filters.maxPrice)) return false;
   return withinHours(flight.departure, filters.departureFrom, filters.departureTo) &&

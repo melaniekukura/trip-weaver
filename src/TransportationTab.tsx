@@ -1,3 +1,4 @@
+import { useProfileFlightFilters } from "./profileDefaults";
 import { FlightAccessibilityNotice } from "./FlightAccessibilityNotice";
 import { SelectedFlightCard } from "./SelectedFlightCard";
 import { AirlineBookingLink } from "./AirlineBookingLink";
@@ -12,7 +13,6 @@ import type { FlightRequest } from "../convex/flightSearch";
 import { validateFlightRequest } from "../convex/flightSearch";
 import { FlightFilterControls } from "./FlightFilterControls";
 import { ReturnFlightPicker } from "./ReturnFlightPicker";
-import { emptyFlightFilters } from "./flightFilters";
 import { FlightResults } from "./FlightResults";
 import { flightRequestFromTrip } from "./flightResearch";
 import type { DestinationStop } from "./DestinationsEditor";
@@ -134,7 +134,7 @@ function TransportationLeg({ accessibility, savedAccessibility, onRoundTripChang
   useEffect(() => {
     onRoundTripChange?.(tripType === "round-trip");
   }, [tripType, onRoundTripChange]);
-  const [filters, setFilters] = useState({ ...emptyFlightFilters });
+  const [filters, setFilters] = useProfileFlightFilters();
   const [showOptions, setShowOptions] = useState(false);
   const [expanded, setExpanded] = useState(index === 0);
   const [dateOverride, setDateOverride] = useState(saved?.request.departureDate ?? (isHomeLeg ? returnDate : ""));

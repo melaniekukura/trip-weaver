@@ -55,7 +55,9 @@ export const create = mutation({
   returns: v.id("trips"),
   handler: async (ctx, args) => {
     const ownerId = await requireUser(ctx);
-    return await ctx.db.insert("trips", { ...validateTrip(args), ownerId, updatedAt: Date.now() });
+    const profile = await ctx.db.query("profiles").withIndex("by_userId", q => q.eq("userId", ownerId)).unique();
+    return await ctx.db.insert("trips", { ...validateTrip({ ...args,
+      accessibility: args.accessibility ?? profile?.defaultAccessibility ?? "" }), ownerId, updatedAt: Date.now() });
   },
 });
 

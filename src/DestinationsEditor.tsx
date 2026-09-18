@@ -1,3 +1,4 @@
+import { OriginPicker } from "./OriginPicker";
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { LocationPicker } from "./LocationPicker";
@@ -37,7 +38,7 @@ export function DestinationsEditor({ origin, stops, disabled, onOriginChange, on
 
   return (
     <div className="destinations-editor" ref={container}>
-      <LocationPicker label="Leaving from" value={origin} required disabled={disabled}
+      <OriginPicker label="Leaving from" value={origin} required disabled={disabled}
         onSelect={onOriginChange} onClear={() => onOriginChange("")} />
       <div className="destination-stops-heading">
         <h4>Destinations</h4><span>{stops.length} / 20 stops</span>

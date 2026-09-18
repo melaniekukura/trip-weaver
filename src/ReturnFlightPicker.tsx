@@ -1,3 +1,4 @@
+import { useProfileFlightFilters } from "./profileDefaults";
 import { FlightAccessibilityNotice } from "./FlightAccessibilityNotice";
 import { rankReturnFlights } from "../convex/airlineNames";
 import { SelectedFlightCard } from "./SelectedFlightCard";
@@ -10,7 +11,7 @@ import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import type { FlightRequest } from "../convex/flightSearch";
 import { FlightFilterControls } from "./FlightFilterControls";
-import { emptyFlightFilters, matchesFlightFilters } from "./flightFilters";
+import { matchesFlightFilters } from "./flightFilters";
 
 export function ReturnFlightPicker({ tripId, request, outbound, onClose, selectedReturn, onSelectReturn, disabled = false }: {
   selectedReturn?: Doc<"researchSources">; onSelectReturn?: (source: Doc<"researchSources"> | null) => Promise<unknown>; disabled?: boolean;
@@ -20,7 +21,7 @@ export function ReturnFlightPicker({ tripId, request, outbound, onClose, selecte
   const [reusedRunId, setReusedRunId] = useState<Id<"researchRuns"> | null>(null);
   const result = useQuery(api.flightJobs.latest, { ...args, ...(reusedRunId ? { runId: reusedRunId } : {}) });
   const start = useMutation(api.flightJobs.start);
-  const [filters, setFilters] = useState({ ...emptyFlightFilters });
+  const [filters, setFilters] = useProfileFlightFilters();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
