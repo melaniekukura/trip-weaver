@@ -9,13 +9,15 @@
     "test": "vitest run",
     "preview": "vite preview",
     "dev:backend": "convex dev",
-    "deploy:backend": "convex deploy"
+    "deploy:backend": "convex deploy",
+    "deploy": "npx @convex-dev/static-hosting deploy"
   },
   "dependencies": {
     "@auth/core": "0.41.3",
     "@convex-dev/agent": "^0.7.3",
     "@convex-dev/auth": "0.0.95",
     "@convex-dev/rate-limiter": "0.3.2",
+    "@convex-dev/static-hosting": "^0.2.1",
     "@convex-dev/workpool": "0.4.11",
     "@openrouter/ai-sdk-provider": "^3.0.0",
     "convex": "^1.45.0",
