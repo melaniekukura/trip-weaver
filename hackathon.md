@@ -2,17 +2,17 @@
 
 - **Project:** Trip-Weaver
 - **Event:** Convex All Gas Hackathon
-- **What it does:** Private multi-city trip planning with Firecrawl flight searches, booking-status tracking, and interest-based discovery of restaurants, activities, and events, brought together in a unified day-by-day itinerary.
+- **What it does:** Private multi-city trip planning with Firecrawl research, a unified day-by-day itinerary, AgentMail delivery, and a trip-aware AI planning assistant.
 - **Live app:** not deployed
 - **Repo:** private
 - **Frontend:** not deployed
 - **Convex deployment:** not deployed
-- **Components:** @convex-dev/workpool (researchPool), @convex-dev/rate-limiter
+- **Components:** @convex-dev/agent, @convex-dev/workpool (researchPool), @convex-dev/rate-limiter
 - **Convex features:** schema, tables, indexes, queries, realtime queries, paginated queries, mutations, actions, HTTP actions, scheduled functions
 - **Auth:** Convex Auth
-- **AI models:** none
+- **AI models:** openrouter/free
 - **Started:** 2026-09-04T19:25:03Z
-- **Last updated:** 2026-09-17T22:03:09Z
+- **Last updated:** 2026-09-18T16:14:16Z
 
 ## Log
 
@@ -106,3 +106,9 @@ The user verified receipt through the UI. Email verification and webhook-confirm
 Added AgentMail-backed six-digit email verification for password accounts, including a 15-minute expiry, resend flow, and an explicit migration state for already signed-in unverified users (`convex/auth.ts`, `src/AuthForm.tsx`). Itinerary sends now require a verified account address.
 Added a signed AgentMail webhook endpoint with raw-body Svix verification, duplicate-event storage, out-of-order reconciliation, and reactive sent, delivered, bounced, and rejected states (`convex/agentmailWebhook.ts`, `convex/itineraryEmails.ts`, `convex/emailSchema.ts`).
 Development checks passed 254 tests, TypeScript lint, the production build, and a push to personal dev. The user completed the AgentMail verification-code sign-in flow and confirmed webhook-reported itinerary delivery in the UI.
+
+### 2026-09-18 - 690a269
+Added a persistent, per-trip planning conversation using the registered Convex Agent component and OpenRouter's `openrouter/free` model. The assistant receives the owned trip's overview, current-route flight selections and booking state, saved ideas, and scheduled activities while distinguishing recorded facts from suggestions (`convex/tripAgent.ts`, `convex/tripAssistant.ts`).
+Added owner-scoped threads and paginated messages, duplicate-request protection, per-user and global limits, provider failure handling, and cleanup when a trip is deleted (`convex/assistantSchema.ts`, `convex/tripAssistant.ts`, `convex/trips.ts`).
+Placed the assistant in a fixed, responsive rail beside every trip-planning tab, with persistent history, single-line suggested prompts, loading and error states, and sanitized Markdown and HTML rendering (`src/TripAssistant.tsx`, `src/AssistantMessageContent.tsx`, `src/TripForm.tsx`, `src/styles.css`).
+Development checks passed 259 tests, TypeScript lint, and the production build. The user verified grounded trip review responses and the persistent assistant layout in the UI. The free routed model can vary by availability and is presented as a preview.

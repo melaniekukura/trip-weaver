@@ -15,6 +15,7 @@ import { InterestsEditor } from "./InterestsEditor";
 import { InterestDiscovery } from "./InterestDiscovery";
 import { TransportationTab } from "./TransportationTab";
 import { TripItinerary } from "./TripItinerary";
+import { TripAssistant } from "./TripAssistant";
 import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 
@@ -253,7 +254,12 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
     </>
   );
 
-  if (planning) return <section className="trip-planner-editor" aria-labelledby="editor-title">{content}</section>;
+  if (planning) return <section className="trip-planner-editor" aria-labelledby="editor-title">
+    <div className="trip-planner-main">{content}</div>
+    <aside className="trip-assistant-rail" aria-label="Trip planning assistant">
+      <TripAssistant tripId={savedTrip?._id} />
+    </aside>
+  </section>;
   return <dialog ref={dialog} className="trip-modal" aria-labelledby="editor-title" onCancel={(event) => {
     event.preventDefault();
     if (!pending) onClose();
