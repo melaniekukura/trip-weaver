@@ -8,7 +8,7 @@ import type { Id } from "./_generated/dataModel";
 import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import { resolveAirportScope } from "./cityAirports";
-import { browseReturnFlights, scrapeFlightPage } from "./firecrawl";
+import { browseReturnFlights, reserveFirecrawlRun, scrapeFlightPage } from "./firecrawl";
 import { diagnoseFlightFailure, flightDiagnostic, flightFailure } from "./flightDiagnostics";
 import type { DiagnosticStage } from "./flightDiagnostics";
 import { sourceFields } from "./flightSchema";
@@ -85,6 +85,7 @@ export const start = mutation({
       const status = await limiter.limit(ctx, name, { key });
       if (!status.ok) throw new ConvexError({ code: "RESEARCH_RATE_LIMITED", message: `Flight search limit reached. Try again in ${Math.max(1, Math.ceil(status.retryAfter / 60000))} minute(s).` });
     }
+    await reserveFirecrawlRun(ctx);
     const runId = await ctx.db.insert("researchRuns", {
       tripId: trip._id, ownerId: trip.ownerId, destination: details.destination, topic: "flights",
       flightRequest: details.flightRequest,

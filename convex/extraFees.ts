@@ -11,7 +11,7 @@ import schema from "./schema";
 import { feeResult, feeSettings } from "./extraFeeSchema";
 import { feeSearchKey, feeTargets } from "./extraFeeResearch";
 import type { FeeResult } from "./extraFeeResearch";
-import { researchFeePage, searchFeeSources } from "./firecrawl";
+import { researchFeePage, reserveFirecrawlRun, searchFeeSources } from "./firecrawl";
 
 const pool = new Workpool(components.researchPool, { maxParallelism: 3, retryActionsByDefault: false });
 const limiter = new RateLimiter(components.rateLimiter, {
@@ -65,6 +65,7 @@ export const start = mutation({
       const status = await limiter.limit(ctx, name, { key });
       if (!status.ok) throw new ConvexError({ message: "Fee research limit reached. Please try again later." });
     }
+    await reserveFirecrawlRun(ctx);
     const runId = await ctx.db.insert("extraFeeRuns", { tripId, ownerId: trip.ownerId, searchKey, status: "running",
       results: targets.map(target => ({ target, status: "pending" as const })) });
     const workIds = await pool.enqueueActionBatch(ctx, internal.extraFees.execute, targets.map((_, index) => ({ runId, index })), {

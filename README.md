@@ -195,6 +195,11 @@ booking details in Google Flights; return selection uses Firecrawl browser credi
    **not** configure the Convex runtime. Never use `VITE_FIRECRAWL_API_KEY`.
    Each cloud development or production deployment needs its own secret setting.
 
+   Trip-Weaver reserves 500 credits for each new Firecrawl-backed research or
+   browser workflow and stops after 25,000 reserved credits. Cached results do
+   not reserve another run. The ledger is intentionally conservative because
+   the Firecrawl key and account-level usage are shared with other teams.
+
 4. Run a minimal live search (uses Firecrawl credits):
 
    ```sh

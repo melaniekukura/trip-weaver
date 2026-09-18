@@ -14,6 +14,7 @@ import { discoveryItem, discoveryKind, ideaItinerary } from "./interestSchema";
 import { diversifyIdeas } from "./interestDiversity";
 import { discoverSpecificIdeas } from "./interestDiscovery";
 import { foodInterest, interestQuery, interestSearchKey, sightseeingInterest, sightseeingQuery } from "./interestSearch";
+import { reserveFirecrawlRun } from "./firecrawl";
 
 const pool = new Workpool(components.researchPool, { maxParallelism: 2, retryActionsByDefault: false });
 const limiter = new RateLimiter(components.rateLimiter, {
@@ -48,6 +49,7 @@ export const start = mutation({
       const status = await limiter.limit(ctx, name, { key });
       if (!status.ok) throw new ConvexError({ message: `Interest search limit reached. Try again in ${Math.max(1, Math.ceil(status.retryAfter / 60000))} minute(s).` });
     }
+    await reserveFirecrawlRun(ctx);
     const runId = await ctx.db.insert("interestRuns", { ...search, tripId: trip._id, searchKey, status: "pending", results: [], warnings: [] });
     const workId = await pool.enqueueAction(ctx, internal.interestJobs.execute, { runId }, { retry: false, onComplete: internal.interestJobs.onComplete, context: { runId } });
     await ctx.db.patch("interestRuns", runId, { workId });
@@ -109,7 +111,8 @@ export const discover = internalAction({
         { kind, interests: [interest], focus: interest },
       ]) : [{ kind, interests: run.interests, focus: "Events" }]);
     const searches = await Promise.allSettled(tasks.map(task => ctx.runAction(internal.firecrawl.search, {
-      query: task.sights ? sightseeingQuery(run.destination, task.sights) : interestQuery({ ...run, interests: task.interests }, task.kind, task.restaurants), limit: 5,
+      query: task.sights ? sightseeingQuery(run.destination, task.sights) : interestQuery({ ...run, interests: task.interests }, task.kind, task.restaurants),
+      limit: 5, budgetReserved: true,
     })));
     const results: Doc<"interestRuns">["results"] = [];
     const warnings: string[] = [];
@@ -120,7 +123,8 @@ export const discover = internalAction({
         const response = searches[offset + index];
         if (response.status === "rejected") return { ...task, items: [], failedPages: 1 };
         const discovered = await discoverSpecificIdeas(response.value.results, url => ctx.runAction(internal.firecrawl.interestPage, {
-          url, accessibility: run.accessibility ?? [], restaurants: Boolean(task.restaurants), kind: task.kind, destination: run.destination, interests: task.interests, startDate: run.startDate, endDate: run.endDate,
+          url, accessibility: run.accessibility ?? [], restaurants: Boolean(task.restaurants), kind: task.kind,
+          destination: run.destination, interests: task.interests, startDate: run.startDate, endDate: run.endDate, budgetReserved: true,
         }), { deadline, perHost: 3, maxItems: 8, maxDepth: 2, maxVisits: 10, activities: task.kind === "activities" });
         return { ...task, failedPages: discovered.failedPages, items: discovered.items.filter(item => task.kind !== "events" || !eventOutsideTrip(item.dates, run.startDate, run.endDate)).map(item => ({ ...item, kind: task.kind,
           ...(task.kind === "activities" ? { interest: task.focus } : {}), detailed: true, destination: run.destination, retrievedAt: new Date().toISOString() })) };
