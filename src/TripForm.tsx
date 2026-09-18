@@ -20,7 +20,7 @@ import { TripAssistant } from "./TripAssistant";
 import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 
-const planningTabs = ["Overview", "Destinations", "Transportation", "Budget", "Interests", "Accessibility", "Itinerary"];
+const planningTabs = ["Overview", "Transportation", "Interests", "Accessibility", "Itinerary"];
 const setupTabs = ["Overview", "Destinations", "Create my trip"];
 
 type InitialTrip = { origin: string; destinations: string[]; startDate: string };
@@ -157,6 +157,12 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
     onClose();
   }
 
+  const destinationFields = <>
+    <h3>Where are you headed?</h3>
+    <DestinationsEditor origin={origin} stops={destinations} disabled={pending}
+      onOriginChange={setOrigin} onStopsChange={setDestinations} homePrompt={homePrompt} />
+  </>;
+
   const content = (
     <>
       <header className="trip-modal-header">
@@ -179,7 +185,6 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
           <fieldset disabled={pending}>
             <section className="trip-tab-panel" role="tabpanel" id="trip-panel-0" aria-labelledby="trip-tab-0" data-tab="0" hidden={active !== 0}>
               <h3>The essentials</h3>
-              <p className="field-hint">Give your trip a name and set your travel dates.</p>
               <label>Trip name<input name="name" required maxLength={120} defaultValue={trip?.name} placeholder="Autumn in Japan" autoFocus={!planning} /></label>
               <div className="form-row">
                 <label>Start date<input name="startDate" type="date" required min="1900-01-01" max="9999-12-31"
@@ -188,50 +193,35 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
                   value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
               </div>
               <label>Travelers<input name="travelers" type="number" min={1} max={100} step={1} required defaultValue={trip?.travelers ?? 1} /></label>
+              {planning && destinationFields}
             </section>
-            <section className="trip-tab-panel" role="tabpanel" id="trip-panel-1" aria-labelledby="trip-tab-1" data-tab="1" hidden={active !== 1}>
-              <h3>Where are you headed?</h3>
-              <p className="field-hint">Add your starting point and each destination in travel order.</p>
-              <DestinationsEditor origin={origin} stops={destinations} disabled={pending}
-                onOriginChange={setOrigin} onStopsChange={setDestinations} homePrompt={homePrompt} />
-            </section>
+            {!planning && <section className="trip-tab-panel" role="tabpanel" id="trip-panel-1" aria-labelledby="trip-tab-1" data-tab="1" hidden={active !== 1}>
+              {destinationFields}
+            </section>}
             {!planning && <section className="trip-tab-panel create-trip-panel" role="tabpanel" id="trip-panel-2" aria-labelledby="trip-tab-2" data-tab="2" hidden={active !== 2}>
               <h3>Ready to plan your trip?</h3>
-              <p>Save your trip details and open your dedicated planning page. You can find flights, set a budget, and add your interests and accessibility needs there.</p>
-              <p className="field-hint">Your trip will also appear on the Trips page, where you can return using Plan My Trip.</p>
             </section>}
             {planning && <>
-              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-2" aria-labelledby="trip-tab-2" data-tab="2" hidden={active !== 2}>
+              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-1" aria-labelledby="trip-tab-1" data-tab="1" hidden={active !== 1}>
                 <TransportationTab accessibility={accessibility} onRoundTripChange={onRoundTripChange} onRemoveLeg={removeTransportationLeg} routePending={pending} homePrompt={homePrompt} homeReturnNotNeededFor={homeReturnNotNeededFor} tripId={savedTrip?._id} origin={origin} destinations={destinations}
-                  departureDate={startDate} returnDate={endDate} onReturnDateChange={setEndDate} onSaveTrip={saveTrip} onEditDetails={(tab) => setActive(tab)} />
+                  departureDate={startDate} returnDate={endDate} onReturnDateChange={setEndDate} onSaveTrip={saveTrip} onEditDetails={() => { setActive(0); tabButtons.current[0]?.focus(); }} />
               </section>
-              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-3" aria-labelledby="trip-tab-3" data-tab="3" hidden={active !== 3}>
-                <h3>Plan your spending</h3>
-                <p className="field-hint">Set a total budget for everyone on this trip, or leave it blank for now.</p>
-                <div className="form-row">
-                  <label>Total budget (optional)<input name="budget" type="number" min={0} max={1000000000} step="0.01" defaultValue={trip?.budget ?? ""} /></label>
-                  <label>Currency<select name="currency" defaultValue={trip?.currency ?? "USD"}>
-                    {["USD", "EUR", "GBP", "CAD", "AUD", "JPY"].map((currency) => <option key={currency}>{currency}</option>)}
-                  </select></label>
-                </div>
-              </section>
-              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-4" aria-labelledby="trip-tab-4" data-tab="4" hidden={active !== 4}>
+              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-2" aria-labelledby="trip-tab-2" data-tab="2" hidden={active !== 2}>
                 <h3>Interests &amp; activities</h3>
-                <p className="field-hint">Save what you want to do, then add it to your itinerary.</p>
                 <div className="interests-planning-context">
-                <CityStaySummary route={homeRoute} plan={liveTrip?.flightPlan} onOpenTransportation={() => { setActive(2); tabButtons.current[2]?.focus(); }} />
+                <CityStaySummary route={homeRoute} plan={liveTrip?.flightPlan} onOpenTransportation={() => { setActive(1); tabButtons.current[1]?.focus(); }} />
                 <InterestsEditor interests={interests} onChange={setInterests} />
                 </div>
                 <InterestDiscovery tripId={savedTrip?._id} interests={interests} destinations={destinations.map(stop => stop.value)} onSaveTrip={saveTrip} />
               </section>
-              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-5" aria-labelledby="trip-tab-5" data-tab="5" hidden={active !== 5}>
+              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-3" aria-labelledby="trip-tab-3" data-tab="3" hidden={active !== 3}>
                 <AccessibilityTab initialValue={trip?.accessibility} onChange={setAccessibility} />
               </section>
-              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-6" aria-labelledby="trip-tab-6" data-tab="6" hidden={active !== 6}>
+              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-4" aria-labelledby="trip-tab-4" data-tab="4" hidden={active !== 4}>
                 <TripItinerary tripId={savedTrip?._id} route={homeRoute} plan={liveTrip?.flightPlan}
                   onSaveTrip={saveTrip}
-                  onOpenTransportation={() => { setActive(2); tabButtons.current[2]?.focus(); }}
-                  onOpenInterests={() => { setActive(4); tabButtons.current[4]?.focus(); }} />
+                  onOpenTransportation={() => { setActive(1); tabButtons.current[1]?.focus(); }}
+                  onOpenInterests={() => { setActive(2); tabButtons.current[2]?.focus(); }} />
               </section>
             </>}
           </fieldset>

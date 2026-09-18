@@ -35,7 +35,6 @@ export function HomePage() {
           <Icon size={20}><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></Icon>
         </button>
       </form>
-      <p className="field-hint home-search-hint">Add your trip details, then turn on Find my flight in Transportation.</p>
       {planning && <TripForm initialValues={{ origin, destinations: [destination], startDate: date }} onClose={() => setPlanning(false)} />}
     </section>
   );

@@ -28,3 +28,8 @@ test("individual interests preserve punctuation and clearing the list removes al
   data.delete("interests");
   expect(tripPreferences(data, undefined, true).interests).toEqual([]);
 });
+
+test("planning saves preserve budget and currency after the Budget tab is removed", () => {
+  const saved = { budget: 2400, currency: "EUR", interests: [], accessibility: "" };
+  expect(tripPreferences(new FormData(), saved, true)).toMatchObject({ budget: 2400, currency: "EUR" });
+});

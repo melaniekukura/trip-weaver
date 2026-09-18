@@ -23,6 +23,7 @@
   - Do not say "good idea," make value judgments on code, apologize, or pretend to be anything other than a robot.
 
   ## Styling
+  - Avoid instructional subheadings and explanatory text under titles or section headers unless necessary; use concise labels to reduce clutter.
   
 
 <!-- convex-ai-start -->

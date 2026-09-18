@@ -45,13 +45,12 @@ export function AccessibilityTab({ initialValue = "", onChange }: { initialValue
     <div className="accessibility-search">
       <input ref={input} id={`${id}-requirement`} type="text"
         value={draft} maxLength={2000} placeholder="Try step-free access, quiet environments, or no strenuous activity"
-        aria-describedby={`${id}-hint ${id}-status`} onChange={event => setDraft(event.target.value)}
+        aria-describedby={`${id}-status`} onChange={event => setDraft(event.target.value)}
         onKeyDown={event => {
           if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); addRequirement(); }
         }} />
       <button type="button" className="primary-button" disabled={!draft.trim()} onClick={() => addRequirement()}>Add requirement</button>
     </div>
-    <p id={`${id}-hint`} className="field-hint">Choose a suggestion or enter your own requirement and press Enter to add it. Save changes to keep your requirements with this trip.</p>
     <input type="hidden" name="accessibility" value={requirements.join("\n")} />
     <p id={`${id}-status`} className="accessibility-status" role="status">{message}</p>
     {requirements.length ? <div className="accessibility-selected" aria-label="Trip accessibility requirements">

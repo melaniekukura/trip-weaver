@@ -9,7 +9,8 @@ export function tripPreferences(data: FormData, saved: Preferences | undefined, 
   };
   const value = (key: string) => String(data.get(key) ?? "").trim();
   return {
-    budget: value("budget") === "" ? null : Number(value("budget")), currency: value("currency"),
+    budget: data.has("budget") ? (value("budget") === "" ? null : Number(value("budget"))) : saved?.budget ?? null,
+    currency: data.has("currency") ? value("currency") : saved?.currency ?? "USD",
     interests: data.getAll("interests").map(item => String(item).trim()).filter(Boolean),
     accessibility: value("accessibility"),
   };

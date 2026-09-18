@@ -1,3 +1,4 @@
+import { transportationBudgetFields, validateRides } from "./transportationBudget";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
@@ -82,6 +83,7 @@ export const remove = mutation({
   handler: async (ctx, { tripId }) => {
     await requireTrip(ctx, tripId);
     await ctx.db.delete("trips", tripId);
+    await ctx.scheduler.runAfter(0, internal.extraFees.cleanupTrip, { tripId });
     await ctx.scheduler.runAfter(0, internal.flightJobs.cleanupTrip, { tripId });
     await ctx.scheduler.runAfter(0, internal.interestJobs.cleanupTrip, { tripId });
     await ctx.scheduler.runAfter(0, internal.itineraryEmails.cleanupTrip, { tripId });
@@ -144,6 +146,21 @@ export const changeFlightPlan = mutation({
         ...(args.action === "book" ? { reference: leg.reference ?? `TW-${trip._id.slice(-6).toUpperCase()}-${args.index + 1}-${plan.revision + 1}` } : { reference: undefined }) };
     }
     await ctx.db.patch("trips", trip._id, { flightPlan: { revision: plan.revision + 1, confirmed: args.action === "confirm", legs } });
+    return null;
+  },
+});
+
+export const updateTransportationBudget = mutation({
+  args: { tripId: v.id("trips"), budget: transportationBudgetFields },
+  returns: v.null(),
+  handler: async (ctx, { tripId, budget }) => {
+    const trip = await requireTrip(ctx, tripId);
+    if (budget.revision !== (trip.transportationBudget?.revision ?? 0)) {
+      throw new ConvexError({ message: "The transportation budget changed in another window. Try again." });
+    }
+    await ctx.db.patch("trips", tripId, { transportationBudget: {
+      ...budget, rides: validateRides(budget.rides), revision: budget.revision + 1,
+    } });
     return null;
   },
 });

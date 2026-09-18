@@ -1,3 +1,4 @@
+import { TripCardCost } from "./BudgetCostSummary";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useState } from "react";
@@ -12,7 +13,8 @@ function errorMessage(error: unknown) {
   return "Unable to save your changes. Please try again.";
 }
 
-export function Trips() {
+export function Trips({ view = "trips" }: { view?: "trips" | "budget" }) {
+  const budgetView = view === "budget";
   const { results, status, loadMore } = usePaginatedQuery(api.trips.list, {}, { initialNumItems: 12 });
   const remove = useMutation(api.trips.remove);
   const [editor, setEditor] = useState<Doc<"trips"> | "new" | null>(null);
@@ -30,7 +32,7 @@ export function Trips() {
   return (
     <section className="trips-section" id="my-trips" aria-labelledby="trips-title">
       <div className="trips-heading"><div><p className="eyebrow">Made for your next adventure</p>
-        <h1 id="trips-title">My trips</h1></div>
+        <h1 id="trips-title">{budgetView ? "Budget" : "My trips"}</h1></div>
         <button disabled={editor !== null} className="primary-button new-trip-button" onClick={() => setEditor("new")}>
           <span aria-hidden="true">+</span> New Trip
         </button>
@@ -43,21 +45,22 @@ export function Trips() {
       <div className="trip-grid">
         {results.map((trip) => (
           <article className="saved-trip" key={trip._id}>
-            <span className="result-label">{trip.origin}</span><h3>{trip.name}</h3>
-            <p>{trip.destinations.join(" → ")}</p>
-            <p><time dateTime={trip.startDate}>{trip.startDate}</time> – <time dateTime={trip.endDate}>{trip.endDate}</time></p>
+            {!budgetView && <span className="result-label">{trip.origin}</span>}<h3>{trip.name}</h3>
+            {!budgetView && <p>{trip.destinations.join(" → ")}</p>}
+            {!budgetView && <p><time dateTime={trip.startDate}>{trip.startDate}</time> – <time dateTime={trip.endDate}>{trip.endDate}</time></p>}
             <p>{trip.travelers} {trip.travelers === 1 ? "traveler" : "travelers"}
-              {trip.budget !== null && ` · ${new Intl.NumberFormat("en-US", { style: "currency", currency: trip.currency }).format(trip.budget)} total budget`}</p>
+              {!budgetView && trip.budget !== null && ` · ${new Intl.NumberFormat("en-US", { style: "currency", currency: trip.currency }).format(trip.budget)} total budget`}</p>
             {trip.interests.length > 0 && <p className="field-hint">{trip.interests.join(" · ")}</p>}
-            <a className="primary-button plan-trip-button" href={`#${tripPlannerPath(trip._id)}`}>Plan My Trip <span aria-hidden="true">→</span></a>
-            {confirmDelete === trip._id ? <div className="delete-confirmation">
+            {budgetView && <TripCardCost trip={trip} />}
+            <a className="primary-button plan-trip-button" href={`#${tripPlannerPath(trip._id, budgetView ? "budget" : undefined)}`}>{budgetView ? "Show Budget" : "Plan My Trip"} <span aria-hidden="true">→</span></a>
+            {!budgetView && (confirmDelete === trip._id ? <div className="delete-confirmation">
               <p>Delete “{trip.name}”? This cannot be undone.</p>
               <div className="button-row"><button className="danger-button" disabled={deleting} onClick={() => void deleteTrip(trip._id)}>{deleting ? "Deleting…" : "Delete trip"}</button>
                 <button className="secondary-button" disabled={deleting} onClick={() => setConfirmDelete(null)}>Keep trip</button></div>
             </div> : <div className="button-row">
               <button className="secondary-button" disabled={editor !== null} onClick={() => setEditor(trip)}>Edit</button>
               <button className="text-button" disabled={editor !== null || deleting} onClick={() => { setConfirmDelete(trip._id); setError(""); }}>Delete</button>
-            </div>}
+            </div>)}
 
           </article>
         ))}

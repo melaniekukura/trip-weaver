@@ -12,7 +12,7 @@ export function lowestFlightSources(sources: FlightResearch["sources"]) {
 export function flightRequestFromTrip(originValue: string, destinationValue: string, departureDate: string) {
   const from = flightLocation(originValue);
   const to = flightLocation(destinationValue);
-  if (!from || !to) throw new Error("Select your departure and arrival city or airport from the live suggestions in Destinations.");
+  if (!from || !to) throw new Error("Select your departure and arrival city or airport from the live suggestions in Overview.");
   if (from.code === to.code) throw new Error("Choose different departure and arrival locations.");
   const departure = Date.parse(`${departureDate}T00:00:00Z`);
   const today = Date.parse(new Date().toISOString().slice(0, 10));

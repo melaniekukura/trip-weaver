@@ -67,7 +67,7 @@ export function LocationPicker({ label, value = "", required = false, disabled =
     }}>
       <label htmlFor={id}>{label}</label>
       <input id={id} ref={input} role="combobox" autoComplete="off" aria-autocomplete="list"
-        aria-expanded={showOptions} aria-busy={loading} aria-controls={`${id}-options`} aria-describedby={`${id}-hint`}
+        aria-expanded={showOptions} aria-busy={loading} aria-controls={`${id}-options`}
         aria-activedescendant={open && options[active] ? `${id}-option-${active}` : undefined}
         required={required} disabled={disabled} maxLength={90} value={query}
         placeholder={citiesOnly ? "Search for a city" : "Search city, airport, or airport code"} onFocus={() => { setOpen(true); setActive(0); }}
@@ -86,7 +86,7 @@ export function LocationPicker({ label, value = "", required = false, disabled =
             setOpen(false);
           }
         }} />
-      <p className="field-hint" id={`${id}-hint`}>{citiesOnly ? "Type at least two characters to search cities." : "Type at least two characters to search cities and airports live."}</p>
+
       {showOptions && <ul className="location-options" id={`${id}-options`} role="listbox" aria-label={`${label} suggestions`}>
         {loading && <li role="presentation">Searching locations…</li>}
         {!loading && search.trim().length < 2 && <li role="presentation">{citiesOnly ? "Type a city name to start." : "Type a city or airport name to start."}</li>}

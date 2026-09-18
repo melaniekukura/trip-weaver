@@ -126,7 +126,6 @@ export function InterestDiscovery({ tripId, destinations, interests, onSaveTrip 
     </section>
     <section className="interest-saved-section" aria-label="Saved ideas">
     <div className="interest-section-heading"><h3>Saved ideas</h3></div>
-    <p className="field-hint">Still considering. Add an idea to your itinerary when you’re ready.</p>
     {!savedIdeas.length && <p>No ideas in your shortlist. Ideas added to your itinerary appear below.</p>}
     <ul className="interest-results saved-idea-grid">{savedIdeas.map(favorite => <li key={favorite._id} className="interest-result is-saved">
       {renderIdea(favorite.item, true)}
@@ -136,7 +135,6 @@ export function InterestDiscovery({ tripId, destinations, interests, onSaveTrip 
     </section>
     <section className="ideas-itinerary" aria-label="Activity itinerary">
       <div className="interest-section-heading"><h3>Itinerary</h3></div>
-      <p className="field-hint">Ordered by date. Expand an item for notes.</p>
       {!itineraryIdeas.length && <p>Add a saved idea to your itinerary to see it here.</p>}
       <ul className="itinerary-list">{itineraryIdeas.map(favorite => <li key={favorite._id}>
         <details className="itinerary-activity">

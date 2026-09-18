@@ -58,7 +58,6 @@ export function ItineraryEmailAction({ tripId, onSaveTrip }: {
   return <div className="itinerary-email-action">
     <div>
       <strong>Email a saved snapshot</strong>
-      <p className="field-hint">Save your latest changes and send this itinerary to your account email.</p>
       {unverified && <p className="itinerary-email-status is-failed" role="status">Sign out and sign back in to verify your account email before sending.</p>}
       {latest && <p className={`itinerary-email-status is-${latest.status}`} role="status">
         {latest.status === "queued" && "Email queued…"}

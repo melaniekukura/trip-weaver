@@ -42,7 +42,6 @@ export function DestinationsEditor({ origin, stops, disabled, onOriginChange, on
       <div className="destination-stops-heading">
         <h4>Destinations</h4><span>{stops.length} / 20 stops</span>
       </div>
-      <p className="field-hint">Add each stop in travel order. Drag cards or use the arrows to rearrange them.</p>
       <ol className="destination-stops" aria-label="Destinations in travel order">
         {stops.map((stop, index) => (
           <li className={`destination-stop${dragging === stop.id ? " is-dragging" : ""}`} key={stop.id}
@@ -77,7 +76,7 @@ export function DestinationsEditor({ origin, stops, disabled, onOriginChange, on
             setAnnouncement(`${value} added as stop ${stops.length + 1}.`);
           }} />
       </div>
-      <p className="field-hint">{stops.length >= 20 ? "You have reached the 20-stop limit." : "Search by city name, airport name, or three-letter airport code."}</p>
+      {stops.length >= 20 && <p className="field-hint">You have reached the 20-stop limit.</p>}
       <p className="visually-hidden" role="status">{announcement}</p>
     </div>
   );

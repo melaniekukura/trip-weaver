@@ -7,4 +7,7 @@ test("trip links round-trip identifiers without colliding with the Trips index",
   expect(tripIdFromPath("/trips/")).toBeNull();
   expect(tripIdFromPath("/trips/one/another")).toBeNull();
   expect(tripIdFromPath("/trips/%ZZ")).toBeNull();
+  expect(tripPlannerPath("trip123", "budget")).toBe("/trips/trip123/budget");
+  expect(tripIdFromPath(tripPlannerPath("trip123", "budget"))).toBe("trip123");
+  expect(tripIdFromPath("/trips/trip123/budget/extra")).toBeNull();
 });

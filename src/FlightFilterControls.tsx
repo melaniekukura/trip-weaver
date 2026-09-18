@@ -2,7 +2,7 @@ import { useId } from "react";
 import { emptyFlightFilters, flightFilterError } from "./flightFilters";
 import type { FlightFilters as Filters } from "./flightFilters";
 
-export function FlightFilterControls({ value, onChange, title = "Flight filters", leg = "outbound", priceLabel = "Maximum price (USD)" }: { value: Filters; onChange: (filters: Filters) => void; title?: string; leg?: string; priceLabel?: string }) {
+export function FlightFilterControls({ value, onChange, title = "Flight filters", priceLabel = "Maximum price (USD)" }: { value: Filters; onChange: (filters: Filters) => void; title?: string; leg?: string; priceLabel?: string }) {
   const id = useId();
   const error = flightFilterError(value);
   const timeFields = [
@@ -11,7 +11,6 @@ export function FlightFilterControls({ value, onChange, title = "Flight filters"
   ] as const;
   return <fieldset className="flight-filters">
     <legend>{title}</legend>
-    <p className="field-hint">Choose filters now or after searching. They apply to the retrieved {leg} flights, without a new search. Hours use each airport’s local time, including next-day arrivals. A range such as 10 PM–6 AM spans midnight.</p>
     <div className="flight-filter-fields">
       {timeFields.map(([field, label]) => <label key={field} htmlFor={`${id}-${field}`}>{label}
         <input id={`${id}-${field}`} type="time" value={value[field]}

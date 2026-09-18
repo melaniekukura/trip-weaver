@@ -40,7 +40,6 @@ export function TripAssistant({ tripId }: { tripId?: Id<"trips"> }) {
       <div><p className="eyebrow">Persistent trip conversation</p><h3 id="trip-assistant-title">Ask Trip-Weaver</h3></div>
       <span className="assistant-model">Free AI preview</span>
     </div>
-    <p className="field-hint">Ask about this trip’s dates, destinations, budget, travelers, interests, or accessibility needs.</p>
     <div className="assistant-suggestions" aria-label="Suggested questions">
       {["Help me plan day two", "What should I prioritize?", "Review this trip for gaps"].map(suggestion =>
         <button type="button" className="secondary-button" key={suggestion} disabled={thinking}

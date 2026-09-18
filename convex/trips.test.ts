@@ -109,3 +109,26 @@ test("accessibility notes can be added to older trips, edited, and cleared", asy
     expect(trip.accessibility).toBe(notes.trim());
   }
 });
+
+test("transportation budgets enforce ownership, revisions, and survive ordinary trip edits", async () => {
+  const { t, alice, bob } = await setup();
+  const tripId = await alice.mutation(api.trips.create, details);
+  const budget = { revision: 0, includeRides: true, rides: [{ mode: "bus" as const, price: 3.25, count: 4 }] };
+  for (const client of [t, bob]) await expect(client.mutation(api.trips.updateTransportationBudget, { tripId, budget })).rejects.toThrow();
+  await alice.mutation(api.trips.updateTransportationBudget, { tripId, budget });
+  await expect(alice.mutation(api.trips.updateTransportationBudget, { tripId, budget })).rejects.toThrow("changed in another window");
+  const saved = await alice.query(api.trips.get, { tripId });
+  await alice.mutation(api.trips.update, { tripId, changes: { ...details, name: "Updated trip" }, expectedUpdatedAt: saved.updatedAt });
+  expect((await alice.query(api.trips.get, { tripId })).transportationBudget).toEqual({ ...budget, revision: 1 });
+});
+
+test.each([
+  [{ mode: "bus", price: 3, count: -1 }], [{ mode: "bus", price: 3, count: 1.5 }],
+  [{ mode: "bus", price: -1, count: 1 }], [{ mode: "bus", price: 1.001, count: 1 }],
+  [{ mode: "bus", price: 3, count: 1 }, { mode: "bus", price: 3, count: 2 }],
+].map(rides => ({ rides })))("rejects invalid transportation estimates", async ({ rides }) => {
+  const { alice } = await setup();
+  const tripId = await alice.mutation(api.trips.create, details);
+  await expect(alice.mutation(api.trips.updateTransportationBudget, { tripId, budget: { revision: 0, includeRides: true,
+    rides: rides as { mode: "bus"; price: number; count: number }[] } })).rejects.toThrow();
+});

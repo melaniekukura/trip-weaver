@@ -30,11 +30,16 @@ vi.mock("convex/react", async () => {
 test("Itinerary is the final planning tab and the assistant stays outside the form", () => {
   const html = renderToStaticMarkup(createElement(TripForm, { trip, mode: "page", onClose: vi.fn() }));
   const tabs = [...html.matchAll(/role="tab" id="trip-tab-(\d+)" aria-controls="trip-panel-(\d+)"[^>]*>([^<]+)<\/button>/g)];
-  expect(tabs.map(match => match[3])).toEqual(["Overview", "Destinations", "Transportation", "Budget", "Interests", "Accessibility", "Itinerary"]);
+  expect(tabs.map(match => match[3])).toEqual(["Overview", "Transportation", "Interests", "Accessibility", "Itinerary"]);
   for (const [, tabIndex, panelIndex] of tabs) {
     expect(panelIndex).toBe(tabIndex);
     expect(html).toContain(`role="tabpanel" id="trip-panel-${tabIndex}" aria-labelledby="trip-tab-${tabIndex}"`);
   }
+  const overview = html.match(/id="trip-panel-0"[\s\S]*?<\/section>/)?.[0] ?? "";
+  expect(overview).toContain("Leaving from");
+  expect(overview).toContain("Destinations in travel order");
+  expect(overview).toContain("Add a destination");
+  expect(html.match(/class="destinations-editor"/g)).toHaveLength(1);
   expect(html.match(/<form/g)).toHaveLength(1);
   expect(html).toContain('<aside class="trip-assistant-rail" aria-label="Trip planning assistant">');
   expect(html.indexOf("</form>")).toBeLessThan(html.indexOf("trip-assistant-rail"));

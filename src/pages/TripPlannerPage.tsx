@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { TripForm } from "../TripForm";
+import { tripPlannerPath } from "../tripRoutes";
 
 type TripState = { status: "loading" } | { status: "error" } | { status: "ready"; trip: Doc<"trips"> };
 
@@ -25,7 +26,10 @@ export function TripPlannerPage({ tripId }: { tripId: string }) {
 
   return <div className="trip-planner-page">
     <a className="planner-back" href="#/trips">← All trips</a>
-    <h1 className="planner-page-title">Plan My Trip</h1>
+    <div className="planner-page-heading">
+      <h1 className="planner-page-title">Plan My Trip</h1>
+      <a className="primary-button" href={`#${tripPlannerPath(tripId, "budget")}`}>Show My Budget</a>
+    </div>
     {state.status === "loading" && <p role="status">Loading your trip…</p>}
     {state.status === "error" && <div className="empty-state" role="alert">
       <p>This trip could not be opened. It may be unavailable, or you may not have access.</p>

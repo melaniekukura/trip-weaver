@@ -130,8 +130,7 @@ export function TripItinerary({ tripId, route, plan, onOpenTransportation, onOpe
 
   return <section className="full-itinerary" aria-labelledby="full-itinerary-title">
     <div className="full-itinerary-heading">
-      <div><h3 id="full-itinerary-title">Your itinerary</h3>
-        <p className="field-hint">Booked transportation and activities you added, organized into one schedule.</p></div>
+      <div><h3 id="full-itinerary-title">Your itinerary</h3></div>
       <div className="full-itinerary-summary"><strong>{itemCount}</strong><span>{itemCount === 1 ? "plan" : "plans"}</span></div>
     </div>
     <div className="full-itinerary-dates">
@@ -141,7 +140,6 @@ export function TripItinerary({ tripId, route, plan, onOpenTransportation, onOpe
     {favorites === undefined && tripId && <p role="status">Loading itinerary activities…</p>}
     {favorites !== undefined && !itemCount && <div className="full-itinerary-empty">
       <h4>Your schedule is ready to take shape</h4>
-      <p>Booked flights and activities added to your itinerary will appear here in date and time order.</p>
       <div className="button-row"><button type="button" className="secondary-button" onClick={onOpenTransportation}>Plan transportation</button>
         <button type="button" className="secondary-button" onClick={onOpenInterests}>Find activities</button></div>
     </div>}
@@ -150,7 +148,7 @@ export function TripItinerary({ tripId, route, plan, onOpenTransportation, onOpe
       <ol>{day.items.map(item => <ItineraryEntry key={item.id} item={item} />)}</ol>
     </section>)}</div>}
     {!!unscheduled.length && <section className="full-itinerary-unscheduled">
-      <div><h4>Still to schedule</h4><p className="field-hint">Add a date from Interests to place these plans on a day.</p></div>
+      <div><h4>Still to schedule</h4></div>
       <ol>{unscheduled.map(item => <ItineraryEntry key={item.id} item={item} />)}</ol>
     </section>}
     {tripId && onSaveTrip && <ItineraryEmailAction tripId={tripId} onSaveTrip={onSaveTrip} />}

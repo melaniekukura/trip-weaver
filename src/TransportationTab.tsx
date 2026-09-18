@@ -84,7 +84,6 @@ export function TransportationTab({ accessibility = "", onRoundTripChange, onRem
   const allBooked = legs.length > 0 && bookedCount === totalCount;
   return <>
     <h3>Find your way there</h3>
-    <p className="field-hint">One leg per pair of stops from your Destinations tab. Search and pick transport for each leg in order.</p>
     {homePrompt}
     {!legs.length && <div className="flight-setup">
       <p>Add your starting point and destinations to plan transportation.</p>
@@ -95,7 +94,7 @@ export function TransportationTab({ accessibility = "", onRoundTripChange, onRem
       return <TransportationLeg accessibility={accessibility} savedAccessibility={persisted?.accessibility ?? ""} key={leg.id} {...leg} index={index} allowRoundTrip={legs.length === 1} isHomeLeg={index === legs.length - 1 && sameTravelLocation(leg.destination, origin)} departureDate={departureDate} returnDate={returnDate} onReturnDateChange={onReturnDateChange}
         onRoundTripChange={index === 0 ? reportRoundTrip : undefined}
         onRemove={onRemoveLeg && legs.length > 1 ? () => onRemoveLeg(index) : undefined}
-        removalHint={index < legs.length - 1 ? `Removes ${transportLocationLabel(leg.destination)} from Destinations; the next leg will leave from ${transportLocationLabel(leg.origin)}.` : "Removes this final stop from Destinations."}
+        removalHint={index < legs.length - 1 ? `Removes ${transportLocationLabel(leg.destination)} from Overview; the next leg will leave from ${transportLocationLabel(leg.origin)}.` : "Removes this final stop from Overview."}
         saved={plan?.legs.find(item => item.index === index)} itineraryKey={selectionKey} savingPlan={savingPlan}
         changePlan={(action, outboundId, returnId) => changePlan(index, action, outboundId, returnId)}
         previousArrival={previous?.route === itinerary ? previous.source.flight.arrival : plan?.legs.find(item => item.index === index - 1 && item.itinerary === itineraryKey)?.outbound.flight.arrival}

@@ -1,3 +1,5 @@
+import { extraFeeTables, feeSettings } from "./extraFeeSchema";
+import { transportationBudgetFields } from "./transportationBudget";
 import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
@@ -13,9 +15,12 @@ export default defineSchema({
   ...flightTables,
   ...interestTables,
   ...emailTables,
+  ...extraFeeTables,
   ...assistantTables,
   trips: defineTable(tripFields.extend({
     flightPlan: v.optional(flightPlanFields),
+    extraFeeSettings: v.optional(feeSettings),
+    transportationBudget: v.optional(transportationBudgetFields),
     ownerId: v.id("users"),
     updatedAt: v.number(),
   })).index("by_ownerId", ["ownerId"]),
