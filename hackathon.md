@@ -3,11 +3,11 @@
 - **Project:** Trip-Weaver
 - **Event:** Convex All Gas Hackathon
 - **What it does:** Private multi-city trip planning with Firecrawl research, accessibility requirements, trip cost breakdowns, a unified day-by-day itinerary, AgentMail delivery, and a trip-aware AI planning assistant.
-- **Live app:** not deployed
+- **Live app:** https://rare-scorpion-458.convex.site
 - **Repo:** private
-- **Frontend:** Convex static hosting (configured; public deployment not verified)
-- **Convex deployment:** not deployed
-- **Components:** @convex-dev/agent, @convex-dev/workpool (researchPool), @convex-dev/rate-limiter, @convex-dev/static-hosting
+- **Frontend:** Convex static hosting
+- **Convex deployment:** https://rare-scorpion-458.convex.cloud
+- **Components:** @convex-dev/agent, @convex-dev/static-hosting, @convex-dev/workpool (researchPool), @convex-dev/rate-limiter
 - **Convex features:** schema, tables, indexes, queries, realtime queries, paginated queries, mutations, actions, HTTP actions, scheduled functions
 - **Auth:** Convex Auth
 - **AI models:** openrouter/free
@@ -120,3 +120,9 @@ Added transportation costs from current-route selected flights, multiplying fare
 Added on-demand Firecrawl research for itinerary activity tickets and booking fees, fixed-price restaurant meals, checked baggage, and optional rental-car extras/parking. Category subtotals and an itemized table retain source links and price evidence, with missing or inapplicable prices marked unknown. Convex stores settings and indexed research runs, streams results through realtime queries, reuses matching runs for six hours, limits requests, queues actions through Workpool, and cleans up deleted trips; failed jobs preserve successful results (`src/ExtraFees.tsx`, `convex/extraFeeSchema.ts`, `convex/extraFeeResearch.ts`, `convex/extraFees.ts`, `convex/firecrawl.ts`). Rental fee research excludes the base rental price and refundable deposits.
 Added a colorful category donut and daily-spending bars with currency selection, category filtering, and accessible value labels. Undated costs are spread across trip days without losing cents; round-trip costs are split across departure and return dates. Shared calculations combine included transportation and priced extra fees into Total Cost in both Budget Overview and its trip cards, keep currencies separate, and flag incomplete totals (`src/BudgetGraphs.tsx`, `src/budgetCosts.ts`, `src/BudgetCostSummary.tsx`). No exchange-rate conversion or invented prices are used for missing research results.
 Development verification passed 288 tests and frontend/backend TypeScript checks after the final tab move; the production build passed earlier in the Budget work, and backend changes were synced to personal dev. Tests cover cost arithmetic, currency separation, daily allocation, ownership, stale edits, fee evidence, caching, worker failures, deletion cleanup, and tab wiring. Live fee research and browser visual verification remain unverified. Header component/hosting facts were refreshed from `convex/convex.config.ts` and `convex/http.ts`; hosting setup is not attributed to these branches, and no public deployment is claimed.
+
+### 2026-09-18 - 76471b3
+Published Trip-Weaver at `https://rare-scorpion-458.convex.site` using the registered Convex Static Hosting component. App-owned routing keeps Convex Auth and the signed AgentMail webhook at their existing root URLs before the static-site fallback (`convex/convex.config.ts`, `convex/http.ts`).
+Added a single production command that builds the Vite frontend with the production Convex URL, deploys the backend, and uploads the static assets (`package.json`).
+Added a GitHub Actions release workflow for pushes to `main` and manual runs from `main`. It installs locked dependencies, runs tests and TypeScript lint, prevents overlapping releases, and supplies the production-scoped deploy key only to the deployment step (`.github/workflows/deploy-production.yml`).
+Local verification passed 259 tests, TypeScript lint, the production build, workflow YAML parsing, and `git diff --check`. The user confirmed the public site was running; the first automated post-merge deployment was still in progress when this entry was recorded.

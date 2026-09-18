@@ -73,6 +73,19 @@ The local backend stops when `npm run dev:backend` exits. Do not commit or share
 `.env.local` or the `.convex/` local database directory. Each developer receives
 an independent local database.
 
+## Production hosting
+
+The production frontend is served through Convex Static Hosting at
+[rare-scorpion-458.convex.site](https://rare-scorpion-458.convex.site). Convex
+hosts both the static Vite build and backend, so no local terminal needs to stay
+open.
+
+The **Deploy production** GitHub Actions workflow runs tests and TypeScript lint
+before deploying pushes to `main`. It uses the repository's
+`CONVEX_DEPLOY_KEY` secret to run `npm run deploy`, which updates the Convex
+backend and static frontend together. The workflow can also be run manually from
+GitHub Actions, but only from `main`.
+
 ## Convex backend
 
 The backend stores Convex Auth accounts and private saved trips. It also exposes
