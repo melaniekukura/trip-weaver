@@ -3,8 +3,14 @@ import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { LocationPicker } from "./LocationPicker";
 import { moveDestination } from "./locations";
+import { sameTravelLocation } from "../convex/homeJourney";
 
 export type DestinationStop = { id: string; value: string };
+
+export function insertDestinationBeforeHome(origin: string, stops: DestinationStop[], stop: DestinationStop) {
+  const index = sameTravelLocation(origin, stops.at(-1)?.value ?? "") ? stops.length - 1 : stops.length;
+  return { index, stops: [...stops.slice(0, index), stop, ...stops.slice(index)] };
+}
 
 type DestinationsEditorProps = {
   homePrompt?: ReactNode;
@@ -73,8 +79,9 @@ export function DestinationsEditor({ origin, stops, disabled, onOriginChange, on
         <LocationPicker label="Add a destination" required={stops.length === 0} disabled={disabled || stops.length >= 20} clearOnSelect
           onSelect={(value) => {
             if (stops.length >= 20) return;
-            onStopsChange([...stops, { id: crypto.randomUUID(), value }]);
-            setAnnouncement(`${value} added as stop ${stops.length + 1}.`);
+            const added = insertDestinationBeforeHome(origin, stops, { id: crypto.randomUUID(), value });
+            onStopsChange(added.stops);
+            setAnnouncement(`${value} added as stop ${added.index + 1}.`);
           }} />
       </div>
       {stops.length >= 20 && <p className="field-hint">You have reached the 20-stop limit.</p>}
