@@ -17,15 +17,16 @@ const limiter = new RateLimiter(components.rateLimiter, {
   localFaresUser: { kind: "token bucket", rate: 20, period: HOUR, capacity: 20 },
   localFaresGlobal: { kind: "token bucket", rate: 100, period: HOUR, capacity: 30 },
 });
-const job = v.object({ tripId: v.id("trips"), destination: v.string(), generation: v.number(), mode: localRideMode });
+const job = v.object({ tripId: v.id("trips"), destination: v.string(), generation: v.number(), mode: localRideMode,
+  sessionId: v.optional(v.string()) });
 async function ownedTrip(ctx: QueryCtx, tripId: Id<"trips">) {
   const user = await getAuthUserId(ctx), trip = await ctx.db.get("trips", tripId);
   if (!user || !trip || trip.ownerId !== user) throw new ConvexError({ message: "This trip is unavailable." });
   return trip;
 }
 export const setEnabled = mutation({
-  args: { tripId: v.id("trips"), destination: v.string(), enabled: v.boolean(), refresh: v.optional(v.boolean()) }, returns: v.null(),
-  handler: async (ctx, { tripId, destination, enabled, refresh }) => {
+  args: { tripId: v.id("trips"), destination: v.string(), enabled: v.boolean(), refresh: v.optional(v.boolean()), sessionId: v.optional(v.string()) }, returns: v.null(),
+  handler: async (ctx, { tripId, destination, enabled, refresh, sessionId }) => {
     const trip = await ownedTrip(ctx, tripId);
     if (!trip.destinations.includes(destination)) throw new ConvexError({ message: "This destination is no longer in the trip." });
     const rows = (trip.localTransportation ?? []).filter(row => trip.destinations.includes(row.destination));
@@ -52,7 +53,7 @@ export const setEnabled = mutation({
       }),
     };
     if (search) next.workIds = await pool.enqueueActionBatch(ctx, internal.localTransportation.execute,
-      rideModes.map(mode => ({ tripId, destination, generation, mode })),
+      rideModes.map(mode => ({ tripId, destination, generation, mode, ...(sessionId ? { sessionId } : {}) })),
       { retry: false, onComplete: internal.localTransportation.onComplete, context: { tripId, destination, generation } });
     await ctx.db.patch("trips", tripId, { localTransportation: [...rows.filter(row => row.destination !== destination), next] });
     return null;
@@ -102,10 +103,10 @@ export const execute = internalAction({
     let fare: LocalFare = { mode: args.mode, count: 0, status: "unknown", note: "No applicable per-ride price confirmed." };
     try {
       const dates = JSON.parse(active.searchKey).slice(1).join(" through ");
-      const urls = await searchFeeSources(`${args.destination} ${rideLabels[args.mode]} official single ride fare ${dates}`);
+      const urls = await searchFeeSources(ctx, `${args.destination} ${rideLabels[args.mode]} official single ride fare ${dates}`, args.sessionId);
       for (const url of urls) {
         if (!await ctx.runQuery(internal.localTransportation.load, args)) return null;
-        const quote = await researchFeePage(url, localFareContext(args.destination, dates, args.mode)).catch(() => null);
+        const quote = await researchFeePage(ctx, url, localFareContext(args.destination, dates, args.mode), args.sessionId).catch(() => null);
         if (quote) { fare = { ...fare, ...quote, status: "priced", checkedAt: Date.now() }; break; }
       }
     } catch { fare.note = "Fare research unavailable. Try refreshing prices."; }

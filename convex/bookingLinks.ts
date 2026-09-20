@@ -126,7 +126,7 @@ export const resolve = action({
     }
     await ctx.runMutation(internal.bookingLinks.reserve, { tripId: args.tripId, sessionId: args.sessionId });
     try {
-      const response = await executeReturnBrowser(bookingBrowserCode(selected.url, selected.flight, selected.date, selected.roundTrip, { flight: selected.outbound, date: selected.departureDate }), {
+      const response = await executeReturnBrowser(ctx, bookingBrowserCode(selected.url, selected.flight, selected.date, selected.roundTrip, { flight: selected.outbound, date: selected.departureDate }), args.sessionId, {
         decode: decodeBookingResult,
         code: 'await page.evaluate(() => globalThis.__tripWeaverBookingOutput).then(output => { console.log("TRIP_WEAVER_BOOKING:" + output); return output; })',
       });

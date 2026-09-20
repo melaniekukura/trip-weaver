@@ -3,6 +3,7 @@ import fixture from "./fixtures/return-flights.json";
 import { parseReturnResults } from "./returnFlights";
 const request = { origin: "DTW", destination: "LAX", departureDate: "2026-10-15", tripType: "round-trip" as const, returnDate: "2026-10-22" };
 const outbound = { airline: "Frontier", departure: "6:30 AM on Thu, Oct 15", arrival: "12:02 PM on Thu, Oct 15", duration: "8 hr 32 min", stops: "1 stop", amount: 273, currency: "USD" as const };
+const actionCtx = { runMutation: async () => null } as never;
 
 test("extracts matching returns with total round-trip prices and next-day arrivals", () => {
   const result = parseReturnResults(fixture, request, outbound);
@@ -29,13 +30,13 @@ test("browser execution failure still closes the session and does not leak provi
   const { vi } = await import("vitest");
   const { browseReturnFlights } = await import("./firecrawl");
   const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (url, options) => new Response(JSON.stringify(
-    options?.method === "DELETE" ? { success: true } : String(url).endsWith("/execute")
+    options?.method === "DELETE" ? { success: true, creditsBilled: 1 } : String(url).endsWith("/execute")
       ? { success: true, result: "provider-secret", stderr: "private diagnostics", exitCode: 1, killed: true }
       : { success: true, id: "test-session" },
   )));
   vi.stubEnv("FIRECRAWL_API_KEY", "test-key"); vi.stubGlobal("fetch", fetchMock);
   try {
-    await expect(browseReturnFlights("test code")).rejects.toThrow("FLIGHTS_UNAVAILABLE");
+    await expect(browseReturnFlights(actionCtx, "test code")).rejects.toThrow("FLIGHTS_UNAVAILABLE");
     expect(fetchMock.mock.calls.at(-1)?.[1]?.method).toBe("DELETE");
   } finally { vi.unstubAllGlobals(); vi.unstubAllEnvs(); }
 });
@@ -61,7 +62,7 @@ test.each([401, 402, 429, 503])("browser HTTP %i retains status without provider
   vi.stubEnv("FIRECRAWL_API_KEY", "test-key");
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("provider-secret", { status })));
   try {
-    await expect(browseReturnFlights("test")).rejects.toSatisfy((error: unknown) => {
+    await expect(browseReturnFlights(actionCtx, "test")).rejects.toSatisfy((error: unknown) => {
       const detail = diagnoseFlightFailure(error, "browser_execute");
       return detail.stage === "browser_session" && detail.httpStatus === status && !JSON.stringify(error).includes("provider-secret");
     });
@@ -165,15 +166,15 @@ test.each([true, false])("unreadable output gets one retrieval attempt in the sa
   const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (url, options) => {
     const code = options?.body ? JSON.parse(String(options.body)).code : undefined;
     calls.push({ url: String(url), method: options?.method, code });
-    const response = options?.method === "DELETE" ? { success: true } : String(url).endsWith("/execute")
+    const response = options?.method === "DELETE" ? { success: true, creditsBilled: 1 } : String(url).endsWith("/execute")
       ? { success: true, exitCode: 0, result: ++executions === 2 && recoverable ? JSON.stringify(fixture) : "0" }
       : { success: true, id: "one-session" };
     return new Response(JSON.stringify(response));
   });
   vi.stubEnv("FIRECRAWL_API_KEY", "test-key"); vi.stubGlobal("fetch", fetchMock);
   try {
-    if (recoverable) await expect(browseReturnFlights("original search")).resolves.toEqual(fixture);
-    else await expect(browseReturnFlights("original search")).rejects.toThrow("invalid_output");
+    if (recoverable) await expect(browseReturnFlights(actionCtx, "original search")).resolves.toEqual(fixture);
+    else await expect(browseReturnFlights(actionCtx, "original search")).rejects.toThrow("invalid_output");
     expect(executions).toBe(2);
     expect(calls).toHaveLength(4);
     expect(calls[2].url).toContain("one-session/execute");

@@ -68,7 +68,8 @@ export const start = mutation({
     await reserveFirecrawlRun(ctx, sessionId);
     const runId = await ctx.db.insert("extraFeeRuns", { tripId, ownerId: trip.ownerId, searchKey, status: "running",
       results: targets.map(target => ({ target, status: "pending" as const })) });
-    const workIds = await pool.enqueueActionBatch(ctx, internal.extraFees.execute, targets.map((_, index) => ({ runId, index })), {
+    const workIds = await pool.enqueueActionBatch(ctx, internal.extraFees.execute, targets.map((_, index) => ({ runId, index,
+      ...(sessionId ? { sessionId } : {}) })), {
       retry: false, onComplete: internal.extraFees.onComplete, context: { runId },
     });
     await ctx.db.patch("extraFeeRuns", runId, { workIds });
@@ -98,16 +99,16 @@ export const finish = internalMutation({
   },
 });
 export const execute = internalAction({
-  args: { runId: v.id("extraFeeRuns"), index: v.number() }, returns: v.null(),
-  handler: async (ctx, { runId, index }) => {
+  args: { runId: v.id("extraFeeRuns"), index: v.number(), sessionId: v.optional(v.string()) }, returns: v.null(),
+  handler: async (ctx, { runId, index, sessionId }) => {
     const row = await ctx.runQuery(internal.extraFees.loadTarget, { runId, index });
     if (!row) return null;
     let result: FeeResult = { ...row, status: "unknown", note: "No applicable price confirmed. Check the provider before booking." };
     try {
-      const urls = await searchFeeSources(row.target.query);
+      const urls = await searchFeeSources(ctx, row.target.query, sessionId);
       const candidates = [...new Set([...(row.target.sourceUrl ? [row.target.sourceUrl] : []), ...urls])].slice(0, 3);
       for (const url of candidates) {
-        const quote = await researchFeePage(url, row.target.context).catch(() => null);
+        const quote = await researchFeePage(ctx, url, row.target.context, sessionId).catch(() => null);
         if (quote) { result = { target: row.target, status: "priced", ...quote, retrievedAt: new Date().toISOString() }; break; }
       }
       if (result.status === "unknown" && candidates.length) result.sourceUrl = candidates[0];

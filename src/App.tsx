@@ -22,6 +22,7 @@ const pages = {
 };
 
 type PagePath = keyof typeof pages;
+const creditUsage = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
 
 function currentPath(): string {
   const path = window.location.hash.slice(1);
@@ -78,8 +79,8 @@ function SignedInApp() {
           ))}
         </nav>
         <div className="account-actions">
-          {showFirecrawlBudget && <div className={`firecrawl-budget${firecrawlBudget && (firecrawlBudget.sessionRemaining === 0 || firecrawlBudget.projectRemaining === 0) ? " is-exhausted" : firecrawlBudget && (firecrawlBudget.sessionRemaining <= 100 || firecrawlBudget.projectRemaining <= 2500) ? " is-low" : ""}`} title="Reserved Firecrawl credits">
-            {firecrawlBudget ? `Firecrawl · session ${firecrawlBudget.sessionRemaining} left · project ${firecrawlBudget.projectRemaining} left` : "Firecrawl budget loading…"}
+          {showFirecrawlBudget && <div className={`firecrawl-budget${firecrawlBudget && (firecrawlBudget.sessionRemaining === 0 || firecrawlBudget.projectRemaining === 0) ? " is-exhausted" : firecrawlBudget && (firecrawlBudget.sessionRemaining <= 100 || firecrawlBudget.projectRemaining <= 2500) ? " is-low" : ""}`} title="Credits reported by completed Firecrawl requests">
+            {firecrawlBudget ? `Firecrawl · session ${creditUsage.format(firecrawlBudget.sessionUsed)} used · project ${creditUsage.format(firecrawlBudget.projectUsed)} used` : "Firecrawl usage loading…"}
           </div>}
           <button className="budget-toggle" type="button" aria-pressed={showFirecrawlBudget} onClick={() => {
             const next = !showFirecrawlBudget;

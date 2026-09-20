@@ -20,12 +20,12 @@ beforeEach(() => {
       const event = body.url.includes("events");
       const name = body.url.includes("restaurant") ? "Osteria Test" : event ? "Autumn exhibition" : body.url.includes("food") ? "Cooking class" : "Museum visit";
       return new Response(JSON.stringify({ success: true, data: { markdown: `${name} Visitor information`, links: [],
-        metadata: { url: body.url }, json: { pageType: "individual", relevant: true, name, excerpt: "Visitor information", candidates: [] } } }));
+        metadata: { url: body.url, creditsUsed: 5 }, json: { pageType: "individual", relevant: true, name, excerpt: "Visitor information", candidates: [] } } }));
     }
     const event = /exhibitions|festivals/.test(body.query) && body.query.includes("official calendar");
     const restaurant = body.query.includes("-tours -classes");
     const food = !event && body.query.includes("Food");
-    return new Response(JSON.stringify({ success: true, data: { web: [{ title: event ? "Autumn exhibition" : food ? "Cooking class" : "Museum visit", description: "Visitor information",
+    return new Response(JSON.stringify({ success: true, creditsUsed: 1, data: { web: [{ title: event ? "Autumn exhibition" : food ? "Cooking class" : "Museum visit", description: "Visitor information",
       url: restaurant ? "https://restaurant.example.org/menu" : event ? "https://example.org/events" : food ? "https://food.example.org/class" : "https://museum.example.org/museum" }] } }));
   });
 });
@@ -53,6 +53,16 @@ test("both searches persist source-backed results, deduplicate jobs, and reuse c
   expect(await alice.query(api.interestJobs.favorites, { tripId: args.tripId })).toHaveLength(1);
   const refreshed = await alice.mutation(api.interestJobs.start, { ...args, refresh: true });
   expect(refreshed.runId).not.toBe(first.runId);
+});
+
+test("interest searches attribute reported credits to the initiating browser session", async () => {
+  const { t, alice, args } = await setup();
+  const sessionId = "interest-session";
+  const { runId } = await alice.mutation(api.interestJobs.start, { ...args, interest: "Art", sessionId });
+  await t.action(internal.interestJobs.execute, { runId });
+  expect(await alice.query(api.firecrawl.budget, { sessionId })).toMatchObject({
+    projectUsed: 24, sessionUsed: 24, projectReserved: 0, sessionReserved: 0,
+  });
 });
 
 test("anonymous and other-user access is refused for searches and favorites", async () => {
@@ -199,11 +209,11 @@ test("sightseeing search includes major museums and monuments and retains more t
     const body = JSON.parse(String(options?.body));
     if (body.url) {
       const title = body.url.includes("museum") ? `Museum ${body.url.split("/").pop()}` : `Monument ${body.url.split("/").pop()}`;
-      return new Response(JSON.stringify({ success: true, data: { markdown: `${title}. Visitor information.`, links: [], metadata: { url: body.url },
+      return new Response(JSON.stringify({ success: true, data: { markdown: `${title}. Visitor information.`, links: [], metadata: { url: body.url, creditsUsed: 5 },
         json: { pageType: "individual", relevant: true, name: title, excerpt: "Visitor information.", candidates: [] } } }));
     }
     const category = body.query.includes("monuments") ? "monument" : "museum";
-    return new Response(JSON.stringify({ success: true, data: { web: Array.from({ length: 5 }, (_, index) => ({
+    return new Response(JSON.stringify({ success: true, creditsUsed: 1, data: { web: Array.from({ length: 5 }, (_, index) => ({
       title: `${category} ${index}`, url: `https://${category}${index}.example.org/${index}`,
     })) } }));
   });

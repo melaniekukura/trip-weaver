@@ -67,6 +67,33 @@ test("booking resolver refuses anonymous, other-owner and incomplete round-trip 
   } finally { vi.unstubAllGlobals(); }
 });
 
+test("booking interactions attribute billed credits to the browser session", async () => {
+  const t = convexTest(schema, modules); rateLimiter.register(t);
+  const owner = await t.run(ctx => ctx.db.insert("users", {}));
+  const user = t.withIdentity({ subject: `${owner}|session` });
+  const tripId = await user.mutation(api.trips.create, { name: "Trip", origin: "DTW", destinations: ["LAX"], startDate: "2026-10-15",
+    endDate: "2026-10-22", budget: null, currency: "USD", travelers: 1, interests: [] });
+  const outboundId = await t.run(async ctx => {
+    const runId = await ctx.db.insert("researchRuns", { tripId, ownerId: owner, destination: "LAX", topic: "flights", status: "completed",
+      tripUpdatedAt: 0, searchKey: "test", query: "https://www.google.com/travel/flights",
+      flightRequest: { origin: "DTW", destination: "LAX", departureDate: "2026-10-15" } });
+    return ctx.db.insert("researchSources", { tripId, runId, title: "Delta", category: "flights", description: "", destination: "LAX",
+      sourceUrl: "https://www.google.com/travel/flights", retrievedAt: "2026-09-12",
+      flight: { airline: "Delta", departure: "8:00 AM", arrival: "10:00 AM", duration: "5 hr", stops: "Nonstop", amount: 129, currency: "USD" } });
+  });
+  vi.stubEnv("FIRECRAWL_API_KEY", "test-key");
+  vi.stubGlobal("fetch", vi.fn(async (url: string, options: RequestInit) => new Response(JSON.stringify(options.method === "DELETE"
+    ? { success: true, creditsBilled: 1.5 }
+    : url.endsWith("/execute") ? { success: true, exitCode: 0, result: JSON.stringify({
+      url: "https://www.google.com/travel/flights/booking?tfs=x&tfu=y", provider: "Google Flights",
+    }) } : { success: true, id: "booking-session" }))));
+  try {
+    const sessionId = "booking-browser-session";
+    await user.action(api.bookingLinks.resolve, { tripId, outboundId, sessionId });
+    expect(await user.query(api.firecrawl.budget, { sessionId })).toMatchObject({ projectUsed: 1.5, sessionUsed: 1.5 });
+  } finally { vi.unstubAllGlobals(); vi.unstubAllEnvs(); }
+});
+
 test("booking responses accept stdout and nested JSON, and preserve failed-step diagnostics", () => {
   const link = { url: "https://www.aa.com/book?flight=123", provider: "American", airlineHost: "aa.com", amount: 300 };
   expect(decodeBookingResult({ result: "0", stdout: "TRIP_WEAVER_BOOKING:" + JSON.stringify(link) })).toEqual(link);
@@ -207,14 +234,14 @@ test.each(["success", "missing", "failure"])("booking output recovery reads the 
   vi.stubEnv("FIRECRAWL_API_KEY", "test-key");
   vi.stubGlobal("fetch", vi.fn(async (url: string, options: RequestInit) => {
     calls.push({ url, code: options.body ? JSON.parse(String(options.body)).code : undefined, method: options.method });
-    const body = options.method === "DELETE" ? { success: true } : url.endsWith("/execute")
+    const body = options.method === "DELETE" ? { success: true, creditsBilled: 1 } : url.endsWith("/execute")
       ? { success: true, exitCode: 0, result: ++executions === 1 ? (outcome === "failure" ? JSON.stringify(browserFailure) : "0")
         : outcome === "success" ? JSON.stringify(value) : "0" }
       : { success: true, id: "booking-session" };
     return new Response(JSON.stringify(body));
   }));
   try {
-    const response = executeReturnBrowser("original booking search", { decode: decodeBookingResult,
+    const response = executeReturnBrowser({ runMutation: async () => null } as never, "original booking search", undefined, { decode: decodeBookingResult,
       code: "await page.evaluate(() => globalThis.__tripWeaverBookingOutput)" });
     if (outcome === "success") expect(decodeBookingResult(await response)).toEqual(value);
     else await expect(response).rejects.toThrow(outcome === "missing" ? "invalid_output" : "selection_unavailable");

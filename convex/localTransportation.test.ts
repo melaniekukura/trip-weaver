@@ -42,17 +42,19 @@ test("requires ownership and a current destination; disabled destinations never 
 
 test("stores local source-backed fares without overwriting ride counts and reuses completed research", async () => {
   const { t, alice, tripId, toggle, read } = await setup();
+  const sessionId = "transport-session";
   fetchMock.mockImplementation(async url => new Response(JSON.stringify(String(url).endsWith("/search")
-    ? { success: true, data: { web: [{ url: "https://transit.example/fares" }] } }
-    : { success: true, data: { metadata: { sourceURL: "https://transit.example/fares" }, markdown: "Single fare EUR 2.50",
+    ? { success: true, creditsUsed: 1, data: { web: [{ url: "https://transit.example/fares" }] } }
+    : { success: true, data: { metadata: { sourceURL: "https://transit.example/fares", creditsUsed: 5 }, markdown: "Single fare EUR 2.50",
       json: { official: true, applicable: true, amount: 2.5, currency: "EUR", evidence: "Single fare EUR 2.50", note: "Central zone" } } })));
-  await toggle("Paris", true);
+  await alice.mutation(api.localTransportation.setEnabled, { tripId, destination: "Paris", enabled: true, sessionId });
   const first = (await read()).localTransportation![0];
   await toggle("Paris", true);
   expect((await read()).localTransportation![0].generation).toBe(first.generation);
   await alice.mutation(api.localTransportation.changeCount, { tripId, destination: "Paris", mode: "bus", delta: 1 });
-  await t.action(internal.localTransportation.execute, { tripId, destination: "Paris", generation: 1, mode: "bus" });
+  await t.action(internal.localTransportation.execute, { tripId, destination: "Paris", generation: 1, mode: "bus", sessionId });
   expect((await read()).localTransportation![0].rides[0]).toMatchObject({ status: "priced", count: 1, amount: 2.5, currency: "EUR" });
+  expect(await alice.query(api.firecrawl.budget, { sessionId })).toMatchObject({ projectUsed: 6, sessionUsed: 6 });
   const body = JSON.parse(fetchMock.mock.calls[0][1]!.body as string);
   expect(body.query).toContain("Paris"); expect(body.query).not.toContain("London");
   for (const mode of first.rides.slice(1).map(ride => ride.mode)) await t.mutation(internal.localTransportation.finish, {
@@ -72,7 +74,7 @@ test("turning off during a search prevents scraping and ignores late results", a
   await toggle("Paris", true);
   fetchMock.mockImplementationOnce(async () => {
     await toggle("Paris", false);
-    return new Response(JSON.stringify({ success: true, data: { web: [{ url: "https://transit.example/fares" }] } }));
+    return new Response(JSON.stringify({ success: true, creditsUsed: 1, data: { web: [{ url: "https://transit.example/fares" }] } }));
   });
   const args = { tripId, destination: "Paris", generation: 1, mode: "bus" as const };
   await t.action(internal.localTransportation.execute, args);

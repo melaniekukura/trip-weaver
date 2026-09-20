@@ -14,6 +14,7 @@ export const interestTables = {
   interestRuns: defineTable({
     tripId: v.id("trips"), destination: v.string(), kind: discoveryKind, searchKey: v.string(),
     startDate: v.string(), endDate: v.string(), interests: v.array(v.string()),
+    firecrawlSessionId: v.optional(v.string()),
     accessibility: v.optional(v.array(v.string())),
     status: v.union(v.literal("pending"), v.literal("running"), v.literal("completed"), v.literal("failed")),
     results: v.array(discoveryItem), warnings: v.array(v.string()), error: v.optional(v.string()),

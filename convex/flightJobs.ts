@@ -92,7 +92,8 @@ export const start = mutation({
       ...(args.outboundSourceId ? { outboundSourceId: args.outboundSourceId } : {}),
       searchKey: details.searchKey, query: details.queryText, tripUpdatedAt: trip.updatedAt, status: "pending",
     });
-    const workId = await pool.enqueueAction(ctx, internal.flightJobs.execute, { runId }, {
+    const workId = await pool.enqueueAction(ctx, internal.flightJobs.execute, { runId,
+      ...(args.sessionId ? { sessionId: args.sessionId } : {}) }, {
       retry: false, onComplete: internal.flightJobs.onComplete, context: { runId },
     });
     await ctx.db.patch("researchRuns", runId, { workId });
@@ -156,8 +157,8 @@ const providerErrors: Record<string, string> = {
 };
 
 export const execute = internalAction({
-  args: { runId: v.id("researchRuns") }, returns: v.null(),
-  handler: async (ctx, { runId }) => {
+  args: { runId: v.id("researchRuns"), sessionId: v.optional(v.string()) }, returns: v.null(),
+  handler: async (ctx, { runId, sessionId }) => {
     const run = await ctx.runMutation(internal.flightJobs.claim, { runId });
     if (!run || !run.flightRequest) return null;
     let stage: DiagnosticStage = "outbound_lookup";
@@ -166,7 +167,7 @@ export const execute = internalAction({
         const outbound = await ctx.runQuery(internal.flightJobs.selectedOutbound, { runId });
         if (!outbound) flightFailure(stage, "outbound_missing");
         stage = "browser_execute";
-        const raw = await browseReturnFlights(returnBrowserCode(run.flightRequest, outbound.flight));
+        const raw = await browseReturnFlights(ctx, returnBrowserCode(run.flightRequest, outbound.flight), sessionId);
         stage = "return_parse";
         const response = parseReturnResults(raw, run.flightRequest, outbound.flight);
         stage = "save_results";
@@ -179,14 +180,14 @@ export const execute = internalAction({
       stage = "airport_lookup";
       const scope = await resolveAirportScope(run.flightRequest);
       stage = "outbound_scrape";
-      let response = await scrapeFlightPage(run.query);
+      let response = await scrapeFlightPage(ctx, run.query, 5000, sessionId);
       stage = "outbound_parse";
       let flights;
       try { flights = parseFlightPage(response.markdown, run.flightRequest, scope); }
       catch (error) {
         if (diagnoseFlightFailure(error, stage).reason !== "search_page_not_ready") throw error;
         stage = "outbound_scrape";
-        response = await scrapeFlightPage(run.query, 10000);
+        response = await scrapeFlightPage(ctx, run.query, 10000, sessionId);
         stage = "outbound_parse";
         flights = parseFlightPage(response.markdown, run.flightRequest, scope);
       }
