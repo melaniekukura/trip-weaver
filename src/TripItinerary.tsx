@@ -8,6 +8,7 @@ import { ItineraryEmailAction } from "./ItineraryEmailAction";
 type TripRoute = Pick<Doc<"trips">, "origin" | "destinations" | "startDate" | "endDate">;
 type Favorite = Doc<"interestFavorites">;
 type FlightLeg = NonNullable<Doc<"trips">["flightPlan"]>["legs"][number];
+type Lodging = Doc<"lodgings">;
 
 type ItineraryItem = {
   id: string;
@@ -15,7 +16,7 @@ type ItineraryItem = {
   time?: string;
   title: string;
   location: string;
-  kind: "transportation" | "activity";
+  kind: "transportation" | "lodging" | "activity";
   detail?: string;
   notes?: string;
   url?: string;
@@ -47,7 +48,7 @@ export function itineraryTimeLabel(value?: string) {
   return `${hour % 12 || 12}:${twentyFourHour[2]} ${hour < 12 ? "AM" : "PM"}`;
 }
 
-export function itineraryDays(route: TripRoute, legs: FlightLeg[] = [], favorites: Favorite[] = []): ItineraryDay[] {
+export function itineraryDays(route: TripRoute, legs: FlightLeg[] = [], favorites: Favorite[] = [], lodgings: Lodging[] = []): ItineraryDay[] {
   const itinerary = flightPlanItinerary(route);
   const items: ItineraryItem[] = [];
   for (const leg of legs.filter(item => item.booked && item.itinerary === itinerary)) {
@@ -77,6 +78,14 @@ export function itineraryDays(route: TripRoute, legs: FlightLeg[] = [], favorite
       kind: "activity", detail: favorite.item.venue, notes: favorite.itinerary?.notes, url: favorite.item.url,
     });
   }
+  for (const lodging of lodgings.filter(item => item.booked)) {
+    items.push({
+      id: `lodging:${lodging._id}`, date: lodging.checkInDate, title: lodging.name,
+      location: transportLocationLabel(lodging.destination), kind: "lodging",
+      detail: `${dateLabel(lodging.checkInDate)} → ${dateLabel(lodging.checkOutDate)}${lodging.address ? ` · ${lodging.address}` : ""}`,
+      notes: lodging.notes, url: lodging.bookingUrl, reference: lodging.confirmationNumber,
+    });
+  }
   const groups = new Map<string, ItineraryItem[]>();
   for (const item of items) {
     const key = item.date || "";
@@ -101,9 +110,9 @@ function dateLabel(date: string) {
 function ItineraryEntry({ item }: { item: ItineraryItem }) {
   return <li className={`full-itinerary-entry is-${item.kind}`}>
     <div className="full-itinerary-time">{itineraryTimeLabel(item.time)}<span>local time</span></div>
-    <div className="full-itinerary-marker" aria-hidden="true"><span>{item.kind === "transportation" ? "✈" : "●"}</span></div>
+    <div className="full-itinerary-marker" aria-hidden="true"><span>{item.kind === "transportation" ? "✈" : item.kind === "lodging" ? "⌂" : "●"}</span></div>
     <div className="full-itinerary-card">
-      <span className="full-itinerary-kind">{item.kind === "transportation" ? "Booked transportation" : "Activity"}</span>
+      <span className="full-itinerary-kind">{item.kind === "transportation" ? "Booked transportation" : item.kind === "lodging" ? "Booked stay" : "Activity"}</span>
       <h5>{item.url ? <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title} ↗</a> : item.title}</h5>
       <p className="full-itinerary-location">{item.location}</p>
       {item.detail && <p>{item.detail}</p>}
@@ -113,16 +122,18 @@ function ItineraryEntry({ item }: { item: ItineraryItem }) {
   </li>;
 }
 
-export function TripItinerary({ tripId, route, plan, onOpenTransportation, onOpenInterests, onSaveTrip }: {
+export function TripItinerary({ tripId, route, plan, onOpenTransportation, onOpenLodging, onOpenInterests, onSaveTrip }: {
   tripId?: Id<"trips">;
   route: TripRoute;
   plan?: Doc<"trips">["flightPlan"];
   onOpenTransportation: () => void;
+  onOpenLodging?: () => void;
   onOpenInterests: () => void;
   onSaveTrip?: () => Promise<Id<"trips"> | null>;
 }) {
   const favorites = useQuery(api.interestJobs.favorites, tripId ? { tripId } : "skip");
-  const days = itineraryDays(route, plan?.legs, favorites);
+  const lodgings = useQuery(api.lodgings.list, tripId ? { tripId } : "skip");
+  const days = itineraryDays(route, plan?.legs, favorites, lodgings);
   const datedDays = days.filter(day => day.date);
   const unscheduled = days.find(day => !day.date)?.items ?? [];
   const itemCount = days.reduce((count, day) => count + day.items.length, 0);
@@ -137,10 +148,11 @@ export function TripItinerary({ tripId, route, plan, onOpenTransportation, onOpe
       <span>{dateLabel(route.startDate)}</span><span aria-hidden="true">→</span><span>{dateLabel(route.endDate)}</span>
     </div>
     {staleBookings && <p className="transport-stale" role="status">Some booked transportation belongs to an earlier route or set of dates and is not shown. Update it in Transportation.</p>}
-    {favorites === undefined && tripId && <p role="status">Loading itinerary activities…</p>}
-    {favorites !== undefined && !itemCount && <div className="full-itinerary-empty">
+    {(favorites === undefined || lodgings === undefined) && tripId && <p role="status">Loading itinerary plans…</p>}
+    {favorites !== undefined && lodgings !== undefined && !itemCount && <div className="full-itinerary-empty">
       <h4>Your schedule is ready to take shape</h4>
       <div className="button-row"><button type="button" className="secondary-button" onClick={onOpenTransportation}>Plan transportation</button>
+        {onOpenLodging && <button type="button" className="secondary-button" onClick={onOpenLodging}>Add lodging</button>}
         <button type="button" className="secondary-button" onClick={onOpenInterests}>Find activities</button></div>
     </div>}
     {!!datedDays.length && <div className="full-itinerary-days">{datedDays.map(day => <section className="full-itinerary-day" key={day.date}>
@@ -154,6 +166,7 @@ export function TripItinerary({ tripId, route, plan, onOpenTransportation, onOpe
     {tripId && onSaveTrip && <ItineraryEmailAction tripId={tripId} onSaveTrip={onSaveTrip} />}
     {!!itemCount && <div className="full-itinerary-actions"><span>Need to make a change?</span>
       <button type="button" className="text-button" onClick={onOpenTransportation}>Edit transportation</button>
+      {onOpenLodging && <button type="button" className="text-button" onClick={onOpenLodging}>Edit lodging</button>}
       <button type="button" className="text-button" onClick={onOpenInterests}>Edit activities</button></div>}
   </section>;
 }

@@ -13,7 +13,9 @@ import { tripPlannerPath } from "../tripRoutes";
 const tabs = ["Overview", "Transportation", "Extra Fees", "Graphs"];
 type BudgetState = { status: "loading" } | { status: "error" } | { status: "ready"; trip: Doc<"trips"> };
 
-export function BudgetWorkflow({ tripName, trip, fees }: { tripName: string; trip?: Doc<"trips">; fees?: ExtraFeeData }) {
+export function BudgetWorkflow({ tripName, trip, fees, lodgings }: {
+  tripName: string; trip?: Doc<"trips">; fees?: ExtraFeeData; lodgings?: Doc<"lodgings">[];
+}) {
   const [active, setActive] = useState(0);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -39,10 +41,10 @@ export function BudgetWorkflow({ tripName, trip, fees }: { tripName: string; tri
         {tabs.map((tab, index) => <section key={tab} className="trip-tab-panel" role="tabpanel" tabIndex={0}
           id={`budget-panel-${index}`} aria-labelledby={`budget-tab-${index}`} hidden={active !== index}>
           <h3>{tab === "Overview" ? "Budget overview" : tab}</h3>
-          {index === 0 && (trip ? <BudgetCostSummary trip={trip} fees={fees?.results} breakdown /> : <p><strong>Total Cost:</strong> --</p>)}
+          {index === 0 && (trip ? <BudgetCostSummary trip={trip} fees={fees?.results} lodgings={lodgings} breakdown /> : <p><strong>Total Cost:</strong> --</p>)}
           {index === 1 && trip && <TransportationBudget trip={trip} />}
           {index === 2 && trip && <ExtraFees trip={trip} data={fees} />}
-          {index === 3 && trip && <BudgetGraphs trip={trip} fees={fees?.results} />}
+          {index === 3 && trip && <BudgetGraphs trip={trip} fees={fees?.results} lodgings={lodgings} />}
         </section>)}
       </div>
       <footer className="trip-modal-footer">
@@ -62,7 +64,8 @@ function LiveBudgetWorkflow({ initialTrip }: { initialTrip: Doc<"trips"> }) {
   const liveTrip = useQuery(api.trips.get, { tripId: initialTrip._id });
   const trip = liveTrip ?? initialTrip;
   const fees = useQuery(api.extraFees.latest, { tripId: trip._id });
-  return <BudgetWorkflow tripName={trip.name} trip={trip} fees={fees} />;
+  const lodgings = useQuery(api.lodgings.list, { tripId: trip._id });
+  return <BudgetWorkflow tripName={trip.name} trip={trip} fees={fees} lodgings={lodgings} />;
 }
 
 export function TripBudgetPage({ tripId }: { tripId: string }) {

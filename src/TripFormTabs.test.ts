@@ -7,7 +7,7 @@ import { TripForm } from "./TripForm";
 
 const trip = {
   _id: "trip" as Id<"trips">, _creationTime: 1, ownerId: "owner" as Id<"users">, updatedAt: 1, name: "California",
-  origin: "DTW", destinations: ["LAX"], startDate: "2026-10-15", endDate: "2026-10-22",
+  origin: "DTW", destinations: ["Los Angeles, CA (LAX; all airports)"], startDate: "2026-10-15", endDate: "2026-10-22",
   travelers: 1, budget: null, currency: "USD", interests: [],
 } as Doc<"trips">;
 
@@ -22,15 +22,16 @@ vi.mock("convex/react", async () => {
       if (args === "skip") return undefined;
       if (server.getFunctionName(reference) === "trips:get") return trip;
       if (server.getFunctionName(reference) === "interestJobs:favorites") return [];
+      if (server.getFunctionName(reference) === "lodgings:list") return [];
       return undefined;
     },
   };
 });
 
-test("Itinerary is the final planning tab and the assistant opens from a drawer", () => {
+test("Lodging is part of planning and Itinerary remains the final tab", () => {
   const html = renderToStaticMarkup(createElement(TripForm, { trip, mode: "page", onClose: vi.fn() }));
   const tabs = [...html.matchAll(/role="tab" id="trip-tab-(\d+)" aria-controls="trip-panel-(\d+)"[^>]*>([^<]+)<\/button>/g)];
-  expect(tabs.map(match => match[3])).toEqual(["Overview", "Transportation", "Interests", "Accessibility", "Itinerary"]);
+  expect(tabs.map(match => match[3])).toEqual(["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary"]);
   for (const [, tabIndex, panelIndex] of tabs) {
     expect(panelIndex).toBe(tabIndex);
     expect(html).toContain(`role="tabpanel" id="trip-panel-${tabIndex}" aria-labelledby="trip-tab-${tabIndex}"`);
@@ -41,6 +42,13 @@ test("Itinerary is the final planning tab and the assistant opens from a drawer"
   expect(overview).toContain("Add a destination");
   expect(html.match(/class="destinations-editor"/g)).toHaveLength(1);
   expect(html.match(/<form/g)).toHaveLength(1);
+  expect(html).toContain("Where you’re staying");
+  expect(html).toContain("Find a place to stay");
+  expect(html).toContain("City or destination");
+  expect(html).toContain('aria-haspopup="listbox"');
+  expect(html).toMatch(/class="lodging-location-trigger"[^>]*><span>Los Angeles<\/span>/);
+  expect(html).toContain("Vacation rental / Airbnb");
+  expect(html).toContain("Search lodging");
   expect(html).toContain('aria-controls="trip-assistant-drawer" aria-expanded="false"');
   expect(html).toContain('id="trip-assistant-drawer" class="trip-assistant-drawer" aria-label="Trip planning assistant" aria-hidden="true" inert=""');
   expect(html.indexOf("</form>")).toBeLessThan(html.indexOf('id="trip-assistant-drawer"'));

@@ -26,13 +26,15 @@ function respond(body: unknown, status = 200) {
 
 test("search sends the server key and preserves sources and content", async () => {
   respond({ success: true, creditsUsed: 2, data: { web: [{ url: "https://example.com/travel", title: "Travel", markdown: "Read me" }] } });
-  const result = await convexTest(schema, modules).action(search, { query: "  Kyoto sights  ", includeContent: true });
+  const result = await convexTest(schema, modules).action(search, { query: "  Kyoto sights  ", includeContent: true,
+    location: "Kyoto, Japan", excludeDomains: ["example.org"] });
   expect(result.results[0]).toMatchObject({ url: "https://example.com/travel", markdown: "Read me", truncated: false });
   expect(result.creditsUsed).toBe(2);
   const [url, options] = fetchMock.mock.calls[0];
   expect(url).toBe("https://api.firecrawl.dev/v2/search");
   expect(options?.headers).toMatchObject({ Authorization: "Bearer test-secret" });
-  expect(JSON.parse(options?.body as string)).toMatchObject({ query: "Kyoto sights", limit: 5, scrapeOptions: { formats: ["markdown"] } });
+  expect(JSON.parse(options?.body as string)).toMatchObject({ query: "Kyoto sights", limit: 5, location: "Kyoto, Japan",
+    excludeDomains: ["example.org"], scrapeOptions: { formats: ["markdown"] } });
 });
 
 test("empty search is valid and scraping is opt-in", async () => {
