@@ -56,7 +56,7 @@ async function checkOutbound(ctx: QueryCtx, tripId: Id<"trips">, flight: FlightR
 }
 
 export const start = mutation({
-  args: { tripId: v.id("trips"), flight: flightRequest, outboundSourceId: v.optional(v.id("researchSources")), refresh: v.optional(v.boolean()) },
+  args: { tripId: v.id("trips"), flight: flightRequest, outboundSourceId: v.optional(v.id("researchSources")), refresh: v.optional(v.boolean()), sessionId: v.optional(v.string()) },
   returns: v.object({ runId: v.id("researchRuns"), reused: v.boolean() }),
   handler: async (ctx, args) => {
     const trip = await ownedTrip(ctx, args.tripId);
@@ -85,7 +85,7 @@ export const start = mutation({
       const status = await limiter.limit(ctx, name, { key });
       if (!status.ok) throw new ConvexError({ code: "RESEARCH_RATE_LIMITED", message: `Flight search limit reached. Try again in ${Math.max(1, Math.ceil(status.retryAfter / 60000))} minute(s).` });
     }
-    await reserveFirecrawlRun(ctx);
+    await reserveFirecrawlRun(ctx, args.sessionId);
     const runId = await ctx.db.insert("researchRuns", {
       tripId: trip._id, ownerId: trip.ownerId, destination: details.destination, topic: "flights",
       flightRequest: details.flightRequest,

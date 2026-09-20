@@ -53,8 +53,8 @@ export const latest = query({
   },
 });
 export const start = mutation({
-  args: { tripId: v.id("trips"), refresh: v.optional(v.boolean()) }, returns: v.id("extraFeeRuns"),
-  handler: async (ctx, { tripId, refresh }) => {
+  args: { tripId: v.id("trips"), refresh: v.optional(v.boolean()), sessionId: v.optional(v.string()) }, returns: v.id("extraFeeRuns"),
+  handler: async (ctx, { tripId, refresh, sessionId }) => {
     const { trip, targets } = await targetsFor(ctx, tripId);
     if (!targets.length) throw new ConvexError({ message: "Add itinerary activities, select flights, or enable rental-car fees first." });
     const searchKey = await feeSearchKey(targets);
@@ -65,7 +65,7 @@ export const start = mutation({
       const status = await limiter.limit(ctx, name, { key });
       if (!status.ok) throw new ConvexError({ message: "Fee research limit reached. Please try again later." });
     }
-    await reserveFirecrawlRun(ctx);
+    await reserveFirecrawlRun(ctx, sessionId);
     const runId = await ctx.db.insert("extraFeeRuns", { tripId, ownerId: trip.ownerId, searchKey, status: "running",
       results: targets.map(target => ({ target, status: "pending" as const })) });
     const workIds = await pool.enqueueActionBatch(ctx, internal.extraFees.execute, targets.map((_, index) => ({ runId, index })), {

@@ -10,7 +10,7 @@ import { diagnoseFlightFailure, flightFailure, sanitizeFlightDiagnostic } from "
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
-const args = { tripId: v.id("trips"), outboundId: v.id("researchSources"), returnId: v.optional(v.id("researchSources")) };
+const args = { tripId: v.id("trips"), outboundId: v.id("researchSources"), returnId: v.optional(v.id("researchSources")), sessionId: v.optional(v.string()) };
 const segment = v.object({ flightNumber: v.string(), origin: v.string(), destination: v.string(), departure: v.string(), arrival: v.string() });
 const bookingLink = v.object({ url: v.string(), outgoingSegments: v.array(segment), returnSegments: v.array(segment) });
 const limiter = new RateLimiter(components.rateLimiter, { bookingLinks: { kind: "token bucket", rate: 10, period: HOUR, capacity: 6 } });
@@ -48,13 +48,13 @@ export const selection = internalQuery({
 });
 
 export const reserve = internalMutation({
-  args: { tripId: v.id("trips") }, returns: v.null(),
-  handler: async (ctx, { tripId }) => {
+  args: { tripId: v.id("trips"), sessionId: v.optional(v.string()) }, returns: v.null(),
+  handler: async (ctx, { tripId, sessionId }) => {
     const trip = await requireTrip(ctx, tripId);
     const result = await limiter.limit(ctx, "bookingLinks", { key: trip.ownerId });
     if (!result.ok) throw new ConvexError({ code: "BOOKING_RATE_LIMITED", retryAfter: result.retryAfter,
       message: `Booking-link limit reached. Try again in ${Math.max(1, Math.ceil(result.retryAfter / 60000))} minute(s). You can still use the airline search links below.` });
-    await reserveFirecrawlRun(ctx);
+    await reserveFirecrawlRun(ctx, sessionId);
     return null;
   },
 });
@@ -124,7 +124,7 @@ export const resolve = action({
     if (target.origin !== "https://www.google.com" || !["/travel/flights", "/travel/flights/search"].includes(target.pathname)) {
       throw new ConvexError({ message: "The selected flight search link is unavailable." });
     }
-    await ctx.runMutation(internal.bookingLinks.reserve, { tripId: args.tripId });
+    await ctx.runMutation(internal.bookingLinks.reserve, { tripId: args.tripId, sessionId: args.sessionId });
     try {
       const response = await executeReturnBrowser(bookingBrowserCode(selected.url, selected.flight, selected.date, selected.roundTrip, { flight: selected.outbound, date: selected.departureDate }), {
         decode: decodeBookingResult,

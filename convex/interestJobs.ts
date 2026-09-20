@@ -35,7 +35,7 @@ function details(trip: Doc<"trips">, destination: string, kind: "activities" | "
   return { destination, kind, accessibility: accessibilityRequirements(trip.accessibility), startDate: trip.startDate, endDate: trip.endDate, interests: interest === undefined ? trip.interests : [interest] };
 }
 export const start = mutation({
-  args: { ...searchArgs, refresh: v.optional(v.boolean()) }, returns: v.object({ runId: v.id("interestRuns"), reused: v.boolean() }),
+  args: { ...searchArgs, refresh: v.optional(v.boolean()), sessionId: v.optional(v.string()) }, returns: v.object({ runId: v.id("interestRuns"), reused: v.boolean() }),
   handler: async (ctx, args) => {
     const trip = await ownedTrip(ctx, args.tripId);
     const search = details(trip, args.destination, args.kind, args.interest);
@@ -49,7 +49,7 @@ export const start = mutation({
       const status = await limiter.limit(ctx, name, { key });
       if (!status.ok) throw new ConvexError({ message: `Interest search limit reached. Try again in ${Math.max(1, Math.ceil(status.retryAfter / 60000))} minute(s).` });
     }
-    await reserveFirecrawlRun(ctx);
+    await reserveFirecrawlRun(ctx, args.sessionId);
     const runId = await ctx.db.insert("interestRuns", { ...search, tripId: trip._id, searchKey, status: "pending", results: [], warnings: [] });
     const workId = await pool.enqueueAction(ctx, internal.interestJobs.execute, { runId }, { retry: false, onComplete: internal.interestJobs.onComplete, context: { runId } });
     await ctx.db.patch("interestRuns", runId, { workId });

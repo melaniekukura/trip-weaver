@@ -196,9 +196,11 @@ booking details in Google Flights; return selection uses Firecrawl browser credi
    Each cloud development or production deployment needs its own secret setting.
 
    Trip-Weaver reserves 500 credits for each new Firecrawl-backed research or
-   browser workflow and stops after 25,000 reserved credits. Cached results do
+   browser workflow and stops after 24,000 reserved credits. Cached results do
    not reserve another run. The ledger is intentionally conservative because
    the Firecrawl key and account-level usage are shared with other teams.
+   The signed-in header shows the current browser-session allowance (500) and
+   the shared Trip-Weaver remainder while testing.
 
 4. Run a minimal live search (uses Firecrawl credits):
 

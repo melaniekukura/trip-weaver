@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { homeJourneyStatus, sameTravelLocation } from "../convex/homeJourney";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
+import { getFirecrawlSessionId } from "./firecrawlSession";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import type { FlightRequest } from "../convex/flightSearch";
 import { validateFlightRequest } from "../convex/flightSearch";
@@ -176,7 +177,7 @@ function TransportationLeg({ accessibility, savedAccessibility, onRoundTripChang
       });
       const tripId = await onSaveTrip();
       if (!tripId) return;
-      const response = await start({ tripId, flight, refresh });
+      const response = await start({ tripId, flight, refresh, sessionId: getFirecrawlSessionId() });
       setSubmitted({ tripId, flight, route });
       setShowOptions(true);
       if (response.reused) setNotice("Using a recent matching search. Refresh to request new prices.");

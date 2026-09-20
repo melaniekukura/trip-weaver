@@ -5,6 +5,7 @@ import { ConvexError } from "convex/values";
 import { useRef, useState } from "react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "../convex/_generated/api";
+import { getFirecrawlSessionId } from "./firecrawlSession";
 import type { Doc } from "../convex/_generated/dataModel";
 import { defaultFeeSettings, feeSubtotals } from "../convex/extraFeeResearch";
 import { costCategories, formatCost } from "./budgetCosts";
@@ -28,7 +29,7 @@ export function ExtraFees({ trip, data }: { trip: Doc<"trips">; data?: ExtraFeeD
     lock.current = true; setSaving(true); setError("");
     try {
       await save({ tripId: trip._id, settings });
-      await start({ tripId: trip._id, refresh: true });
+      await start({ tripId: trip._id, refresh: true, sessionId: getFirecrawlSessionId() });
     } catch (cause) {
       const detail = cause instanceof ConvexError ? cause.data : null;
       setError(detail && typeof detail === "object" && "message" in detail ? String(detail.message) : "Unable to research fees. Please try again.");

@@ -4,40 +4,64 @@ import { detailPage, interestExtractionSchema, parseInterestPage } from "./inter
 import { ConvexError, v } from "convex/values";
 import { diagnoseFlightFailure, flightFailure } from "./flightDiagnostics";
 import type { DiagnosticStage } from "./flightDiagnostics";
-import { internalAction, internalMutation } from "./_generated/server";
+import { internalAction, internalMutation, query } from "./_generated/server";
 import type { ActionCtx, MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
-export const FIRECRAWL_TEAM_CREDIT_LIMIT = 25000;
+export const FIRECRAWL_TEAM_CREDIT_LIMIT = 24000;
 export const FIRECRAWL_RUN_CREDIT_LIMIT = 500;
+export const FIRECRAWL_SESSION_CREDIT_LIMIT = 500;
 const BUDGET_SCOPE = "trip-weaver";
 
-export async function reserveFirecrawlRun(ctx: MutationCtx) {
+export async function reserveFirecrawlRun(ctx: MutationCtx, sessionId?: string) {
   const budget = await ctx.db.query("firecrawlBudgets").withIndex("by_scope", q => q.eq("scope", BUDGET_SCOPE)).unique();
+  const session = sessionId ? await ctx.db.query("firecrawlBudgetSessions").withIndex("by_sessionId", q => q.eq("sessionId", sessionId)).unique() : null;
   const reservedCredits = (budget?.reservedCredits ?? 0) + FIRECRAWL_RUN_CREDIT_LIMIT;
+  const sessionCredits = (session?.reservedCredits ?? 0) + FIRECRAWL_RUN_CREDIT_LIMIT;
   if (reservedCredits > FIRECRAWL_TEAM_CREDIT_LIMIT) {
     throw new ConvexError({ code: "FIRECRAWL_TEAM_BUDGET_EXCEEDED",
       message: "The Trip-Weaver Firecrawl credit allocation has been reached." });
   }
-  if (budget) await ctx.db.patch("firecrawlBudgets", budget._id, { reservedCredits, updatedAt: Date.now() });
-  else await ctx.db.insert("firecrawlBudgets", { scope: BUDGET_SCOPE, reservedCredits, updatedAt: Date.now() });
+  if (sessionCredits > FIRECRAWL_SESSION_CREDIT_LIMIT) {
+    throw new ConvexError({ code: "FIRECRAWL_SESSION_BUDGET_EXCEEDED",
+      message: "This browser session has reached its Firecrawl testing limit." });
+  }
+  const updatedAt = Date.now();
+  if (budget) await ctx.db.patch("firecrawlBudgets", budget._id, { reservedCredits, updatedAt });
+  else await ctx.db.insert("firecrawlBudgets", { scope: BUDGET_SCOPE, reservedCredits, updatedAt });
+  if (session) await ctx.db.patch("firecrawlBudgetSessions", session._id, { reservedCredits: sessionCredits, updatedAt });
+  else if (sessionId) await ctx.db.insert("firecrawlBudgetSessions", { sessionId, reservedCredits: sessionCredits, updatedAt });
 }
 
 export const reserveCredits = internalMutation({
-  args: {}, returns: v.number(),
-  handler: async ctx => {
-    await reserveFirecrawlRun(ctx);
+  args: { sessionId: v.optional(v.string()) }, returns: v.number(),
+  handler: async (ctx, args) => {
+    await reserveFirecrawlRun(ctx, args.sessionId);
     const budget = await ctx.db.query("firecrawlBudgets").withIndex("by_scope", q => q.eq("scope", BUDGET_SCOPE)).unique();
     return budget?.reservedCredits ?? 0;
   },
 });
 
-async function reserveDirectRun(ctx: ActionCtx) {
+async function reserveDirectRun(ctx: ActionCtx, sessionId?: string) {
   if (!process.env.FIRECRAWL_API_KEY?.trim()) {
     fail("FIRECRAWL_NOT_CONFIGURED", "Set FIRECRAWL_API_KEY in the Convex deployment environment.");
   }
-  await ctx.runMutation(internal.firecrawl.reserveCredits, {});
+  await ctx.runMutation(internal.firecrawl.reserveCredits, { sessionId });
 }
+
+export const budget = query({
+  args: { sessionId: v.optional(v.string()) },
+  returns: v.object({ projectUsed: v.number(), projectLimit: v.number(), projectRemaining: v.number(), sessionUsed: v.number(), sessionLimit: v.number(), sessionRemaining: v.number() }),
+  handler: async (ctx, args) => {
+    if (!await getAuthUserId(ctx)) throw new ConvexError("Authentication required.");
+    const project = await ctx.db.query("firecrawlBudgets").withIndex("by_scope", q => q.eq("scope", BUDGET_SCOPE)).unique();
+    const session = args.sessionId ? await ctx.db.query("firecrawlBudgetSessions").withIndex("by_sessionId", q => q.eq("sessionId", args.sessionId!)).unique() : null;
+    const projectUsed = project?.reservedCredits ?? 0;
+    const sessionUsed = session?.reservedCredits ?? 0;
+    return { projectUsed, projectLimit: FIRECRAWL_TEAM_CREDIT_LIMIT, projectRemaining: Math.max(0, FIRECRAWL_TEAM_CREDIT_LIMIT - projectUsed), sessionUsed, sessionLimit: FIRECRAWL_SESSION_CREDIT_LIMIT, sessionRemaining: Math.max(0, FIRECRAWL_SESSION_CREDIT_LIMIT - sessionUsed) };
+  },
+});
 
 const pageValidator = v.object({
   url: v.string(),
@@ -133,6 +157,7 @@ export const search = internalAction({
     limit: v.optional(v.number()),
     includeContent: v.optional(v.boolean()),
     budgetReserved: v.optional(v.boolean()),
+    sessionId: v.optional(v.string()),
   },
   returns: v.object({
     dataSource: v.literal("firecrawl"),
@@ -145,7 +170,7 @@ export const search = internalAction({
     const limit = args.limit ?? 5;
     if (!query || query.length > 500) fail("INVALID_QUERY", "Search queries must contain 1–500 characters.");
     if (!Number.isInteger(limit) || limit < 1 || limit > 5) fail("INVALID_LIMIT", "Search limits must be integers from 1 to 5.");
-    if (!args.budgetReserved) await reserveDirectRun(ctx);
+    if (!args.budgetReserved) await reserveDirectRun(ctx, args.sessionId);
     const result = await request("search", {
       query, limit, sources: [{ type: "web" }], timeout: 30000,
       ...(args.includeContent ? { scrapeOptions: { formats: ["markdown"], onlyMainContent: true, maxCredits: 500 } } : {}),
@@ -162,7 +187,7 @@ export const search = internalAction({
 });
 
 export const scrape = internalAction({
-  args: { url: v.string(), budgetReserved: v.optional(v.boolean()) },
+  args: { url: v.string(), budgetReserved: v.optional(v.boolean()), sessionId: v.optional(v.string()) },
   returns: v.object({
     dataSource: v.literal("firecrawl"),
     retrievedAt: v.string(),
@@ -170,7 +195,7 @@ export const scrape = internalAction({
   }),
   handler: async (ctx, args) => {
     const url = webUrl(args.url.trim());
-    if (!args.budgetReserved) await reserveDirectRun(ctx);
+    if (!args.budgetReserved) await reserveDirectRun(ctx, args.sessionId);
     const result = await request("scrape", {
       url, formats: ["markdown"], onlyMainContent: true, timeout: 30000,
     });
