@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useId, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
+import { getFirecrawlSessionId } from "./firecrawlSession";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 
 function errorMessage(error: unknown) {
@@ -46,7 +47,7 @@ export function InterestDiscovery({ tripId, destinations, interests, accessibili
     try {
       const id = await onSaveTrip();
       if (!id) return;
-      const result = await start({ tripId: id, destination, kind: "both", interest, refresh });
+      const result = await start({ tripId: id, destination, kind: "both", interest, refresh, sessionId: getFirecrawlSessionId() });
       setRunId(result.runId);
       setResultsVisible(true);
       setNotice(result.reused ? "Using a matching recent search." : "");

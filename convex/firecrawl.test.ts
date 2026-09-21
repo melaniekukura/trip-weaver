@@ -25,9 +25,10 @@ function respond(body: unknown, status = 200) {
 }
 
 test("search sends the server key and preserves sources and content", async () => {
-  respond({ success: true, data: { web: [{ url: "https://example.com/travel", title: "Travel", markdown: "Read me" }] } });
+  respond({ success: true, creditsUsed: 2, data: { web: [{ url: "https://example.com/travel", title: "Travel", markdown: "Read me" }] } });
   const result = await convexTest(schema, modules).action(search, { query: "  Kyoto sights  ", includeContent: true });
   expect(result.results[0]).toMatchObject({ url: "https://example.com/travel", markdown: "Read me", truncated: false });
+  expect(result.creditsUsed).toBe(2);
   const [url, options] = fetchMock.mock.calls[0];
   expect(url).toBe("https://api.firecrawl.dev/v2/search");
   expect(options?.headers).toMatchObject({ Authorization: "Bearer test-secret" });
@@ -35,7 +36,7 @@ test("search sends the server key and preserves sources and content", async () =
 });
 
 test("empty search is valid and scraping is opt-in", async () => {
-  respond({ success: true, data: { web: [] }, warning: "No results" });
+  respond({ success: true, creditsUsed: 1, data: { web: [] }, warning: "No results" });
   const result = await convexTest(schema, modules).action(search, { query: "obscure destination" });
   expect(result.results).toEqual([]);
   expect(result.warning).toBe("No results");
@@ -58,13 +59,13 @@ test.each([[401, "UNAUTHORIZED"], [402, "CREDITS_EXHAUSTED"], [429, "RATE_LIMITE
   await expect(convexTest(schema, modules).action(search, { query: "Kyoto" })).rejects.toThrow(`FIRECRAWL_${code}`);
 });
 
-test.each([{ success: false }, { success: true, data: {} }, { success: true, data: { web: [{ url: "javascript:alert(1)" }] } }])("rejects malformed or failed responses: %j", async (body) => {
+test.each([{ success: false }, { success: true, data: {} }, { success: true, creditsUsed: 1, data: { web: [{ url: "javascript:alert(1)" }] } }])("rejects malformed or failed responses: %j", async (body) => {
   respond(body);
   await expect(convexTest(schema, modules).action(search, { query: "Kyoto" })).rejects.toThrow();
 });
 
 test("scrape returns metadata and bounded markdown", async () => {
-  respond({ success: true, data: { markdown: "a".repeat(31000), metadata: { title: "Guide", statusCode: 200 } } });
+  respond({ success: true, data: { markdown: "a".repeat(31000), metadata: { title: "Guide", statusCode: 200, creditsUsed: 1 } } });
   const result = await convexTest(schema, modules).action(scrape, { url: "https://example.com/guide" });
   expect(result.page).toMatchObject({ url: "https://example.com/guide", title: "Guide", truncated: true });
   expect(result.page.markdown).toHaveLength(30000);
@@ -76,7 +77,7 @@ test.each(["file:///etc/passwd", "https://user:password@example.com", "invalid"]
 });
 
 test("rejects a failed target page even when the API returns success", async () => {
-  respond({ success: true, data: { markdown: "Not found", metadata: { statusCode: 404 } } });
+  respond({ success: true, data: { markdown: "Not found", metadata: { statusCode: 404, creditsUsed: 1 } } });
   await expect(convexTest(schema, modules).action(scrape, { url: "https://example.com" })).rejects.toThrow("FIRECRAWL_PAGE_FAILED");
 });
 

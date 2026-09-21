@@ -9,6 +9,7 @@ import { useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import type { Doc } from "../convex/_generated/dataModel";
 import { budgetMoney, transportationTotals } from "./budgetCalculations";
+import { getFirecrawlSessionId } from "./firecrawlSession";
 
 export function TransportationBudget({ trip }: { trip: Doc<"trips"> }) {
   const totals = transportationTotals(trip);
@@ -64,14 +65,15 @@ function DestinationRides({ trip, destination, saved }: { trip: Doc<"trips">; de
       <label className="budget-include-rides"><input type="checkbox" role="switch" checked={enabled} disabled={pending}
         aria-label={`Include local transportation in ${destination}`}
         onChange={event => { const include = event.target.checked;
-          void perform(() => setEnabled({ tripId: trip._id, destination, enabled: include }));
+          void perform(() => setEnabled({ tripId: trip._id, destination, enabled: include, sessionId: getFirecrawlSessionId() }));
         }} />Include local transportation</label>
     </div>
     {enabled && <>
       <div className="budget-rides-heading">
         {researching ? <p role="status">Finding local fares…</p> : <span />}
         <button className="secondary-button" type="button" disabled={pending || researching}
-          onClick={() => void perform(() => setEnabled({ tripId: trip._id, destination, enabled: true, refresh: true }))}>Refresh prices</button>
+          onClick={() => void perform(() => setEnabled({ tripId: trip._id, destination, enabled: true, refresh: true,
+            sessionId: getFirecrawlSessionId() }))}>Refresh prices</button>
       </div>
       <div className="budget-rides-table-wrap"><table className="budget-rides-table">
         <caption className="interest-sr-only">Local transportation in {destination}</caption>

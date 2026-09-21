@@ -15,7 +15,7 @@ const fetchMock = vi.fn<typeof fetch>();
 beforeEach(() => {
   vi.useFakeTimers(); vi.stubEnv("FIRECRAWL_API_KEY", "test-secret"); vi.stubGlobal("fetch", fetchMock);
   vi.setSystemTime(new Date("2026-09-11T12:00:00Z"));
-  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown } })));
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown, metadata: { creditsUsed: 1 } } })));
 
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); fetchMock.mockReset(); });
@@ -135,18 +135,20 @@ test("deployment-wide budget limits apply across different users", async () => {
 test("flight jobs scrape fresh matching fares, preserve distinct options, and expire after 15 minutes", async () => {
   const { default: markdown } = await import("./fixtures/google-flights.txt?raw");
   vi.setSystemTime(new Date("2026-09-11T12:00:00Z"));
-  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown, metadata: { statusCode: 200 } } })));
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown, metadata: { statusCode: 200, creditsUsed: 1 } } })));
   const { t, alice, bob, args } = await setup();
+  const sessionId = "flight-session";
   const flightArgs = { ...args, flight: { origin: "DTW", destination: "LAX", departureDate: "2026-10-15" } };
   await expect(bob.mutation(api.flightJobs.start, flightArgs)).rejects.toThrow("TRIP_NOT_FOUND");
   await expect(t.query(api.flightJobs.latest, flightArgs)).rejects.toThrow("UNAUTHENTICATED");
-  const { runId } = await alice.mutation(api.flightJobs.start, flightArgs);
+  const { runId } = await alice.mutation(api.flightJobs.start, { ...flightArgs, sessionId });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
   const result = await alice.query(api.flightJobs.latest, flightArgs);
   expect(result?.run.status).toBe("completed");
   expect(result?.sources.map((source) => source.flight?.amount)).toEqual([169, 300, 389]);
   expect(result?.sources[0].sourceUrl).toContain("https://www.google.com/travel/flights?");
   expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toMatchObject({ maxAge: 0, onlyMainContent: false, waitFor: 5000 });
+  expect(await alice.query(api.firecrawl.budget, { sessionId })).toMatchObject({ projectUsed: 1, sessionUsed: 1 });
   expect(await alice.mutation(api.flightJobs.start, flightArgs)).toEqual({ runId, reused: true });
   expect(await alice.query(api.flightJobs.latest, { ...flightArgs, flight: { ...flightArgs.flight, destination: "JFK" } })).toBeNull();
   vi.setSystemTime(Date.now() + 16 * 60000);
@@ -165,7 +167,7 @@ test("flight validation rejects past dates and missing route before charging cre
 test("unreadable flight pages fail without saving invented or mock fares", async () => {
   const { t, alice, args } = await setup();
   vi.setSystemTime(new Date("2026-09-11T12:00:00Z"));
-  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown: "Loading results" } })));
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown: "Loading results", metadata: { creditsUsed: 1 } } })));
   const flightArgs = { ...args, flight: { origin: "DTW", destination: "LAX", departureDate: "2026-10-15" } };
   const { runId } = await alice.mutation(api.flightJobs.start, flightArgs);
   await t.action(internal.flightJobs.execute, { runId });
@@ -184,7 +186,7 @@ test("city search resolves airports, saves cross-airport fares, and uses a disti
     ...["JFK", "LGA", "EWR"].map((code) => ({ code, city_code: "NYC", iata_type: "airport", flightable: true })),
   ];
   fetchMock.mockImplementation(async (url) => new Response(JSON.stringify(String(url).includes("travelpayouts.com")
-    ? directory : { success: true, data: { markdown: cityMarkdown } })));
+    ? directory : { success: true, data: { markdown: cityMarkdown, metadata: { creditsUsed: 1 } } })));
   const { t, alice, bob, tripId } = await setup();
   const flight = { origin: "LON", originType: "city" as const, destination: "NYC", destinationType: "city" as const, departureDate: "2026-10-15" };
   const args = { tripId, flight };
@@ -223,7 +225,7 @@ test("round trips persist both dates and cannot reuse one-way or different-retur
   const roundTrip = { ...args, flight: { ...args.flight, tripType: "round-trip" as const, returnDate: "2026-10-22" } };
   const oneWay = await alice.mutation(api.flightJobs.start, args);
   await t.action(internal.flightJobs.execute, { runId: oneWay.runId });
-  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown } })));
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown, metadata: { creditsUsed: 1 } } })));
   const round = await alice.mutation(api.flightJobs.start, roundTrip);
   expect(round.runId).not.toBe(oneWay.runId);
   await t.action(internal.flightJobs.execute, { runId: round.runId });
@@ -241,7 +243,7 @@ test("return searches enforce ownership and selection, cache per outbound, and s
   const { default: returns } = await import("./fixtures/return-flights.json");
   const { t, alice, bob, args } = await setup();
   const flight = { ...args.flight, tripType: "round-trip" as const, returnDate: "2026-10-22" };
-  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown: roundtrip } })));
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown: roundtrip, metadata: { creditsUsed: 1 } } })));
   const { runId } = await alice.mutation(api.flightJobs.start, { ...args, flight });
   await t.action(internal.flightJobs.execute, { runId });
   const out = await alice.query(api.flightJobs.latest, { ...args, flight });
@@ -252,7 +254,7 @@ test("return searches enforce ownership and selection, cache per outbound, and s
   }
   await expect(alice.mutation(api.flightJobs.start, { ...returnArgs, flight: { ...flight, returnDate: "2026-10-23" } })).rejects.toThrow("INVALID_OUTBOUND");
   fetchMock.mockImplementation(async (url, options) => new Response(JSON.stringify(
-    options?.method === "DELETE" ? { success: true } : String(url).endsWith("/execute")
+    options?.method === "DELETE" ? { success: true, creditsBilled: 1 } : String(url).endsWith("/execute")
       ? { success: true, result: JSON.stringify(returns), exitCode: 0, killed: false }
       : { success: true, id: "test-session" },
   )));
@@ -315,13 +317,13 @@ test("return browser diagnostics reach the owner without exposing provider conte
   const { default: roundtrip } = await import("./fixtures/google-flights-roundtrip.txt?raw");
   const { t, alice, bob, args } = await setup();
   const flight = { ...args.flight, tripType: "round-trip" as const, returnDate: "2026-10-22" };
-  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown: roundtrip } })));
+  fetchMock.mockImplementation(async () => new Response(JSON.stringify({ success: true, data: { markdown: roundtrip, metadata: { creditsUsed: 1 } } })));
   const outgoing = await alice.mutation(api.flightJobs.start, { ...args, flight });
   await t.action(internal.flightJobs.execute, { runId: outgoing.runId });
   const out = await alice.query(api.flightJobs.latest, { ...args, flight });
   const returnArgs = { tripId: args.tripId, flight, outboundSourceId: out!.sources[0]._id };
   fetchMock.mockImplementation(async (url, options) => new Response(JSON.stringify(
-    options?.method === "DELETE" ? { success: true } : String(url).endsWith("/execute")
+    options?.method === "DELETE" ? { success: true, creditsBilled: 1 } : String(url).endsWith("/execute")
       ? { success: true, exitCode: 0, result: JSON.stringify({ browserFailure: true, stage: "outbound_match",
         reason: "outbound_ambiguous", matchCount: 2, labelCount: 12, stderr: "test-secret" }) }
       : { success: true, id: "test-session" },
@@ -342,7 +344,8 @@ test("return browser diagnostics reach the owner without exposing provider conte
 test.each([true, false])("outgoing search retries only an unready page within the same run (unready: %s)", async unready => {
   const { t, alice, args } = await setup();
   fetchMock.mockImplementationOnce(async () => new Response(JSON.stringify({ success: true,
-    data: { markdown: unready ? "# Find and book cheap flights worldwide" : markdown.replace("CurrencyUSD", "CurrencyCAD") } })));
+    data: { markdown: unready ? "# Find and book cheap flights worldwide" : markdown.replace("CurrencyUSD", "CurrencyCAD"),
+      metadata: { creditsUsed: 1 } } })));
   const { runId } = await alice.mutation(api.flightJobs.start, args);
   await t.action(internal.flightJobs.execute, { runId });
   const result = await alice.query(api.flightJobs.latest, args);

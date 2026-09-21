@@ -8,6 +8,7 @@ import { ReturnFlightPicker } from "./ReturnFlightPicker";
 import { FlightFilterControls } from "./FlightFilterControls";
 import { matchesFlightFilters } from "./flightFilters";
 import { api } from "../convex/_generated/api";
+import { getFirecrawlSessionId } from "./firecrawlSession";
 import type { Doc } from "../convex/_generated/dataModel";
 import { FlightResults } from "./FlightResults";
 import { LocationPicker } from "./LocationPicker";
@@ -42,7 +43,7 @@ export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
         ...flightRequestFromTrip(origin, destination, departureDate),
         ...(tripType === "round-trip" ? { tripType, returnDate } : {}),
       });
-      const result = await start({ tripId: trip._id, flight, refresh });
+      const result = await start({ tripId: trip._id, flight, refresh, sessionId: getFirecrawlSessionId() });
       setSubmitted(flight); setOutbound(null);
       if (result.reused) setNotice("Using matching results saved within 15 minutes, or the search already in progress.");
     } catch (err) {

@@ -8,6 +8,7 @@ import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useState } from "react";
 import { api } from "../convex/_generated/api";
+import { getFirecrawlSessionId } from "./firecrawlSession";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 import type { FlightRequest } from "../convex/flightSearch";
 import { FlightFilterControls } from "./FlightFilterControls";
@@ -32,7 +33,7 @@ export function ReturnFlightPicker({ tripId, request, outbound, onClose, selecte
   const selected = onSelectReturn ? selectedReturn : localSelection;
   async function search(refresh = false) {
     setPending(true); setError(""); setNotice("");
-    try { const response = await start({ ...args, refresh }); setReusedRunId(response.runId);
+    try { const response = await start({ ...args, refresh, sessionId: getFirecrawlSessionId() }); setReusedRunId(response.runId);
       setNotice(response.reused ? "Reusing a recent matching search without starting a new browser search." : ""); setShowOptions(true); }
     catch (error) {
       const data = error instanceof ConvexError ? error.data : null;

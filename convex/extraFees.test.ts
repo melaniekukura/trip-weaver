@@ -36,12 +36,13 @@ test("fee access is owned, results are cached and changing itinerary invalidates
 
 test("research stores exact source-backed quotes and failures never become zero prices", async () => {
   const { t, alice, tripId } = await setup();
+  const sessionId = "fee-session";
   fetchMock.mockImplementation(async url => new Response(JSON.stringify(String(url).endsWith("/search")
-    ? { success: true, data: { web: [{ url: "https://museum.example/tickets" }] } }
-    : { success: true, data: { metadata: { sourceURL: "https://museum.example/tickets" }, markdown: "Adult admission EUR 25",
+    ? { success: true, creditsUsed: 1, data: { web: [{ url: "https://museum.example/tickets" }] } }
+    : { success: true, data: { metadata: { sourceURL: "https://museum.example/tickets", creditsUsed: 5 }, markdown: "Adult admission EUR 25",
       json: { official: true, applicable: true, amount: 25, currency: "EUR", evidence: "Adult admission EUR 25", note: "Standard adult" } } })));
-  const runId = await alice.mutation(api.extraFees.start, { tripId });
-  await t.action(internal.extraFees.execute, { runId, index: 0 });
+  const runId = await alice.mutation(api.extraFees.start, { tripId, sessionId });
+  await t.action(internal.extraFees.execute, { runId, index: 0, sessionId });
   fetchMock.mockRejectedValue(new Error("test-key provider failure"));
   await t.action(internal.extraFees.execute, { runId, index: 1 });
   const data = await alice.query(api.extraFees.latest, { tripId });
@@ -50,6 +51,7 @@ test("research stores exact source-backed quotes and failures never become zero 
   expect(data.results[1]).toMatchObject({ status: "unknown" });
   expect(data.results[1].amount).toBeUndefined();
   expect(JSON.stringify(data)).not.toContain("test-key");
+  expect(await alice.query(api.firecrawl.budget, { sessionId })).toMatchObject({ projectUsed: 6, sessionUsed: 6 });
 });
 
 test("one failed work item does not overwrite the remaining research", async () => {

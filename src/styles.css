@@ -142,8 +142,26 @@ footer a {
 
 .account-actions {
   justify-self: end;
+  display: flex;
+  align-items: center;
   gap: 18px;
   font-size: 13px;
+}
+
+.firecrawl-budget {
+  color: var(--silver);
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.firecrawl-budget.is-low { color: #f2c14e; }
+.firecrawl-budget.is-exhausted { color: #ff8b8b; }
+.budget-toggle {
+  border: 0;
+  padding: 4px 0;
+  color: var(--silver);
+  background: transparent;
+  font-size: 11px;
 }
 
 .primary-link {

@@ -1,5 +1,6 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
+import { Authenticated, AuthLoading, Unauthenticated, useQuery } from "convex/react";
+import { api } from "../convex/_generated/api";
 import { useEffect, useState } from "react";
 import { AuthForm } from "./AuthForm";
 import { IdleSession } from "./IdleSession";
@@ -11,6 +12,7 @@ import { TripPlannerPage } from "./pages/TripPlannerPage";
 import { TripsPage } from "./pages/TripsPage";
 import { BudgetPage } from "./pages/BudgetPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { getFirecrawlSessionId } from "./firecrawlSession";
 
 const pages = {
   "/": { title: "Home", component: HomePage },
@@ -20,6 +22,7 @@ const pages = {
 };
 
 type PagePath = keyof typeof pages;
+const creditUsage = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
 
 function currentPath(): string {
   const path = window.location.hash.slice(1);
@@ -29,6 +32,8 @@ function currentPath(): string {
 
 function SignedInApp() {
   const { signOut } = useAuthActions();
+  const firecrawlBudget = useQuery(api.firecrawl.budget, { sessionId: getFirecrawlSessionId() });
+  const [showFirecrawlBudget, setShowFirecrawlBudget] = useState(true);
   const [signOutError, setSignOutError] = useState(false);
   const [path, setPath] = useState(currentPath);
   const tripId = tripIdFromPath(path);
@@ -36,6 +41,10 @@ function SignedInApp() {
   const tripSection = budgetWorkflow ? "/budget" : "/trips";
   const page = pages[tripId ? tripSection : path as PagePath];
   const Page = page.component;
+
+  useEffect(() => {
+    if (window.localStorage?.getItem("trip-weaver-show-firecrawl-budget") === "false") setShowFirecrawlBudget(false);
+  }, []);
 
   useEffect(() => {
     function navigate() {
@@ -70,6 +79,14 @@ function SignedInApp() {
           ))}
         </nav>
         <div className="account-actions">
+          {showFirecrawlBudget && <div className={`firecrawl-budget${firecrawlBudget && (firecrawlBudget.sessionRemaining === 0 || firecrawlBudget.projectRemaining === 0) ? " is-exhausted" : firecrawlBudget && (firecrawlBudget.sessionRemaining <= 100 || firecrawlBudget.projectRemaining <= 2500) ? " is-low" : ""}`} title="Credits reported by completed Firecrawl requests">
+            {firecrawlBudget ? `Firecrawl · session ${creditUsage.format(firecrawlBudget.sessionUsed)} used · project ${creditUsage.format(firecrawlBudget.projectUsed)} used` : "Firecrawl usage loading…"}
+          </div>}
+          <button className="budget-toggle" type="button" aria-pressed={showFirecrawlBudget} onClick={() => {
+            const next = !showFirecrawlBudget;
+            setShowFirecrawlBudget(next);
+            window.localStorage?.setItem("trip-weaver-show-firecrawl-budget", String(next));
+          }}>{showFirecrawlBudget ? "Hide usage" : "Show usage"}</button>
           <button className="sign-out" onClick={() => {
             setSignOutError(false);
             void signOut().catch(() => setSignOutError(true));

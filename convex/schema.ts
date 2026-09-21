@@ -20,6 +20,20 @@ export default defineSchema({
   ...emailTables,
   ...extraFeeTables,
   ...assistantTables,
+  firecrawlBudgets: defineTable({
+    scope: v.literal("trip-weaver"),
+    reservedCredits: v.number(),
+    usedCredits: v.optional(v.number()),
+    trackingVersion: v.optional(v.literal(1)),
+    updatedAt: v.number(),
+  }).index("by_scope", ["scope"]),
+  firecrawlBudgetSessions: defineTable({
+    sessionId: v.string(),
+    reservedCredits: v.number(),
+    usedCredits: v.optional(v.number()),
+    trackingVersion: v.optional(v.literal(1)),
+    updatedAt: v.number(),
+  }).index("by_sessionId", ["sessionId"]),
   trips: defineTable(tripFields.extend({
     flightPlan: v.optional(flightPlanFields),
     extraFeeSettings: v.optional(feeSettings),

@@ -14,6 +14,7 @@ import { discoveryItem, discoveryKind, ideaItinerary } from "./interestSchema";
 import { diversifyIdeas } from "./interestDiversity";
 import { discoverSpecificIdeas } from "./interestDiscovery";
 import { foodInterest, interestQuery, interestSearchKey, sightseeingInterest, sightseeingQuery } from "./interestSearch";
+import { reserveFirecrawlRun } from "./firecrawl";
 
 const pool = new Workpool(components.researchPool, { maxParallelism: 2, retryActionsByDefault: false });
 const limiter = new RateLimiter(components.rateLimiter, {
@@ -34,7 +35,7 @@ function details(trip: Doc<"trips">, destination: string, kind: "activities" | "
   return { destination, kind, accessibility: accessibilityRequirements(trip.accessibility), startDate: trip.startDate, endDate: trip.endDate, interests: interest === undefined ? trip.interests : [interest] };
 }
 export const start = mutation({
-  args: { ...searchArgs, refresh: v.optional(v.boolean()) }, returns: v.object({ runId: v.id("interestRuns"), reused: v.boolean() }),
+  args: { ...searchArgs, refresh: v.optional(v.boolean()), sessionId: v.optional(v.string()) }, returns: v.object({ runId: v.id("interestRuns"), reused: v.boolean() }),
   handler: async (ctx, args) => {
     const trip = await ownedTrip(ctx, args.tripId);
     const search = details(trip, args.destination, args.kind, args.interest);
@@ -48,7 +49,9 @@ export const start = mutation({
       const status = await limiter.limit(ctx, name, { key });
       if (!status.ok) throw new ConvexError({ message: `Interest search limit reached. Try again in ${Math.max(1, Math.ceil(status.retryAfter / 60000))} minute(s).` });
     }
-    const runId = await ctx.db.insert("interestRuns", { ...search, tripId: trip._id, searchKey, status: "pending", results: [], warnings: [] });
+    await reserveFirecrawlRun(ctx, args.sessionId);
+    const runId = await ctx.db.insert("interestRuns", { ...search, tripId: trip._id, searchKey, status: "pending", results: [], warnings: [],
+      ...(args.sessionId ? { firecrawlSessionId: args.sessionId } : {}) });
     const workId = await pool.enqueueAction(ctx, internal.interestJobs.execute, { runId }, { retry: false, onComplete: internal.interestJobs.onComplete, context: { runId } });
     await ctx.db.patch("interestRuns", runId, { workId });
     return { runId, reused: false };
@@ -91,13 +94,15 @@ export const execute = internalAction({
     const run = await ctx.runMutation(internal.interestJobs.claim, { runId });
     if (!run) return null;
     const result = await ctx.runAction(internal.interestJobs.discover, { destination: run.destination, interests: run.interests,
-      startDate: run.startDate, endDate: run.endDate, kind: run.kind, accessibility: run.accessibility ?? [] });
+      startDate: run.startDate, endDate: run.endDate, kind: run.kind, accessibility: run.accessibility ?? [],
+      ...(run.firecrawlSessionId ? { sessionId: run.firecrawlSessionId } : {}) });
     await ctx.runMutation(internal.interestJobs.finish, { runId, ...result });
     return null;
   },
 });
 export const discover = internalAction({
-  args: { accessibility: v.optional(v.array(v.string())), destination: v.string(), interests: v.array(v.string()), startDate: v.string(), endDate: v.string(), kind: discoveryKind },
+  args: { accessibility: v.optional(v.array(v.string())), destination: v.string(), interests: v.array(v.string()), startDate: v.string(), endDate: v.string(), kind: discoveryKind,
+    sessionId: v.optional(v.string()) },
   returns: v.object({ results: v.array(discoveryItem), warnings: v.array(v.string()), error: v.optional(v.string()) }),
   handler: async (ctx, run): Promise<{ results: Doc<"interestRuns">["results"]; warnings: string[]; error?: string }> => {
     const kinds: ("activities" | "events")[] = run.kind === "both" ? ["activities", "events"] : [run.kind];
@@ -109,7 +114,8 @@ export const discover = internalAction({
         { kind, interests: [interest], focus: interest },
       ]) : [{ kind, interests: run.interests, focus: "Events" }]);
     const searches = await Promise.allSettled(tasks.map(task => ctx.runAction(internal.firecrawl.search, {
-      query: task.sights ? sightseeingQuery(run.destination, task.sights) : interestQuery({ ...run, interests: task.interests }, task.kind, task.restaurants), limit: 5,
+      query: task.sights ? sightseeingQuery(run.destination, task.sights) : interestQuery({ ...run, interests: task.interests }, task.kind, task.restaurants),
+      limit: 5, budgetReserved: true, ...(run.sessionId ? { sessionId: run.sessionId } : {}),
     })));
     const results: Doc<"interestRuns">["results"] = [];
     const warnings: string[] = [];
@@ -120,7 +126,9 @@ export const discover = internalAction({
         const response = searches[offset + index];
         if (response.status === "rejected") return { ...task, items: [], failedPages: 1 };
         const discovered = await discoverSpecificIdeas(response.value.results, url => ctx.runAction(internal.firecrawl.interestPage, {
-          url, accessibility: run.accessibility ?? [], restaurants: Boolean(task.restaurants), kind: task.kind, destination: run.destination, interests: task.interests, startDate: run.startDate, endDate: run.endDate,
+          url, accessibility: run.accessibility ?? [], restaurants: Boolean(task.restaurants), kind: task.kind,
+          destination: run.destination, interests: task.interests, startDate: run.startDate, endDate: run.endDate, budgetReserved: true,
+          ...(run.sessionId ? { sessionId: run.sessionId } : {}),
         }), { deadline, perHost: 3, maxItems: 8, maxDepth: 2, maxVisits: 10, activities: task.kind === "activities" });
         return { ...task, failedPages: discovered.failedPages, items: discovered.items.filter(item => task.kind !== "events" || !eventOutsideTrip(item.dates, run.startDate, run.endDate)).map(item => ({ ...item, kind: task.kind,
           ...(task.kind === "activities" ? { interest: task.focus } : {}), detailed: true, destination: run.destination, retrievedAt: new Date().toISOString() })) };

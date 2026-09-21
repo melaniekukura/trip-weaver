@@ -5,6 +5,7 @@ import { FlightSearchError } from "./FlightSearchError";
 import { sanitizeFlightDiagnostic } from "../convex/flightDiagnostics";
 import type { FlightDiagnostic } from "../convex/flightDiagnostics";
 import { api } from "../convex/_generated/api";
+import { getFirecrawlSessionId } from "./firecrawlSession";
 import { airlineSearchLinks } from "./airlineSearchLinks";
 import type { FlightSegment } from "../convex/flightSegments";
 import type { Doc, Id } from "../convex/_generated/dataModel";
@@ -22,7 +23,7 @@ export function AirlineBookingLink({ tripId, outboundId, returnId, needsReturn =
   async function load() {
     if (lock.current) return;
     lock.current = true; setPending(true); setError(""); setDetail(null);
-    try { setResult(await resolve({ tripId, outboundId, returnId })); }
+    try { setResult(await resolve({ tripId, outboundId, returnId, sessionId: getFirecrawlSessionId() })); }
     catch (error) {
       const data = error instanceof ConvexError ? error.data : null;
       if (data && typeof data === "object" && "diagnostic" in data) setDetail({ _id: "reference" in data ? String(data.reference) : "unavailable", diagnostic: sanitizeFlightDiagnostic(data.diagnostic, "browser_result") });
