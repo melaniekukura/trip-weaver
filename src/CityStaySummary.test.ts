@@ -10,8 +10,10 @@ function leg(index: number, departure: string, arrival: string, itinerary = flig
 test("city stays use arrival and the next leg's departure, preserving overnight local dates", () => {
   const stays = cityStays(route, [leg(0, "Sep 25, 18:00", "Sep 26, 08:15"), leg(1, "Sep 28, 16:00", "Sep 28, 17:10"), leg(2, "Oct 4, 20:00", "Oct 5, 18:50")]);
   expect(stays).toEqual([
-    { destination: "Milan", arrival: "Sep 26, 08:15", departure: "Sep 28, 16:00", plannedDeparture: undefined },
-    { destination: "Rome", arrival: "Sep 28, 17:10", departure: "Oct 4, 20:00", plannedDeparture: undefined },
+    { destination: "Milan", arrival: "Sep 26, 08:15", departure: "Sep 28, 16:00", plannedDeparture: undefined,
+      checkInDate: undefined, checkOutDate: undefined },
+    { destination: "Rome", arrival: "Sep 28, 17:10", departure: "Oct 4, 20:00", plannedDeparture: undefined,
+      checkInDate: undefined, checkOutDate: undefined },
   ]);
 });
 test("round trips use the selected return departure or explicitly planned return date", () => {

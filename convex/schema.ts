@@ -10,6 +10,7 @@ import { interestTables } from "./interestSchema";
 import { flightTables } from "./flightSchema";
 import { emailTables } from "./emailSchema";
 import { assistantTables } from "./assistantSchema";
+import { lodgingTables } from "./lodgingSchema";
 
 export default defineSchema({
   ...authTables,
@@ -20,6 +21,7 @@ export default defineSchema({
   ...emailTables,
   ...extraFeeTables,
   ...assistantTables,
+  ...lodgingTables,
   firecrawlBudgets: defineTable({
     scope: v.literal("trip-weaver"),
     reservedCredits: v.number(),

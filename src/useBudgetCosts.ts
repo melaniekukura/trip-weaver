@@ -5,9 +5,9 @@ import { budgetCosts, convertBudgetCosts } from "./budgetCosts";
 import { cachedExchangeRates, loadExchangeRates } from "./exchangeRates";
 import type { ExchangeRates } from "./exchangeRates";
 
-export function useBudgetCosts(trip: Doc<"trips">, fees?: FeeResult[]) {
+export function useBudgetCosts(trip: Doc<"trips">, fees?: FeeResult[], lodgings: Doc<"lodgings">[] = []) {
   const currency = trip.currency || "USD";
-  const native = budgetCosts(trip, fees);
+  const native = budgetCosts(trip, fees, lodgings);
   const foreign = Object.keys(native.totals).filter(code => code !== currency).sort().join(",");
   const [rates, setRates] = useState<ExchangeRates | undefined>(() => cachedExchangeRates(currency));
   const [failed, setFailed] = useState(false);

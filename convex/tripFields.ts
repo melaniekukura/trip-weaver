@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import type { Infer } from "convex/values";
+import { isSupportedCurrency } from "./currencies";
 
 export const tripFields = v.object({
   name: v.string(),
@@ -57,7 +58,7 @@ export function validateTrip(input: Infer<typeof tripFields>) {
     invalid("Budget must be between 0 and 1,000,000,000 with at most two decimal places.");
   }
   const currency = input.currency.trim().toUpperCase();
-  if (!["USD", "EUR", "GBP", "CAD", "AUD", "JPY"].includes(currency)) {
+  if (!isSupportedCurrency(currency)) {
     invalid("Choose a supported currency.");
   }
   return {

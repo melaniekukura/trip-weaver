@@ -1,5 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { getFunctionName } from "convex/server";
 import { expect, test, vi } from "vitest";
 import { BudgetCostSummary, TripCardCost } from "./BudgetCostSummary";
 import { BudgetGraphs } from "./BudgetGraphs";
@@ -31,13 +32,16 @@ const trip: Doc<"trips"> = { ...basic,
 };
 const fees: FeeResult[] = ([['activities', 10, 'EUR'], ['baggage', 30, 'USD'], ['restaurants', 15, 'USD'], ['car', 10, 'USD']] as const)
   .map(([category, amount, currency]) => ({ target: { id: category, category, title: category, quantity: 2, unit: "per person", query: "", context: "" }, status: "priced", amount, currency }));
+const lodgings = [{ _id: "stay" as Doc<"lodgings">["_id"], name: "Paris Hotel", destination: "Paris", checkInDate: "2026-10-01",
+  checkOutDate: "2026-10-03", booked: true, totalCost: 300, currency: "EUR", tripId: trip._id, updatedAt: 1 }] as Doc<"lodgings">[];
 test("one converted total includes every tab and reconciles with category and daily breakdowns", () => {
-  const costs = convertBudgetCosts(budgetCosts(trip, fees), "USD", rates)!;
-  expect(costs.totals).toEqual({ USD: 410 });
+  const costs = convertBudgetCosts(budgetCosts(trip, fees, lodgings), "USD", rates)!;
+  expect(costs.totals).toEqual({ USD: 1010 });
   expect(costs.transportationTotals).toEqual({ USD: 260 });
   expect(costs.extraFeeTotals).toEqual({ USD: 150 });
-  expect(costs.breakdown.reduce((sum, category) => sum + (category.totals.USD ?? 0), 0)).toBe(410);
-  expect(dailyCosts(trip.startDate, trip.endDate, costs.entries)?.days.map(day => day.cents)).toEqual([27002, 7000, 6998]);
+  expect(costs.breakdown.find(category => category.id === "lodging")?.totals).toEqual({ USD: 600 });
+  expect(costs.breakdown.reduce((sum, category) => sum + (category.totals.USD ?? 0), 0)).toBe(1010);
+  expect(dailyCosts(trip.startDate, trip.endDate, costs.entries)?.days.map(day => day.cents)).toEqual([87002, 7000, 6998]);
   const changed = { ...trip, localTransportation: trip.localTransportation!.map(row => row.destination === "Paris"
     ? { ...row, rides: row.rides.map(ride => ({ ...ride, count: 5 })) } : row) };
   expect(convertBudgetCosts(budgetCosts(changed, fees), "USD", rates)?.totals).toEqual({ USD: 415 });
@@ -45,17 +49,18 @@ test("one converted total includes every tab and reconciles with category and da
   expect(convertBudgetCosts(budgetCosts(disabled, fees), "USD", rates)?.totals).toEqual({ USD: 370 });
 });
 test("Overview, trip cards, both graphs and tab subtotals display the same costs", () => {
-  query.mockReturnValue({ run: null, results: fees });
+  query.mockImplementation(reference => getFunctionName(reference) === "lodgings:list" ? lodgings : { run: null, results: fees });
   paginated.mockReturnValue({ results: [trip], status: "Exhausted", loadMore: vi.fn() });
-  for (const element of [createElement(BudgetCostSummary, { trip, fees, breakdown: true }), createElement(TripCardCost, { trip }),
+  for (const element of [createElement(BudgetCostSummary, { trip, fees, lodgings, breakdown: true }), createElement(TripCardCost, { trip }),
     createElement(Trips, {}), createElement(Trips, { view: "budget" })]) {
     const html = renderToStaticMarkup(element);
-    expect(html).toContain("$410.00"); expect(html).not.toContain("9,999"); expect(html).not.toContain(" + ");
+    expect(html).toContain("$1,010.00"); expect(html).not.toContain("9,999"); expect(html).not.toContain(" + ");
   }
-  const graphs = renderToStaticMarkup(createElement(BudgetGraphs, { trip, fees }));
-  expect(graphs).toContain("$410.00");
+  const graphs = renderToStaticMarkup(createElement(BudgetGraphs, { trip, fees, lodgings }));
+  expect(graphs).toContain("$1,010.00");
   expect(graphs).toContain("Local transportation $60.00");
-  expect(graphs).toContain('aria-label="Oct 1: $270.02"');
+  expect(graphs).toContain("Lodging $600.00");
+  expect(graphs).toContain('aria-label="Oct 1: $870.02"');
   expect(graphs).not.toContain("All currencies");
   expect(renderToStaticMarkup(createElement(TransportationBudget, { trip }))).toContain("$260.00");
   expect(renderToStaticMarkup(createElement(ExtraFees, { trip, data: { run: null, results: fees } }))).toContain("$150.00");
