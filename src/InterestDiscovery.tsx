@@ -76,11 +76,14 @@ export function InterestDiscovery({ tripId, destinations, interests, accessibili
         {check.status === "not-met" && item.accessibilityEvidence?.filter(evidence => !evidence.conforms && evidence.requirement.toLowerCase() === check.requirement.toLowerCase()).map((evidence, index) =>
           <span key={index}>{evidence.evidence} <a href={evidence.sourceUrl} target="_blank" rel="noopener noreferrer">Source ↗</a></span>)}
       </li>)}</ul>;
+  const savedUrls = new Set(favorites?.map(favorite => favorite.item.url));
+  const searchResults = (run?.results ?? []).map((item, index) => ({ item, index }))
+    .filter(({ item }) => !savedUrls.has(item.url));
   const resultGroups = [
     { key: "matched", title: "Matches your accessibility requirements" },
     { key: "unknown", title: "Accessibility not confirmed" },
     { key: "unmatched", title: "Does not meet all accessibility requirements" },
-  ].map(group => ({ ...group, items: (run?.results ?? []).map((item, index) => ({ item, index })).filter(({ item }) => {
+  ].map(group => ({ ...group, items: searchResults.filter(({ item }) => {
     const checks = checksFor(item);
     const key = checks.checks.some(check => check.status === "not-met") ? "unmatched" : checks.conforms ? "matched" : "unknown";
     return key === group.key;
@@ -129,18 +132,18 @@ export function InterestDiscovery({ tripId, destinations, interests, accessibili
     {run?.status === "failed" && <p className="search-error" role="alert">{run.error}</p>}
     {run?.status === "completed" && <>
       <button type="button" className="secondary-button interest-results-toggle" aria-expanded={resultsVisible} aria-controls={resultsId}
-        onClick={() => setResultsVisible(visible => !visible)}><span aria-hidden="true">{resultsVisible ? "▴" : "▾"}</span>{resultsVisible ? "Hide results" : `Show results (${run.results.length})`}</button>
+        onClick={() => setResultsVisible(visible => !visible)}><span aria-hidden="true">{resultsVisible ? "▴" : "▾"}</span>{resultsVisible ? "Hide results" : `Show results (${searchResults.length})`}</button>
       <div id={resultsId} hidden={!resultsVisible}>
       <p className="field-hint">Searched for {run.startDate} – {run.endDate} · {run.interests.join(", ") || "General recommendations"}. Search again after changing your dates or interests.</p>
       {run.warnings.map(warning => <p role="status" key={warning}>{warning}</p>)}
       {!run.results.length && <p>No results found. Try broader interests or another destination.</p>}
+      {!!run.results.length && !searchResults.length && <p>All results are already saved or in your itinerary.</p>}
       {resultGroups.filter(group => group.items.length > 0).map(group => <section key={group.key} className={`interest-access-group interest-access-${group.key}`} aria-label={requirements.length ? group.title : "Search results"}>
       {requirements.length > 0 && <h3>{group.title}</h3>}
       <ul className="interest-results">{group.items.map(({ item, index }) => {
-        const saved = favorites?.some(favorite => favorite.item.url === item.url);
-        return <li key={`${item.kind}:${item.url}`} className={`interest-result${saved ? " is-saved" : ""}`}>
+        return <li key={`${item.kind}:${item.url}`} className="interest-result">
           {renderIdea(item)}
-          <button type="button" className="secondary-button" disabled={pending || saved || !favorites} onClick={() => void changeFavorite(() => save({ runId: run._id, index }))}>{saved ? "Saved ✓" : "Save idea"}</button>
+          <button type="button" className="secondary-button" disabled={pending || !favorites} onClick={() => void changeFavorite(() => save({ runId: run._id, index }))}>Save idea</button>
         </li>;
       })}</ul></section>)}
       </div>

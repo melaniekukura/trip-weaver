@@ -73,3 +73,31 @@ test("matching activities come first, unknown access is distinct, and barriers a
   expect(cleared).not.toContain("Does not meet:");
   expect(cleared).not.toContain("Does not meet all accessibility requirements");
 });
+
+test("search results exclude saved and planned activities and return when unsaved", () => {
+  const items = ["Saved museum", "Planned tour", "New gallery"].map((title, index) => ({
+    kind: "activities", title, description: "Visitor information", url: `https://example.org/${index}`,
+    destination: "Milan", retrievedAt: "2026-09-18",
+  }));
+  let favorites = [{ _id: "saved", item: items[0] }, { _id: "planned", item: items[1], itinerary: { date: "2026-10-01" } }];
+  query.mockImplementation(reference => {
+    const name = getFunctionName(reference);
+    if (name === "trips:get") return { destinations: ["Milan"], interests: ["Art"] };
+    if (name === "interestJobs:favorites") return favorites;
+    return { _id: "run", status: "completed", startDate: "2026-10-01", endDate: "2026-10-09", interests: ["Art"], warnings: [], results: items };
+  });
+  const render = () => renderToStaticMarkup(createElement(InterestDiscovery, {
+    tripId: "trip" as Id<"trips">, destinations: ["Milan"], interests: ["Art"], onSaveTrip: vi.fn(),
+  }));
+  const search = () => render().split('<section class="interest-saved-section"')[0];
+  expect(search()).not.toContain("Saved museum");
+  expect(search()).not.toContain("Planned tour");
+  expect(search()).toContain("New gallery");
+  expect(render()).toContain("Saved museum");
+  expect(render()).toContain("Planned tour");
+  favorites = [...favorites, { _id: "gallery", item: items[2] }];
+  expect(search()).toContain("All results are already saved or in your itinerary.");
+  expect(search()).not.toContain("Save idea");
+  favorites = [];
+  for (const item of items) expect(search()).toContain(item.title);
+});

@@ -6,7 +6,7 @@ import { flightPlanItinerary } from "../convex/flightPlanFields";
 import { itineraryDays, itineraryTimeLabel, TripItinerary } from "./TripItinerary";
 
 const { query } = vi.hoisted(() => ({ query: vi.fn() }));
-vi.mock("convex/react", () => ({ useQuery: query }));
+vi.mock("convex/react", () => ({ useQuery: query, useMutation: () => vi.fn() }));
 
 const route = { origin: "DTW", destinations: ["LAX"], startDate: "2026-10-15", endDate: "2026-10-22" };
 const itinerary = flightPlanItinerary(route);
@@ -39,6 +39,16 @@ test("itinerary page renders the combined schedule and edit paths", () => {
   const plan = { revision: 1, confirmed: true, legs: [{ index: 0, itinerary, booked: true, reference: "ABC123", request: { origin: "DTW", destination: "LAX", departureDate: "2026-10-15" }, outbound: source("8:00 AM on Thu, Oct 15", "10:00 AM on Thu, Oct 15", "DTW", "LAX") }] } as Doc<"trips">["flightPlan"];
   const html = renderToStaticMarkup(createElement(TripItinerary, { tripId: "trip" as Id<"trips">, route, plan, onOpenTransportation: vi.fn(), onOpenInterests: vi.fn() }));
   for (const text of ["Your itinerary", "Thursday", "October 15, 2026", "Booked transportation", "DTW to LAX", "ABC123", "Getty Center", "Edit transportation", "Edit activities"]) expect(html).toContain(text);
+  expect(html.match(/Edit itinerary details/g)).toHaveLength(1);
+  expect(html).not.toContain("<form");
+});
+
+test("undated activities can be edited directly and show their notes once", () => {
+  query.mockReturnValue([{ _id: "favorite", item: { kind: "activities", title: "Getty Center", destination: "Los Angeles" }, itinerary: { notes: "Choose an afternoon" } }]);
+  const html = renderToStaticMarkup(createElement(TripItinerary, { tripId: "trip" as Id<"trips">, route, onOpenTransportation: vi.fn(), onOpenInterests: vi.fn() }));
+  expect(html).toContain("Still to schedule");
+  expect(html).toContain("Edit itinerary details");
+  expect(html.match(/Choose an afternoon/g)).toHaveLength(1);
 });
 
 test("itinerary page handles dates being cleared while editing", () => {

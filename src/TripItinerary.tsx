@@ -4,6 +4,7 @@ import type { Doc, Id } from "../convex/_generated/dataModel";
 import { flightPlanItinerary } from "../convex/flightPlanFields";
 import { transportLocationLabel } from "./transportationLegs";
 import { ItineraryEmailAction } from "./ItineraryEmailAction";
+import { IdeaItinerary } from "./IdeaItinerary";
 
 type TripRoute = Pick<Doc<"trips">, "origin" | "destinations" | "startDate" | "endDate">;
 type Favorite = Doc<"interestFavorites">;
@@ -20,6 +21,7 @@ type ItineraryItem = {
   notes?: string;
   url?: string;
   reference?: string;
+  favorite?: Favorite;
 };
 
 export type ItineraryDay = { date?: string; items: ItineraryItem[] };
@@ -74,7 +76,7 @@ export function itineraryDays(route: TripRoute, legs: FlightLeg[] = [], favorite
     items.push({
       id: `activity:${favorite._id}`, date: favorite.itinerary?.date, time: favorite.itinerary?.time,
       title: favorite.item.title, location: transportLocationLabel(favorite.item.destination),
-      kind: "activity", detail: favorite.item.venue, notes: favorite.itinerary?.notes, url: favorite.item.url,
+      kind: "activity", detail: favorite.item.venue, notes: favorite.itinerary?.notes, url: favorite.item.url, favorite,
     });
   }
   const groups = new Map<string, ItineraryItem[]>();
@@ -108,7 +110,8 @@ function ItineraryEntry({ item }: { item: ItineraryItem }) {
       <p className="full-itinerary-location">{item.location}</p>
       {item.detail && <p>{item.detail}</p>}
       {item.reference && <p><strong>Booking reference:</strong> {item.reference}</p>}
-      {item.notes && <p className="full-itinerary-notes">{item.notes}</p>}
+      {item.favorite ? <IdeaItinerary favorite={item.favorite} disabled={false} compact />
+        : item.notes && <p className="full-itinerary-notes">{item.notes}</p>}
     </div>
   </li>;
 }
