@@ -44,8 +44,8 @@ the itinerary.
 - **A versatile planning assistant:** the Convex Agent component gets read-only access
   to the owned trip's route, dates, flight times, scheduled and unscheduled activities,
   interests, and accessibility requirements. Lodging and financials are excluded.
-- **A usable product:** combine booked transportation and planned activities into a
-  chronological itinerary, then send an immutable snapshot through AgentMail.
+- **A usable product:** combine booked transportation, booked lodging, and planned
+  activities into a chronological itinerary, then send an immutable snapshot through AgentMail.
 - **Private by default:** Convex Auth, server-derived ownership, validation, rate
   limits, stale-edit protection, and cleanup keep each traveler's data isolated.
 
