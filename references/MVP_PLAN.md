@@ -5,7 +5,8 @@
 Trip-Weaver lets a guest begin planning without an account, preserve that draft
 through sign-in, and continue in a private saved trip. Signed-in travelers can
 research and select trip options, track costs and accessibility needs, use a
-trip-aware assistant, assemble an itinerary, and email themselves a snapshot.
+trip-aware assistant, review entry-document guidance, assemble an itinerary, and
+email a snapshot to a chosen recipient.
 
 This status reflects the repository as of September 21, 2026.
 
@@ -18,7 +19,8 @@ This status reflects the repository as of September 21, 2026.
 - [x] Store profile defaults for home airport, maximum connections, and
       accessibility needs.
 - [x] Enforce a 30-minute browser inactivity timeout with a two-minute warning.
-- [ ] Add password reset and account recovery.
+- [x] Recover accounts with a separate six-digit AgentMail code, a 15-minute
+      expiry, and password replacement.
 - [ ] Add a server-enforced session lifetime if the browser-only idle timer is
       not sufficient for launch requirements.
 
@@ -28,7 +30,8 @@ This status reflects the repository as of September 21, 2026.
 - [x] Preserve entered airports, including leaving blank airports blank.
 - [x] Provide the complete Overview and Accessibility tabs to guests.
 - [x] Provide guest flight setup and interests editing while clearly gating
-      account-only research, saved lists, lodging, and itinerary features.
+      account-only research, saved lists, lodging, itinerary, and required-document
+      features.
 - [x] Keep the guest draft in session storage while navigating to sign-in.
 - [x] Import the draft exactly once into a new owned trip after sign-in or
       account creation, then open that trip in the editor.
@@ -47,8 +50,10 @@ are not durable after the session storage is cleared.
 - [x] Apply profile defaults when creating a trip.
 - [x] Open trips from either the home-page flow or the Trips page in the same
       editor.
-- [x] Clean up flight, lodging, interest, assistant, email, and fee records after
-      a trip is deleted.
+- [x] Mark missing required creation fields with red borders after blur or a
+      blocked save attempt, then clear the warning when each field is completed.
+- [x] Clean up flight, lodging, interest, required-document, assistant, email,
+      transportation, and fee records after a trip is deleted.
 
 ## 4. Transportation and flight research
 
@@ -100,7 +105,20 @@ are not durable after the session storage is cleared.
 The current itinerary is a derived view of the flight, lodging, and activity
 records rather than a separate generic itinerary-item collection.
 
-## 7. Budgeting
+## 7. Required travel documents
+
+- [x] Search one saved destination at a time from the trip's departure location
+      and start date using Firecrawl.
+- [x] Categorize source-linked results as passport, visa, travel authorization,
+      health document, arrival form, or general requirement.
+- [x] Return application, information, and PDF links when found, with explicit
+      guidance to confirm requirements with the relevant authority.
+- [x] Queue owned searches with Workpool, apply rate and credit limits, reuse
+      matching results for six hours, and expose recoverable failure states.
+- [x] Lock the tab for guests while preserving their in-progress draft through
+      authentication.
+
+## 8. Budgeting
 
 - [x] Track a trip budget and supported currency.
 - [x] Include selected transportation, lodging, manual expenses, researched
@@ -110,7 +128,7 @@ records rather than a separate generic itinerary-item collection.
       recovery.
 - [x] Reject invalid costs and stale expense or transportation updates.
 
-## 8. AI travel assistant
+## 9. AI travel assistant
 
 - [x] Use the Convex Agent component with an OpenRouter model.
 - [x] Maintain one persistent, paginated conversation per owned trip.
@@ -128,16 +146,16 @@ records rather than a separate generic itinerary-item collection.
 The assistant can advise from saved context, but it cannot currently run research
 or change the trip.
 
-## 9. AgentMail itinerary delivery
+## 10. AgentMail itinerary delivery
 
-- [x] Send an immutable itinerary snapshot to the signed-in user's verified
-      address.
+- [x] Send an immutable itinerary snapshot, including booked lodging, from a
+      verified account to a chosen recipient.
 - [x] Record the snapshot, recipient, request identity, and delivery status.
 - [x] Prevent duplicate sends and support explicit retry.
 - [x] Verify signed webhooks for sent, delivered, bounced, and rejected events.
 - [x] Expose actionable delivery and retry states in the itinerary UI.
 
-## 10. Operations and verification
+## 11. Operations and verification
 
 - [x] Serve the frontend and backend through Convex, with a production deployment
       workflow guarded by tests and type checking.
@@ -147,6 +165,8 @@ or change the trip.
       duplicate requests, assistant failures, and email retries with mocked
       integrations.
 - [x] Track and display conservative Firecrawl session and project credit usage.
+- [x] Apply the provided Trip-Weaver brand marks to the browser favicon,
+      navigation, and project documentation.
 - [ ] Complete a documented end-to-end browser acceptance pass covering guest
       draft -> account creation -> research -> selection -> itinerary -> email.
 - [ ] Add automated browser-level end-to-end tests for the critical path.
@@ -162,6 +182,7 @@ or change the trip.
 | Research runs and sources | Flight requests, progress, results, provenance, diagnostics, and cache state |
 | Lodging runs and lodgings | Lodging research and saved or booked stays |
 | Interest runs and favorites | Activity/event research, accessibility evidence, saved ideas, and schedules |
+| Required-document runs | Source-linked entry-document research, categories, warnings, and cache state |
 | Fee and transportation data | Extra-fee research, local fares, and manual costs |
 | Assistant threads and requests | Persistent trip conversations and idempotent generation state |
 | Email deliveries | Immutable itinerary snapshots and AgentMail delivery state |
@@ -176,6 +197,8 @@ The current product covers the main saved-trip workflow. The remaining work is:
 3. Assistant research tools and user-approved structured trip changes.
 4. Manual itinerary entries and custom ordering, if those remain MVP requirements.
 5. A repeatable end-to-end browser acceptance test and production monitoring.
+6. A launch decision on whether the browser inactivity timer also needs a
+   server-enforced session lifetime.
 
 Verified live availability, in-app booking/payment, newsletter ingestion,
 background price alerts, collaboration, and automated route optimization remain
