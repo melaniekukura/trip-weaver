@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** openrouter/free
 - **Started:** 2026-09-04T19:25:03Z
-- **Last updated:** 2026-09-22T03:54:08Z
+- **Last updated:** 2026-09-22T04:10:31Z
 
 ## Log
 
@@ -148,3 +148,7 @@ Added required-field feedback, 15-minute-code password recovery, and full travel
 Set the browser inactivity timeout to 30 minutes with a warning two minutes before sign-out. Added a signed-in-only Required Documents tab after Itinerary, with owned Firecrawl searches by origin, destination, and start date; categorized source links; six-hour reuse; Workpool scheduling; rate and credit limits; trip-deletion cleanup; and recoverable errors. A follow-up removed an unsupported search-content option that caused live request failures.
 Scoped creation validation to required Overview fields so controls on other tabs no longer force navigation back to Overview. Added the supplied Space Indigo favicon and README mark plus a Cyan navigation logo for contrast.
 Automated verification reached 397 passing tests, and frontend/backend type checks and the production build passed during this implementation work. A live required-document search completed with two reported Firecrawl credits; the result remains research guidance that travelers must confirm with the relevant authority. No production deployment was performed in this work session.
+
+### 2026-09-22 - 9292a42 (includes 665dd75 and 9086f25)
+Added a scalable Cyan SVG route mark above the home-page title with a smooth left-to-right reveal, sharp vector edges, and a reduced-motion fallback (`references/logo-icon/TW-cyan.svg`, `src/pages/HomePage.tsx`, `src/styles.css`).
+Aligned the planning-page heading with Budget by using “Trip: {trip title}” and removed the duplicate in-form planner label and trip name while retaining modal creation/edit headers (`src/pages/TripPlannerPage.tsx`, `src/TripForm.tsx`). Verification included 397 passing tests, focused homepage and trip-form tests after the final refinements, frontend/backend TypeScript checks, the production build, and whitespace checks. No production deployment is recorded for this update.

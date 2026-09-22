@@ -120,9 +120,11 @@ actions; the Vite client receives only validated, owner-scoped data.
 
 The reusable TW route marks are stored in `references/logo-icon/`. The browser
 favicon and README use the Space Indigo version; the navigation bar uses Cyan for
-contrast against its Space Indigo background. Black, gray, and white variants are
-available for light, neutral, and dark surfaces. Functional interface icons remain
-separate from the Trip-Weaver brand mark.
+contrast against its Space Indigo background. The home page uses a crisp Cyan SVG
+that reveals from left to right on load and remains static when reduced motion is
+preferred. Black, gray, and white variants are available for light, neutral, and
+dark surfaces. Functional interface icons remain separate from the Trip-Weaver
+brand mark.
 
 ## Built with Convex
 
