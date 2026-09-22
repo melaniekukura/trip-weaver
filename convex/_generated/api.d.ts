@@ -50,6 +50,8 @@ import type * as lodgingJobs from "../lodgingJobs.js";
 import type * as lodgingSchema from "../lodgingSchema.js";
 import type * as lodgings from "../lodgings.js";
 import type * as profile from "../profile.js";
+import type * as requiredDocumentJobs from "../requiredDocumentJobs.js";
+import type * as requiredDocumentSchema from "../requiredDocumentSchema.js";
 import type * as returnFlights from "../returnFlights.js";
 import type * as transportationBudget from "../transportationBudget.js";
 import type * as tripAgent from "../tripAgent.js";
@@ -106,6 +108,8 @@ declare const fullApi: ApiFromModules<{
   lodgingSchema: typeof lodgingSchema;
   lodgings: typeof lodgings;
   profile: typeof profile;
+  requiredDocumentJobs: typeof requiredDocumentJobs;
+  requiredDocumentSchema: typeof requiredDocumentSchema;
   returnFlights: typeof returnFlights;
   transportationBudget: typeof transportationBudget;
   tripAgent: typeof tripAgent;

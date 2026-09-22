@@ -29,10 +29,10 @@ vi.mock("convex/react", async () => {
   };
 });
 
-test("Lodging is part of planning and Itinerary remains the final tab", () => {
+test("required documents follows the itinerary tab", () => {
   const html = renderToStaticMarkup(createElement(TripForm, { trip, mode: "page", onClose: vi.fn() }));
   const tabs = [...html.matchAll(/role="tab" id="trip-tab-(\d+)" aria-controls="trip-panel-(\d+)"[^>]*>([^<]+)<\/button>/g)];
-  expect(tabs.map(match => match[3])).toEqual(["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary"]);
+  expect(tabs.map(match => match[3])).toEqual(["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary", "Required Documents"]);
   for (const [, tabIndex, panelIndex] of tabs) {
     expect(panelIndex).toBe(tabIndex);
     expect(html).toContain(`role="tabpanel" id="trip-panel-${tabIndex}" aria-labelledby="trip-tab-${tabIndex}"`);
@@ -81,10 +81,10 @@ test("guest planning exposes baseline tabs and gates protected features", () => 
       accessibility: "Step-free access", homeReturnNotNeededFor: "" },
     onClose: vi.fn(), onSignInRequired: vi.fn(), onDraftChange: vi.fn(),
   }));
-  for (const tab of ["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary"]) {
+  for (const tab of ["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary", "Required Documents"]) {
     expect(html).toContain(`>${tab}</button>`);
   }
-  expect(html.match(/Sign in for more features/g)).toHaveLength(4);
+  expect(html.match(/Sign in for more features/g)).toHaveLength(5);
   expect(html).toContain("Sign in to search live flight options.");
   expect(html).toContain("Sign in to save");
 });

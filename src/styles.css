@@ -1180,6 +1180,24 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .trip-form [data-tab="4"] > h3 { margin-bottom: 4px; }
 .trip-form [data-tab="5"] > .field-hint { margin-top: 0; }
 
+.required-documents { display: grid; gap: 20px; }
+.required-documents-heading h3, .required-documents-heading p { margin: 0; }
+.required-documents-heading p { margin-top: 6px; }
+.required-documents-search { display: grid; gap: 18px; padding: 22px; border: 1px solid var(--gray); background: #ededee; }
+.required-documents-route { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; gap: 18px; }
+.required-documents-route > span:first-child { display: grid; min-height: 46px; align-content: center; padding: 8px 12px; border: 1px solid var(--gray); background: white; }
+.required-documents-route > span small { display: block; margin-bottom: 3px; color: #626262; font-size: 11px; font-weight: 700; }
+.required-documents-route > span[aria-hidden] { align-self: center; color: var(--indigo); font-size: 22px; }
+.required-documents-actions { display: flex; align-items: center; gap: 16px; }
+.required-documents-caution { margin: 0; padding: 14px 16px; border-left: 4px solid var(--teal); background: rgb(22 203 196 / 10%); font-size: 13px; line-height: 1.55; }
+.required-document-results { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.required-document-results li { padding: 18px; border: 1px solid var(--gray); border-left: 4px solid var(--teal); background: white; overflow-wrap: anywhere; }
+.required-document-results h4 { margin: 8px 0; color: var(--indigo); font-size: 17px; }
+.required-document-results h4 a:hover { text-decoration: underline; }
+.required-document-results p { margin: 0 0 10px; font-size: 14px; line-height: 1.55; }
+.required-document-results small { color: #626262; }
+.required-document-type { display: inline-block; padding: 4px 8px; background: rgb(22 203 196 / 16%); color: var(--indigo); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+
 .lodging-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .lodging-heading h3, .lodging-heading p { margin: 0; }
 .lodging-heading p { margin-top: 6px; }
@@ -1225,6 +1243,9 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .trip-form .lodging-booked { display: flex; align-items: center; gap: 10px; width: fit-content; }
 .trip-form .lodging-booked input { width: 20px; height: 20px; }
 @media (max-width: 700px) {
+  .required-documents-route { grid-template-columns: 1fr; }
+  .required-documents-route > span[aria-hidden] { display: none; }
+  .required-documents-actions { align-items: flex-start; flex-direction: column; }
   .lodging-heading, .lodging-card { flex-direction: column; }
   .lodging-search-row { grid-template-columns: 1fr; }
   .lodging-search-row .primary-button { justify-self: start; }

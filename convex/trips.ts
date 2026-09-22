@@ -1,6 +1,6 @@
 import { transportationBudgetFields, validateRides } from "./transportationBudget";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { paginationOptsValidator } from "convex/server";
+import { makeFunctionReference, paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -143,6 +143,8 @@ export const remove = mutation({
     await ctx.scheduler.runAfter(0, internal.tripAssistant.cleanupTrip, { tripId });
     await ctx.scheduler.runAfter(0, internal.lodgings.cleanupTrip, { tripId });
     await ctx.scheduler.runAfter(0, internal.lodgingJobs.cleanupTrip, { tripId });
+    await ctx.scheduler.runAfter(0, makeFunctionReference<"mutation", { tripId: Id<"trips"> }, null>(
+      "requiredDocumentJobs:cleanupTrip"), { tripId });
     return null;
   },
 });

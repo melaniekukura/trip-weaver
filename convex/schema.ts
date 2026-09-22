@@ -12,6 +12,7 @@ import { emailTables } from "./emailSchema";
 import { assistantTables } from "./assistantSchema";
 import { lodgingTables } from "./lodgingSchema";
 import { expenseFields } from "./expenseFields";
+import { requiredDocumentTables } from "./requiredDocumentSchema";
 
 export default defineSchema({
   ...authTables,
@@ -23,6 +24,7 @@ export default defineSchema({
   ...extraFeeTables,
   ...assistantTables,
   ...lodgingTables,
+  ...requiredDocumentTables,
   firecrawlBudgets: defineTable({
     scope: v.literal("trip-weaver"),
     reservedCredits: v.number(),

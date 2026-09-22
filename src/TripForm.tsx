@@ -24,8 +24,9 @@ import { api } from "../convex/_generated/api";
 import type { Doc } from "../convex/_generated/dataModel";
 import { invalidRequiredTripFields } from "./tripFormValidation";
 import type { RequiredTripField } from "./tripFormValidation";
+import { RequiredDocumentsTab } from "./RequiredDocumentsTab";
 
-const planningTabs = ["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary"];
+const planningTabs = ["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary", "Required Documents"];
 const setupTabs = ["Overview", "Destinations", "Create my trip"];
 
 type InitialTrip = Pick<GuestTripDraft, "origin" | "destinations" | "startDate"> &
@@ -256,6 +257,12 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
                   onOpenTransportation={() => { setActive(1); tabButtons.current[1]?.focus(); }}
                   onOpenLodging={() => { setActive(2); tabButtons.current[2]?.focus(); }}
                   onOpenInterests={() => { setActive(3); tabButtons.current[3]?.focus(); }} />}
+              </section>
+              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-6" aria-labelledby="trip-tab-6" data-tab="6" hidden={active !== 6}>
+                {guest ? <GuestFeatureGate onSignIn={() => onSignInRequired?.()}><section><h3>Required Documents</h3>
+                  <p>Search official sources for passports, visas, travel authorizations, and entry forms.</p></section></GuestFeatureGate> : savedTrip &&
+                  <RequiredDocumentsTab tripId={savedTrip._id} origin={origin} destinations={destinations.map(stop => stop.value)}
+                    onSaveTrip={() => saveTrip()} />}
               </section>
             </>}
           </fieldset>

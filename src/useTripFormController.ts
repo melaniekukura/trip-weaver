@@ -8,6 +8,11 @@ import type { Doc, Id } from "../convex/_generated/dataModel";
 import type { DestinationStop } from "./DestinationsEditor";
 import { tripPreferences } from "./tripPreferences";
 
+export function firstInvalidTripField(form: ParentNode) {
+  return [...form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+    "[data-required-field]:invalid")][0];
+}
+
 export function useTripFormController({ trip, form, planning, origin, destinations, homeReturnNotNeededFor, setActive }: {
   trip?: Doc<"trips">;
   form: RefObject<HTMLFormElement | null>;
@@ -29,8 +34,7 @@ export function useTripFormController({ trip, form, planning, origin, destinatio
 
   async function saveTrip(homeChange?: { stops: DestinationStop[]; waiver: string }): Promise<Id<"trips"> | null> {
     if (saveLock.current || !form.current) return null;
-    const invalid = [...form.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(":invalid")]
-      .find(field => !field.closest(".expense-list"));
+    const invalid = firstInvalidTripField(form.current);
     if (invalid) {
       const panel = invalid.closest<HTMLElement>("[data-tab]");
       flushSync(() => setActive(Number(panel?.dataset.tab ?? 0)));
