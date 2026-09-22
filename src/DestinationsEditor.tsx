@@ -20,9 +20,12 @@ type DestinationsEditorProps = {
   defaultAirport?: string;
   onOriginChange: (value: string) => void;
   onStopsChange: (stops: DestinationStop[]) => void;
+  invalid?: { origin: boolean; destination: boolean };
+  onRequiredBlur?: (field: "origin" | "destination") => void;
 };
 
-export function DestinationsEditor({ origin, stops, disabled, defaultAirport, onOriginChange, onStopsChange, homePrompt }: DestinationsEditorProps) {
+export function DestinationsEditor({ origin, stops, disabled, defaultAirport, onOriginChange, onStopsChange, homePrompt,
+  invalid, onRequiredBlur }: DestinationsEditorProps) {
   const [announcement, setAnnouncement] = useState("");
   const [dragging, setDragging] = useState<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
@@ -46,6 +49,7 @@ export function DestinationsEditor({ origin, stops, disabled, defaultAirport, on
   return (
     <div className="destinations-editor" ref={container}>
       <OriginPicker label="Leaving from" value={origin} required disabled={disabled} defaultAirport={defaultAirport}
+        invalid={invalid?.origin} validationField="origin" onRequiredBlur={() => onRequiredBlur?.("origin")}
         onSelect={onOriginChange} onClear={() => onOriginChange("")} />
       <div className="destination-stops-heading">
         <h4>Destinations</h4><span>{stops.length} / 20 stops</span>
@@ -78,6 +82,7 @@ export function DestinationsEditor({ origin, stops, disabled, defaultAirport, on
       {homePrompt}
       <div className="destination-add">
         <LocationPicker label="Add a destination" required={stops.length === 0} disabled={disabled || stops.length >= 20} clearOnSelect
+          invalid={invalid?.destination} validationField="destination" onRequiredBlur={() => onRequiredBlur?.("destination")}
           onSelect={(value) => {
             if (stops.length >= 20) return;
             const added = insertDestinationBeforeHome(origin, stops, { id: crypto.randomUUID(), value });

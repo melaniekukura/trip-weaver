@@ -631,6 +631,10 @@ footer a:focus-visible {
   width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid var(--gray);
   border-radius: 4px; background: white; color: var(--ink); font: inherit;
 }
+.trip-form :is(input, textarea, select)[aria-invalid="true"] {
+  border-color: #b42318;
+  box-shadow: 0 0 0 1px #b42318;
+}
 .trip-form textarea { resize: vertical; }
 .accessibility-editor { display: grid; gap: 16px; width: 100%; }
 .trip-form .accessibility-editor > label { font-size: 20px; font-weight: 600; }
@@ -1500,7 +1504,8 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .accessibility-chip button:hover { background: #c6eeea; }
 .accessibility-chip button:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
 
-.trip-save-button:disabled { background: #C3C3C3; color: #292929; opacity: 1; }
+.trip-save-button:is(:disabled, .is-incomplete) { background: #C3C3C3; color: #292929; opacity: 1; }
+.trip-save-button.is-incomplete { cursor: pointer; }
 
 .expense-form fieldset { border: 0; padding: 0; margin: 0 0 24px; min-width: 0; }
 .expense-form legend { font-size: 18px; font-weight: 600; margin-bottom: 16px; }

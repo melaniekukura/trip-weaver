@@ -55,9 +55,12 @@ test("Lodging is part of planning and Itinerary remains the final tab", () => {
   expect(html.indexOf("</form>")).toBeLessThan(html.indexOf('id="trip-assistant-drawer"'));
 });
 
-test("new trips start with a disabled save button", () => {
+test("new trips start with a clickable, incomplete save button", () => {
   const html = renderToStaticMarkup(createElement(TripForm, { onClose: vi.fn() }));
-  expect(html).toMatch(/class="primary-button trip-save-button" type="submit" disabled=""/);
+  expect(html).toMatch(/class="primary-button trip-save-button is-incomplete" type="submit" aria-disabled="true"/);
+  expect(html).not.toMatch(/trip-save-button[^>]*disabled=""/);
+  expect(html).toContain('data-required-field="name"');
+  expect(html).toContain('data-required-field="destination"');
 });
 
 test("new trips preserve initial airport values from the home search", () => {

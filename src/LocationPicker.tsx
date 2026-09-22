@@ -10,12 +10,16 @@ export type LocationPickerProps = {
   clearOnSelect?: boolean;
   citiesOnly?: boolean;
   airportsOnly?: boolean;
+  invalid?: boolean;
+  validationField?: string;
   onSelect: (value: string) => void;
   onInputChange?: (value: string) => void;
   onClear?: () => void;
+  onRequiredBlur?: () => void;
 };
 
-export function LocationPicker({ label, value = "", required = false, disabled = false, clearOnSelect = false, citiesOnly = false, airportsOnly = false, onSelect, onInputChange, onClear }: LocationPickerProps) {
+export function LocationPicker({ label, value = "", required = false, disabled = false, clearOnSelect = false, citiesOnly = false,
+  airportsOnly = false, invalid = false, validationField, onSelect, onInputChange, onClear, onRequiredBlur }: LocationPickerProps) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState(value);
@@ -67,12 +71,13 @@ export function LocationPicker({ label, value = "", required = false, disabled =
 
   return (
     <div className="location-picker" onBlur={(event) => {
-      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) { setOpen(false); onRequiredBlur?.(); }
     }}>
       <label htmlFor={id}>{label}</label>
       <input id={id} ref={input} role="combobox" autoComplete="off" aria-autocomplete="list"
         aria-expanded={showOptions} aria-busy={loading} aria-controls={`${id}-options`}
         aria-activedescendant={open && options[active] ? `${id}-option-${active}` : undefined}
+        aria-invalid={invalid || undefined} data-required-field={validationField}
         required={required} disabled={disabled} maxLength={90} value={query}
         placeholder={citiesOnly ? "Search for a city" : "Search city, airport, or airport code"} onFocus={() => { setOpen(true); setActive(0); }}
         onChange={(event) => {

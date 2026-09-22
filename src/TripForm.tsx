@@ -22,6 +22,8 @@ import { TripAssistant } from "./TripAssistant";
 import { LodgingTab } from "./LodgingTab";
 import { api } from "../convex/_generated/api";
 import type { Doc } from "../convex/_generated/dataModel";
+import { invalidRequiredTripFields } from "./tripFormValidation";
+import type { RequiredTripField } from "./tripFormValidation";
 
 const planningTabs = ["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary"];
 const setupTabs = ["Overview", "Destinations", "Create my trip"];
@@ -51,6 +53,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
   const [startDate, setStartDate] = useState(trip?.startDate ?? initialValues?.startDate ?? "");
   const [interests, setInterests] = useState(trip?.interests ?? initialValues?.interests ?? []);
   const [endDate, setEndDate] = useState(trip?.endDate ?? initialValues?.endDate ?? "");
+  const [touchedRequired, setTouchedRequired] = useState<Partial<Record<RequiredTripField, boolean>>>({});
   const [origin, setOrigin, defaultAirport] = useDefaultOrigin(trip?.origin ?? initialValues?.origin);
   const [destinations, setDestinations] = useState<DestinationStop[]>(() =>
     (trip?.destinations ?? initialValues?.destinations ?? []).map((value, index) => ({ id: `saved-${index}`, value })));
@@ -119,6 +122,19 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
 
   const creationReady = tripCreationReady({ name, origin, destinations: destinations.map(stop => stop.value),
     startDate, endDate, travelers: Number(travelers) });
+  const invalidRequired = invalidRequiredTripFields({ name, origin, destinations: destinations.map(stop => stop.value),
+    startDate, endDate, travelers });
+  const showInvalid = (field: RequiredTripField) => invalidRequired[field] && touchedRequired[field];
+  const touchRequired = (field: RequiredTripField) => setTouchedRequired(current => ({ ...current, [field]: true }));
+
+  function revealInvalidRequired() {
+    const fields = (Object.keys(invalidRequired) as RequiredTripField[]).filter(field => invalidRequired[field]);
+    setTouchedRequired(current => ({ ...current, ...Object.fromEntries(fields.map(field => [field, true])) }));
+    const first = fields[0];
+    if (!first) return;
+    setActive(first === "origin" || first === "destination" ? (planning ? 0 : 1) : 0);
+    requestAnimationFrame(() => form.current?.querySelector<HTMLElement>(`[data-required-field="${first}"]`)?.focus());
+  }
   const draftValues = { name, origin, destinations: destinations.map(stop => stop.value), startDate, endDate,
     travelers: Number(travelers), interests, accessibility, homeReturnNotNeededFor };
 
@@ -129,7 +145,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!savedTrip && !creationReady) return;
+    if (!creationReady) { revealInvalidRequired(); return; }
     if (guest && initialValues?.draftId) {
       onDraftChange?.({ draftId: initialValues.draftId, ...draftValues });
       onSignInRequired?.();
@@ -159,7 +175,8 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
   const destinationFields = <>
     <h3>Where are you headed?</h3>
     <DestinationsEditor origin={origin} stops={destinations} disabled={pending} defaultAirport={defaultAirport}
-      onOriginChange={setOrigin} onStopsChange={setDestinations} homePrompt={homePrompt} />
+      invalid={{ origin: !!showInvalid("origin"), destination: !!showInvalid("destination") }}
+      onRequiredBlur={touchRequired} onOriginChange={setOrigin} onStopsChange={setDestinations} homePrompt={homePrompt} />
   </>;
 
   const content = (
@@ -184,14 +201,20 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
           <fieldset disabled={pending}>
             <section className="trip-tab-panel" role="tabpanel" id="trip-panel-0" aria-labelledby="trip-tab-0" data-tab="0" hidden={active !== 0}>
               <h3>The essentials</h3>
-              <label>Trip name<input name="name" required maxLength={120} value={name} onChange={event => setName(event.target.value)} placeholder="Autumn in Japan" autoFocus={!planning} /></label>
+              <label>Trip name<input name="name" required maxLength={120} value={name} onChange={event => setName(event.target.value)}
+                onBlur={() => touchRequired("name")} aria-invalid={showInvalid("name") || undefined} data-required-field="name"
+                placeholder="Autumn in Japan" autoFocus={!planning} /></label>
               <div className="form-row">
                 <label>Start date<input name="startDate" type="date" required min="1900-01-01" max="9999-12-31"
-                  value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
+                  value={startDate} onChange={(event) => setStartDate(event.target.value)} onBlur={() => touchRequired("startDate")}
+                  aria-invalid={showInvalid("startDate") || undefined} data-required-field="startDate" /></label>
                 <label>End date<input name="endDate" type="date" required min={startDate || "1900-01-01"} max="9999-12-31"
-                  value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
+                  value={endDate} onChange={(event) => setEndDate(event.target.value)} onBlur={() => touchRequired("endDate")}
+                  aria-invalid={showInvalid("endDate") || undefined} data-required-field="endDate" /></label>
               </div>
-              <label>Travelers<input name="travelers" type="number" min={1} max={100} step={1} required value={travelers} onChange={event => setTravelers(event.target.value)} /></label>
+              <label>Travelers<input name="travelers" type="number" min={1} max={100} step={1} required value={travelers}
+                onChange={event => setTravelers(event.target.value)} onBlur={() => touchRequired("travelers")}
+                aria-invalid={showInvalid("travelers") || undefined} data-required-field="travelers" /></label>
               {planning && destinationFields}
             </section>
             {!planning && <section className="trip-tab-panel" role="tabpanel" id="trip-panel-1" aria-labelledby="trip-tab-1" data-tab="1" hidden={active !== 1}>
@@ -244,7 +267,8 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
             <div className="button-row">
               {active > 0 && <button className="secondary-button" type="button" onClick={() => setActive(active - 1)}>Back</button>}
               {active < tabs.length - 1 && <button className="secondary-button" type="button" onClick={() => setActive(active + 1)}>Next</button>}
-              <button className="primary-button trip-save-button" type="submit" disabled={pending || (!savedTrip && !creationReady)}>{pending ? "Saving…" : guest ? "Sign in to save" : !planning && active === 2 ? "Create my trip" : planning ? "Save changes" : "Save trip"}</button>
+              <button className={`primary-button trip-save-button${!creationReady ? " is-incomplete" : ""}`} type="submit"
+                disabled={pending} aria-disabled={!creationReady || undefined}>{pending ? "Saving…" : guest ? "Sign in to save" : !planning && active === 2 ? "Create my trip" : planning ? "Save changes" : "Save trip"}</button>
             </div>
           </div>
         </footer>
