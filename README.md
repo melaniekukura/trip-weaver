@@ -8,11 +8,11 @@ Built for the Convex All-Gas Hackathon.
 
 **Live app:** [rare-scorpion-458.convex.site](https://rare-scorpion-458.convex.site)
 
-No invitation or shared credentials are required. Create an account with an email
-address and a 12–128 character password, then enter the six-digit verification
-code delivered by AgentMail. After signing in, create a trip from the home page
-or **Trips** and explore its planning, research, budget, assistant, and itinerary
-workflows.
+No invitation or shared credentials are required. Guests can use the standard
+home page, start a trip, and open the baseline trip planner without an account.
+To test saved trips and live research, create an account with an email address
+and a 12–128 character password, then enter the six-digit verification code
+delivered by AgentMail. An in-progress guest draft is imported after sign-in.
 
 Firecrawl-backed searches consume a shared hackathon allowance. Reuse displayed
 results when possible and refresh only when needed.
@@ -22,9 +22,9 @@ results when possible and refresh only when needed.
 > **Submission media placeholder:** Add the hosted walkthrough link or replace
 > this note with an embedded `docs/trip-weaver-demo.gif` before judging.
 
-Suggested flow: create a trip, run one research search, save a result, review the
-reactive budget and itinerary, ask the trip-aware assistant a question, and email
-the itinerary.
+Suggested flow: begin a trip as a guest, add interests and accessibility needs,
+sign in to preserve the draft, run one research search, review the reactive budget
+and itinerary, ask the trip-aware assistant a question, and email the itinerary.
 
 ## Screenshots
 
@@ -35,8 +35,11 @@ the itinerary.
 
 - **One workspace for the whole trip:** plan multi-city routes, flights, lodging,
   local transportation, interests, accessibility requirements, and profile defaults.
+- **Useful before sign-in:** guests can build the trip overview, arrange destinations,
+  edit interests, plan accessibility needs, and carry that session draft into an account.
 - **Source-linked live research:** Firecrawl finds flight options, stays, activities,
-  events, transportation fares, and extra fees without presenting missing data as fact.
+  events, transportation fares, extra fees, and destination entry-document sources
+  without presenting missing data as fact.
 - **Accessibility-aware discovery:** requirements travel with the trip, and activity
   results separate confirmed matches, unknowns, and source-supported mismatches.
 - **Reactive trip budgets:** selected transportation and researched fees roll into
@@ -48,6 +51,48 @@ the itinerary.
   activities into a chronological itinerary, then send an immutable snapshot through AgentMail.
 - **Private by default:** Convex Auth, server-derived ownership, validation, rate
   limits, stale-edit protection, and cleanup keep each traveler's data isolated.
+
+## Product access and planning flows
+
+The home page is shared by guests and signed-in users. Guests see **Sign in** in
+the account area; authenticated users see the full navigation and **Sign out**.
+
+### Guest planning
+
+A guest can start from the home-page search or **Create my trip** flow without
+being redirected to authentication. The guest planner stores one in-progress
+draft in browser session storage, so it survives navigation to the sign-in flow
+within the same browser tab.
+
+Guest access is intentionally limited:
+
+| Planner tab | Guest access |
+| --- | --- |
+| Overview | Full trip name, dates, travelers, departure point, and ordered destinations |
+| Transportation | Route and flight setup; live flight research and itemized transportation expenses require sign-in |
+| Lodging | Preview locked behind sign-in |
+| Interests | Interest editing is available; live discovery and itinerary scheduling require sign-in |
+| Accessibility | Full accessibility requirement editor |
+| Itinerary | Preview locked behind sign-in |
+| Required Documents | Preview locked behind sign-in |
+
+Choosing a gated feature or **Sign in to save** opens authentication without
+discarding the draft. After sign-in or account creation, Convex imports the draft
+exactly once as a new owned trip and opens the complete planner.
+
+### Signed-in planning
+
+Authenticated users can create, edit, and delete saved trips; research flights,
+lodging, activities, local transportation, fees, and required travel documents;
+manage bookings and expenses; use the trip-aware assistant; view budgets and the
+chronological itinerary; and email an immutable itinerary snapshot.
+
+The **Required Documents** tab searches one saved destination at a time using the
+trip's departure location and start date. Results are cached, source-linked, and
+categorized as passports, visas, travel authorizations, health documents, arrival
+forms, or general entry requirements. Requirements can also depend on citizenship,
+passport, transit points, and trip purpose, so travelers must confirm each result
+with the linked authority.
 
 ## Architecture
 
@@ -182,10 +227,12 @@ flight searches.
 
 ### Authentication and saved trips
 
-Create an account with an email address and a password of 12–128 characters.
-After signing in, **My trips** supports creating, editing, and deleting plans.
-Trips include destinations, calendar dates, budget, currency, traveler count,
-and interests. Changes persist in the local Convex database.
+An account is optional for the public home page and guest planner. Create one with
+an email address and a password of 12–128 characters to save a guest draft, use
+live research, and access private trip data. After signing in, **My trips** supports
+creating, editing, and deleting plans. Trips include destinations, calendar dates,
+budget, currency, traveler count, interests, and accessibility requirements.
+Changes persist in Convex.
 
 The frontend signs users out after 30 minutes without typing, clicking, or
 scrolling. A warning appears two minutes beforehand with a **Stay signed in**
@@ -210,9 +257,9 @@ AgentMail code that expires after 15 minutes and signs the user in after reset.
 
 ### AgentMail email delivery
 
-Verified users can send a saved itinerary snapshot to their account address from
-the final **Itinerary** tab. The UI shows queued, sending, sent, delivered,
-bounced, rejected, and retry states using signed AgentMail webhook events.
+Verified users can send a saved itinerary snapshot, including booked lodging, to
+a chosen recipient from the **Itinerary** tab. The UI shows queued, sending, sent,
+delivered, bounced, rejected, and retry states using signed AgentMail webhook events.
 
 Configure each Convex deployment with these backend environment variables:
 
@@ -242,11 +289,21 @@ action boundary is separate from the Firecrawl research integration below.
 
 ### Firecrawl web research
 
-Saved trips include a **Find flights** prototype: one-way or round-trip economy for the trip's travelers
-in USD, using Firecrawl to read Google Flights. Enter airport codes and a departure
-date to see up to five observed fares, source links, progress/errors, and refresh.
-Matching results are cached for 15 minutes, with ownership checks and request limits.
-See [the research API and itinerary handoff](references/flight-search.md).
+Authenticated trips use Firecrawl for source-linked flight, lodging, activity,
+event, local-transportation, extra-fee, and required-document research. Every
+workflow applies ownership checks, request limits, bounded jobs, safe error
+messages, and short-lived result caching. Guests cannot start live searches.
+
+The **Find flights** workflow searches one-way or round-trip economy options for
+the trip's full traveler count in USD by reading Google Flights. It returns up to
+five observed fares with source links, progress, errors, filters, and refresh.
+Matching results are cached for 15 minutes. See
+[the research API and itinerary handoff](references/flight-search.md).
+
+The **Required Documents** workflow searches government and official-source leads
+for the saved origin, destination, and trip start date. It returns application,
+information, or PDF links when Firecrawl finds them. Results are research guidance,
+not legal advice or a guarantee that every traveler has the same requirements.
 
 `convex/firecrawl.ts` uses Firecrawl's v2 REST API directly from Convex; no browser
 SDK or additional service is required. It provides two internal actions:
@@ -255,8 +312,9 @@ SDK or additional service is required. It provides two internal actions:
   descriptions, retrieval time, and optional Markdown.
 - `firecrawl:scrape`: read one HTTP(S) page as Markdown with its source URL.
 
-These low-level actions remain internal. The authenticated, rate-limited
-`flightJobs:start` mutation queues flight searches, and `flightJobs:latest` reads results.
+These low-level actions remain internal. Authenticated, rate-limited job modules
+queue and cache each product search; for example, `flightJobs:start` manages
+flight searches and `requiredDocumentJobs:start` manages entry-document searches.
 They can be invoked by backend actions, the Convex dashboard, or the authenticated
 Convex CLI. The old mock flight form is removed from the UI. The prototype does
 not verify checkout availability. Round-trip results
