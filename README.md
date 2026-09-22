@@ -1,6 +1,93 @@
 # Trip-Weaver
 
-Travel agent app for the Convex All-Gas Hackathon.
+Trip planning is fragmented across search, spreadsheets, booking tabs, and notes; Trip-Weaver turns live travel research, accessibility needs, costs, and saved choices into one private, reactive itinerary with a trip-aware AI assistant.
+
+Built for the Convex All-Gas Hackathon.
+
+## Live demo and judge access
+
+**Live app:** [rare-scorpion-458.convex.site](https://rare-scorpion-458.convex.site)
+
+No invitation or shared credentials are required. Create an account with an email
+address and a 12–128 character password, then enter the six-digit verification
+code delivered by AgentMail. After signing in, create a trip from the home page
+or **Trips** and explore its planning, research, budget, assistant, and itinerary
+workflows.
+
+Firecrawl-backed searches consume a shared hackathon allowance. Reuse displayed
+results when possible and refresh only when needed.
+
+## 60–90 second walkthrough
+
+> **Submission media placeholder:** Add the hosted walkthrough link or replace
+> this note with an embedded `docs/trip-weaver-demo.gif` before judging.
+
+Suggested flow: create a trip, run one research search, save a result, review the
+reactive budget and itinerary, ask the trip-aware assistant a question, and email
+the itinerary.
+
+## Screenshots
+
+> **Submission media placeholder:** Add screenshots of the trip planner,
+> Firecrawl research results, budget dashboard, and final itinerary before judging.
+
+## Feature highlights
+
+- **One workspace for the whole trip:** plan multi-city routes, flights, lodging,
+  local transportation, interests, accessibility requirements, and profile defaults.
+- **Source-linked live research:** Firecrawl finds flight options, stays, activities,
+  events, transportation fares, and extra fees without presenting missing data as fact.
+- **Accessibility-aware discovery:** requirements travel with the trip, and activity
+  results separate confirmed matches, unknowns, and source-supported mismatches.
+- **Reactive trip budgets:** selected transportation and researched fees roll into
+  category totals, daily spending graphs, and cached ECB reference-rate conversions.
+- **A versatile planning assistant:** the Convex Agent component gives the assistant
+  the owned trip's current route, selections, bookings, saved ideas, and itinerary.
+- **A usable product:** combine booked transportation and planned activities into a
+  chronological itinerary, then send an immutable snapshot through AgentMail.
+- **Private by default:** Convex Auth, server-derived ownership, validation, rate
+  limits, stale-edit protection, and cleanup keep each traveler's data isolated.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    J[Judge / traveler] -->|HTTPS| UI[React + Vite\nConvex Static Hosting]
+    UI -->|Convex Auth| AUTH[Convex Auth]
+    UI <-->|typed mutations +\nrealtime queries| API[Convex functions]
+    API <-->|transactional reads/writes| DB[(Convex database)]
+    API -->|queued research jobs| WP[Workpool + Rate Limiter]
+    WP -->|actions| FC[Firecrawl]
+    FC -->|source-linked results| API
+    API --> AGENT[Convex Agent]
+    AGENT -->|model requests| OR[OpenRouter]
+    API -->|verification + itinerary email| AM[AgentMail]
+    AM -->|signed delivery webhooks| HTTP[Convex HTTP actions]
+    HTTP --> DB
+```
+
+The browser receives live updates from Convex as research jobs, assistant requests,
+and email delivery events progress. Secrets and third-party calls remain in Convex
+actions; the Vite client receives only validated, owner-scoped data.
+
+## Built with Convex
+
+Convex is Trip-Weaver's backend, realtime synchronization layer, job orchestrator,
+authentication system, AI-agent runtime, HTTP endpoint host, and frontend host.
+
+- **Database and functions:** a type-safe schema, indexed private trip data,
+  transactional mutations, paginated queries, actions, and scheduled functions.
+- **Realtime UI:** planner, research, budget, assistant, and email states update from
+  reactive queries without a separate websocket or cache layer.
+- **Convex Auth:** email/password accounts with AgentMail verification and ownership
+  derived server-side from the authenticated user's stable ID.
+- **Convex components:** Agent powers persistent trip-aware conversations, Workpool
+  runs bounded research jobs, Rate Limiter protects costly operations, and Static
+  Hosting serves the production Vite build.
+- **Durable integrations:** Convex actions call Firecrawl and OpenRouter, while HTTP
+  actions verify AgentMail webhooks and reconcile delivery events.
+- **Production deployment:** one workflow tests and type-checks the app before
+  deploying the Convex backend and static frontend together.
 
 ## Local development setup
 
