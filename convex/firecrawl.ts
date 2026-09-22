@@ -203,6 +203,8 @@ export const search = internalAction({
     includeContent: v.optional(v.boolean()),
     budgetReserved: v.optional(v.boolean()),
     sessionId: v.optional(v.string()),
+    location: v.optional(v.string()),
+    excludeDomains: v.optional(v.array(v.string())),
   },
   returns: v.object({
     dataSource: v.literal("firecrawl"),
@@ -213,12 +215,21 @@ export const search = internalAction({
   }),
   handler: async (ctx, args) => {
     const query = args.query.trim();
+    const location = args.location?.trim();
+    const excludeDomains = args.excludeDomains?.map(domain => domain.trim().toLocaleLowerCase());
     const limit = args.limit ?? 5;
     if (!query || query.length > 500) fail("INVALID_QUERY", "Search queries must contain 1–500 characters.");
+    if (location && location.length > 200) fail("INVALID_LOCATION", "Search locations must contain at most 200 characters.");
+    if (excludeDomains && (excludeDomains.length > 50 || excludeDomains.some(domain =>
+      !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(domain)))) {
+      fail("INVALID_DOMAINS", "Excluded search domains must be valid hostnames.");
+    }
     if (!Number.isInteger(limit) || limit < 1 || limit > 5) fail("INVALID_LIMIT", "Search limits must be integers from 1 to 5.");
     await reserveDirectRun(ctx, args.sessionId);
     const result = await request("search", {
       query, limit, sources: [{ type: "web" }], timeout: 30000,
+      ...(location ? { location } : {}),
+      ...(excludeDomains?.length ? { excludeDomains } : {}),
       ...(args.includeContent ? { scrapeOptions: { formats: ["markdown"], onlyMainContent: true, maxCredits: 500 } } : {}),
     });
     const data = object(result.data);

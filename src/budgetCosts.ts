@@ -6,6 +6,7 @@ import { transportationTotals } from "./budgetCalculations";
 export const costCategories = [
   { id: "flights", label: "Flights", color: "#16CBC4" },
   { id: "transportation", label: "Local transportation", color: "#5265D8" },
+  { id: "lodging", label: "Lodging", color: "#251F47" },
   { id: "restaurants", label: "Restaurants", color: "#E78B36" },
   { id: "activities", label: "Activities & tickets", color: "#9A63CE" },
   { id: "baggage", label: "Baggage", color: "#D85D85" },
@@ -15,7 +16,7 @@ export type CostCategory = typeof costCategories[number]["id"];
 export type CostEntry = { id: string; title: string; category: CostCategory; currency: string; cents: number; date?: string };
 export const formatCost = (amount: number, currency: string) => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
 
-export function budgetCosts(trip: Doc<"trips">, fees: FeeResult[] = []) {
+export function budgetCosts(trip: Doc<"trips">, fees: FeeResult[] = [], lodgings: Doc<"lodgings">[] = []) {
   const transportation = transportationTotals(trip);
   const entries: CostEntry[] = [];
   for (const { leg, amount } of transportation.flights) {
@@ -35,19 +36,24 @@ export function budgetCosts(trip: Doc<"trips">, fees: FeeResult[] = []) {
       category: "transportation", currency: ride.currency, cents: Math.round(ride.amount * 100) * ride.count,
     });
   }
+  for (const lodging of lodgings) if (lodging.totalCost !== undefined) entries.push({
+    id: `lodging-${lodging._id}`, title: lodging.name, category: "lodging", currency: lodging.currency,
+    cents: Math.round(lodging.totalCost * 100), date: lodging.checkInDate,
+  });
   for (const fee of fees) if (fee.status === "priced" && fee.amount !== undefined && fee.currency) {
     entries.push({ id: fee.target.id, title: fee.target.title, category: fee.target.category, currency: fee.currency,
       cents: Math.round(fee.amount * 100) * fee.target.quantity, ...(fee.target.date ? { date: fee.target.date } : {}) });
   }
   return { ...summarizeCosts(entries),
-    unknown: localRides.filter(ride => ride.count > 0 && ride.status !== "priced").length + fees.filter(fee => fee.status !== "priced").length + transportation.flights.filter(flight => flight.amount === null).length,
+    unknown: localRides.filter(ride => ride.count > 0 && ride.status !== "priced").length + fees.filter(fee => fee.status !== "priced").length +
+      transportation.flights.filter(flight => flight.amount === null).length + lodgings.filter(lodging => lodging.totalCost === undefined).length,
     stale: transportation.staleCount };
 }
 
 export function summarizeCosts(entries: CostEntry[]) {
   return { entries, totals: totalCosts(entries),
     transportationTotals: totalCosts(entries.filter(entry => entry.category === "flights" || entry.category === "transportation")),
-    extraFeeTotals: totalCosts(entries.filter(entry => entry.category !== "flights" && entry.category !== "transportation")),
+    extraFeeTotals: totalCosts(entries.filter(entry => !["flights", "transportation", "lodging"].includes(entry.category))),
     breakdown: costCategories.map(category => ({ ...category, totals: totalCosts(entries.filter(entry => entry.category === category.id)) })),
   };
 }

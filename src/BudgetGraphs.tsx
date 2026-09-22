@@ -5,8 +5,8 @@ import type { Doc } from "../convex/_generated/dataModel";
 import type { FeeResult } from "../convex/extraFeeResearch";
 import { budgetCosts, costCategories, dailyCosts, formatCost } from "./budgetCosts";
 
-export function BudgetGraphs({ trip, fees }: { trip: Doc<"trips">; fees?: FeeResult[] }) {
-  const { costs, currency, error, retry, rateDate } = useBudgetCosts(trip, fees);
+export function BudgetGraphs({ trip, fees, lodgings = [] }: { trip: Doc<"trips">; fees?: FeeResult[]; lodgings?: Doc<"lodgings">[] }) {
+  const { costs, currency, error, retry, rateDate } = useBudgetCosts(trip, fees, lodgings);
   return <div className="budget-graphs">
     <div className="budget-graphs-toolbar"><strong>Total Cost: {costs ? formatCost(costs.totals[currency] ?? 0, currency) : error ? "--" : "Calculating…"}</strong></div>
     <BudgetConversionStatus error={error} retry={retry} rateDate={rateDate || undefined} />

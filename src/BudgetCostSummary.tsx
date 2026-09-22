@@ -6,8 +6,10 @@ import type { Doc } from "../convex/_generated/dataModel";
 import type { FeeResult } from "../convex/extraFeeResearch";
 import { formatCost } from "./budgetCosts";
 
-export function BudgetCostSummary({ trip, fees, breakdown = false }: { trip: Doc<"trips">; fees?: FeeResult[]; breakdown?: boolean }) {
-  const { costs, currency, native, error, retry, rateDate } = useBudgetCosts(trip, fees);
+export function BudgetCostSummary({ trip, fees, lodgings = [], breakdown = false }: {
+  trip: Doc<"trips">; fees?: FeeResult[]; lodgings?: Doc<"lodgings">[]; breakdown?: boolean;
+}) {
+  const { costs, currency, native, error, retry, rateDate } = useBudgetCosts(trip, fees, lodgings);
   return <div className="budget-cost-summary" aria-live="polite">
     <p><strong>Total Cost:</strong> {costs ? formatCost(costs.totals[currency] ?? 0, currency) : error ? "--" : "Calculating…"} <span className="field-hint">{currency}</span></p>
     {breakdown && <dl className="budget-overview-breakdown" aria-label="Included costs">
@@ -23,5 +25,6 @@ export function BudgetCostSummary({ trip, fees, breakdown = false }: { trip: Doc
 }
 export function TripCardCost({ trip }: { trip: Doc<"trips"> }) {
   const fees = useQuery(api.extraFees.latest, { tripId: trip._id });
-  return <BudgetCostSummary trip={trip} fees={fees?.results} />;
+  const lodgings = useQuery(api.lodgings.list, { tripId: trip._id });
+  return <BudgetCostSummary trip={trip} fees={fees?.results} lodgings={lodgings} />;
 }

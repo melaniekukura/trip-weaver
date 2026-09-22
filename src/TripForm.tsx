@@ -19,10 +19,11 @@ import { TransportationTab } from "./TransportationTab";
 import { AccessibilityTab } from "./AccessibilityTab";
 import { TripItinerary } from "./TripItinerary";
 import { TripAssistant } from "./TripAssistant";
+import { LodgingTab } from "./LodgingTab";
 import { api } from "../convex/_generated/api";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 
-const planningTabs = ["Overview", "Transportation", "Interests", "Accessibility", "Itinerary"];
+const planningTabs = ["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary"];
 const setupTabs = ["Overview", "Destinations", "Create my trip"];
 
 type InitialTrip = { origin: string; destinations: string[]; startDate: string };
@@ -229,6 +230,10 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
                   departureDate={startDate} returnDate={endDate} onReturnDateChange={setEndDate} onSaveTrip={saveTrip} onEditDetails={() => { setActive(0); tabButtons.current[0]?.focus(); }} />
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-2" aria-labelledby="trip-tab-2" data-tab="2" hidden={active !== 2}>
+                {savedTrip && <LodgingTab tripId={savedTrip._id} route={homeRoute} plan={liveTrip?.flightPlan}
+                  defaultCurrency={liveTrip?.currency ?? savedTrip.currency} />}
+              </section>
+              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-3" aria-labelledby="trip-tab-3" data-tab="3" hidden={active !== 3}>
                 <h3>Interests &amp; activities</h3>
                 <div className="interests-planning-context">
                 <CityStaySummary route={homeRoute} plan={liveTrip?.flightPlan} onOpenTransportation={() => { setActive(1); tabButtons.current[1]?.focus(); }} />
@@ -236,14 +241,15 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
                 </div>
                 <InterestDiscovery accessibility={accessibility} tripId={savedTrip?._id} interests={interests} destinations={destinations.map(stop => stop.value)} onSaveTrip={saveTrip} />
               </section>
-              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-3" aria-labelledby="trip-tab-3" data-tab="3" hidden={active !== 3}>
+              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-4" aria-labelledby="trip-tab-4" data-tab="4" hidden={active !== 4}>
                 <AccessibilityTab initialValue={trip?.accessibility} onChange={setAccessibility} />
               </section>
-              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-4" aria-labelledby="trip-tab-4" data-tab="4" hidden={active !== 4}>
+              <section className="trip-tab-panel" role="tabpanel" id="trip-panel-5" aria-labelledby="trip-tab-5" data-tab="5" hidden={active !== 5}>
                 <TripItinerary tripId={savedTrip?._id} route={homeRoute} plan={liveTrip?.flightPlan}
                   onSaveTrip={saveTrip}
                   onOpenTransportation={() => { setActive(1); tabButtons.current[1]?.focus(); }}
-                  onOpenInterests={() => { setActive(2); tabButtons.current[2]?.focus(); }} />
+                  onOpenLodging={() => { setActive(2); tabButtons.current[2]?.focus(); }}
+                  onOpenInterests={() => { setActive(3); tabButtons.current[3]?.focus(); }} />
               </section>
             </>}
           </fieldset>
