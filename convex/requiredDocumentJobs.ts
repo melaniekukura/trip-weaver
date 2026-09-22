@@ -142,7 +142,7 @@ export const execute = internalAction({
       const destination = placeLabel(run.destination);
       const response = await ctx.runAction(internal.firecrawl.search, {
         query: `official government entry requirements passport visa travel authorization arrival forms for a traveler departing from "${run.origin}" and visiting "${destination}" on ${run.startDate} application form PDF`,
-        limit: 5, includeContent: true, excludeDomains: excludedDomains, budgetReserved: true,
+        limit: 5, excludeDomains: excludedDomains, budgetReserved: true,
         ...(sessionId ? { sessionId } : {}),
       });
       const seen = new Set<string>();

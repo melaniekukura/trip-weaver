@@ -55,7 +55,7 @@ test("document search uses the saved route and stores linked results", async () 
   expect(body.query).toContain('departing from "Detroit"');
   expect(body.query).toContain('visiting "Tokyo"');
   expect(body.query).toContain("2027-04-10");
-  expect(body.scrapeOptions.formats).toEqual(["markdown"]);
+  expect(body).not.toHaveProperty("scrapeOptions");
   expect(await alice.query(api.firecrawl.budget, { sessionId })).toMatchObject({ projectUsed: 1, sessionUsed: 1 });
 });
 
