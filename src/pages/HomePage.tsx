@@ -5,8 +5,8 @@ import { Icon } from "../Icons";
 import { LocationPicker } from "../LocationPicker";
 import { TripForm } from "../TripForm";
 
-export function HomePage() {
-  const [origin, setOrigin] = useDefaultOrigin();
+export function HomePage({ authenticated = true, onSignInRequired }: { authenticated?: boolean; onSignInRequired?: () => void }) {
+  const [origin, setOrigin] = useDefaultOrigin(undefined, authenticated);
   const [destination, setDestination] = useState("");
   const [date, setDate] = useState("");
   const [planning, setPlanning] = useState(false);
@@ -21,13 +21,13 @@ export function HomePage() {
       </p>
       <form className="search-card live-planner" id="planner" onSubmit={(event) => {
         event.preventDefault();
-        if (origin && destination) setPlanning(true);
+        setPlanning(true);
       }}>
         <div className="search-field">
-          <OriginPicker label="Leaving from" value={origin} required onSelect={setOrigin} onClear={() => setOrigin("")} />
+          <OriginPicker label="Leaving from" value={origin} loadProfile={authenticated} onSelect={setOrigin} onInputChange={setOrigin} />
         </div>
         <div className="search-field">
-          <LocationPicker label="Going to" value={destination} required onSelect={setDestination} onClear={() => setDestination("")} />
+          <LocationPicker label="Going to" value={destination} onSelect={setDestination} onInputChange={setDestination} />
         </div>
         <label className="search-field">
           <span>Departure date</span>
@@ -37,7 +37,8 @@ export function HomePage() {
           <Icon size={20}><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></Icon>
         </button>
       </form>
-      {planning && <TripForm initialValues={{ origin, destinations: [destination], startDate: date }} onClose={() => setPlanning(false)} />}
+      {planning && <TripForm authenticated={authenticated} onSignInRequired={onSignInRequired}
+        initialValues={{ origin, destinations: destination ? [destination] : [], startDate: date }} onClose={() => setPlanning(false)} />}
     </section>
   );
 }

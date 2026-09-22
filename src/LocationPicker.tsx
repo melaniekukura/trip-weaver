@@ -11,10 +11,11 @@ export type LocationPickerProps = {
   citiesOnly?: boolean;
   airportsOnly?: boolean;
   onSelect: (value: string) => void;
+  onInputChange?: (value: string) => void;
   onClear?: () => void;
 };
 
-export function LocationPicker({ label, value = "", required = false, disabled = false, clearOnSelect = false, citiesOnly = false, airportsOnly = false, onSelect, onClear }: LocationPickerProps) {
+export function LocationPicker({ label, value = "", required = false, disabled = false, clearOnSelect = false, citiesOnly = false, airportsOnly = false, onSelect, onInputChange, onClear }: LocationPickerProps) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState(value);
@@ -49,7 +50,7 @@ export function LocationPicker({ label, value = "", required = false, disabled =
     input.current?.setCustomValidity((required || airportsOnly) && query && !value ? (airportsOnly ? "Select an airport from the suggestions." : citiesOnly ? "Select a city from the suggestions." : "Select a city or airport from the suggestions.") : "");
   }, [query, required, value, citiesOnly, airportsOnly]);
 
-  useEffect(() => { if (value) setQuery(value); }, [value]);
+  useEffect(() => { setQuery(value); }, [value]);
 
   useEffect(() => {
     if (open) document.getElementById(`${id}-option-${active}`)?.scrollIntoView({ block: "nearest" });
@@ -74,7 +75,13 @@ export function LocationPicker({ label, value = "", required = false, disabled =
         aria-activedescendant={open && options[active] ? `${id}-option-${active}` : undefined}
         required={required} disabled={disabled} maxLength={90} value={query}
         placeholder={citiesOnly ? "Search for a city" : "Search city, airport, or airport code"} onFocus={() => { setOpen(true); setActive(0); }}
-        onChange={(event) => { setQuery(event.target.value); onClear?.(); setOpen(true); setActive(0); }}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          onInputChange?.(event.target.value);
+          onClear?.();
+          setOpen(true);
+          setActive(0);
+        }}
         onKeyDown={(event) => {
           if ((event.key === "ArrowDown" || event.key === "ArrowUp") && options.length > 0) {
             event.preventDefault();

@@ -58,3 +58,13 @@ test("new trips start with a disabled save button", () => {
   const html = renderToStaticMarkup(createElement(TripForm, { onClose: vi.fn() }));
   expect(html).toMatch(/class="primary-button trip-save-button" type="submit" disabled=""/);
 });
+
+test("new trips preserve initial airport values from the home search", () => {
+  const html = renderToStaticMarkup(createElement(TripForm, {
+    initialValues: { origin: "Detroit — Detroit Metro (DTW)", destinations: ["Los Angeles — Los Angeles International (LAX)"], startDate: "2026-10-15" },
+    onClose: vi.fn(),
+  }));
+  expect(html).toContain('value="Detroit — Detroit Metro (DTW)"');
+  expect(html).toContain("Los Angeles — Los Angeles International (LAX)");
+  expect(html).toContain('value="2026-10-15"');
+});

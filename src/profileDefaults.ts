@@ -3,9 +3,9 @@ import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { emptyFlightFilters } from "./flightFilters";
 import type { FlightFilters } from "./flightFilters";
-export function useDefaultOrigin(initial?: string) {
-  const profile = useQuery(api.profile.get, {});
-  const [choice, setChoice] = useState<string | undefined>(initial || undefined);
+export function useDefaultOrigin(initial?: string, loadProfile = true) {
+  const profile = useQuery(api.profile.get, loadProfile ? {} : "skip");
+  const [choice, setChoice] = useState<string | undefined>(initial);
   return [choice ?? profile?.defaultAirport ?? "", setChoice] as const;
 }
 export function profileFlightFilters(maxConnections?: number | null): FlightFilters {

@@ -28,8 +28,9 @@ const setupTabs = ["Overview", "Destinations", "Create my trip"];
 
 type InitialTrip = { origin: string; destinations: string[]; startDate: string };
 
-export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
+export function TripForm({ trip, initialValues, onClose, mode = "modal", authenticated = true, onSignInRequired }: {
   trip?: Doc<"trips">; initialValues?: InitialTrip; onClose: () => void; mode?: "modal" | "page";
+  authenticated?: boolean; onSignInRequired?: () => void;
 }) {
   const planning = mode === "page";
   const tabs = planning ? planningTabs : setupTabs;
@@ -54,7 +55,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
   const [startDate, setStartDate] = useState(trip?.startDate ?? initialValues?.startDate ?? "");
   const [interests, setInterests] = useState(trip?.interests ?? []);
   const [endDate, setEndDate] = useState(trip?.endDate ?? "");
-  const [origin, setOrigin] = useDefaultOrigin(trip?.origin ?? initialValues?.origin);
+  const [origin, setOrigin] = useDefaultOrigin(trip?.origin ?? initialValues?.origin, authenticated);
   const [destinations, setDestinations] = useState<DestinationStop[]>(() =>
     (trip?.destinations ?? initialValues?.destinations ?? []).map((value, index) => ({ id: `saved-${index}`, value })));
   const [homeReturnNotNeededFor, setHomeReturnNotNeededFor] = useState(trip?.homeReturnNotNeededFor ?? "");
@@ -165,9 +166,14 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!savedTrip && !creationReady) return;
+    if (!authenticated) {
+      onSignInRequired?.();
+      return;
+    }
+    const creating = !savedTrip;
     const tripId = await saveTrip();
     if (!tripId || planning) return;
-    if (active === 2) window.location.hash = tripPlannerPath(tripId);
+    if (creating) window.location.hash = tripPlannerPath(tripId);
     onClose();
   }
 
@@ -183,7 +189,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
 
   const destinationFields = <>
     <h3>Where are you headed?</h3>
-    <DestinationsEditor origin={origin} stops={destinations} disabled={pending}
+    <DestinationsEditor origin={origin} stops={destinations} disabled={pending} loadProfile={authenticated}
       onOriginChange={setOrigin} onStopsChange={setDestinations} homePrompt={homePrompt} />
   </>;
 

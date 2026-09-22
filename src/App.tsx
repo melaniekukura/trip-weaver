@@ -1,5 +1,5 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { Authenticated, AuthLoading, Unauthenticated, useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useEffect, useState } from "react";
 import { AuthForm } from "./AuthForm";
@@ -101,28 +101,41 @@ function SignedInApp() {
   );
 }
 
-function LoginScreen({ loading = false }: { loading?: boolean }) {
+function GuestApp() {
+  const [signingIn, setSigningIn] = useState(window.location.hash === "#signin");
+
+  useEffect(() => {
+    function navigate() {
+      setSigningIn(window.location.hash === "#signin");
+    }
+    window.addEventListener("hashchange", navigate);
+    return () => window.removeEventListener("hashchange", navigate);
+  }, []);
+
+  function showSignIn() {
+    window.location.hash = "signin";
+    setSigningIn(true);
+  }
+
   return (
     <div className="site-shell">
       <header className="topbar">
-        <a className="brand" href="#signin" aria-label="Trip-Weaver home">
+        <a className="brand" href="#/" aria-label="Trip-Weaver home" onClick={() => setSigningIn(false)}>
           <RouteIcon />
           <span>Trip-Weaver</span>
         </a>
+        <div className="account-actions">
+          <button className="sign-out" type="button" onClick={showSignIn}>Sign in</button>
+        </div>
       </header>
-      <main>
-        {loading ? <p className="auth-panel" role="status">Loading your account…</p> : <AuthForm />}
+      <main id="page-content" className="page-content" tabIndex={-1} aria-label={signingIn ? "Sign in" : "Home"}>
+        {signingIn ? <AuthForm /> : <HomePage authenticated={false} onSignInRequired={showSignIn} />}
       </main>
     </div>
   );
 }
 
 export default function App() {
-  return (
-    <>
-      <AuthLoading><LoginScreen loading /></AuthLoading>
-      <Unauthenticated><LoginScreen /></Unauthenticated>
-      <Authenticated><IdleSession><SignedInApp /></IdleSession></Authenticated>
-    </>
-  );
+  const { isAuthenticated } = useConvexAuth();
+  return isAuthenticated ? <IdleSession><SignedInApp /></IdleSession> : <GuestApp />;
 }

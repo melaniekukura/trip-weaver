@@ -5,7 +5,7 @@ import { profileFlightFilters, useDefaultOrigin } from "./profileDefaults";
 import { matchesFlightFilters } from "./flightFilters";
 import { ProfileForm } from "./pages/ProfilePage";
 const { profile } = vi.hoisted(() => ({ profile: { defaultAccessibility: "Step-free access", name: "Traveler", email: "traveler@example.test", defaultAirport: "Detroit — Detroit Metro (DTW)", maxConnections: 1, revision: 1 } }));
-vi.mock("convex/react", () => ({ useQuery: () => profile, useMutation: () => vi.fn() }));
+vi.mock("convex/react", () => ({ useQuery: (_reference: unknown, args: unknown) => args === "skip" ? undefined : profile, useMutation: () => vi.fn() }));
 test("maximum connections includes nonstop and shorter itineraries and rejects unknown counts", () => {
   const flight = { departure: "10:00 AM", arrival: "1:00 PM", amount: 100, stops: "Nonstop" };
   for (const limit of [0, 1, 2, 3]) {
@@ -16,10 +16,15 @@ test("maximum connections includes nonstop and shorter itineraries and rejects u
   }
   expect(profileFlightFilters(null).stops).toBe("any");
 });
-function Origin({ initial }: { initial?: string }) { const [origin] = useDefaultOrigin(initial); return createElement("span", null, origin); }
+function Origin({ initial, loadProfile }: { initial?: string; loadProfile?: boolean }) {
+  const [origin] = useDefaultOrigin(initial, loadProfile);
+  return createElement("span", null, origin);
+}
 test("defaults fill new origins while saved or explicitly selected origins take precedence", () => {
   expect(renderToStaticMarkup(createElement(Origin))).toContain("DTW");
   expect(renderToStaticMarkup(createElement(Origin, { initial: "Los Angeles (LAX)" }))).toContain("LAX");
+  expect(renderToStaticMarkup(createElement(Origin, { initial: "" }))).toBe("<span></span>");
+  expect(renderToStaticMarkup(createElement(Origin, { loadProfile: false }))).toBe("<span></span>");
 });
 test("profile shows account identity and optional airport and connection preferences", () => {
   const html = renderToStaticMarkup(createElement(ProfileForm, { profile }));

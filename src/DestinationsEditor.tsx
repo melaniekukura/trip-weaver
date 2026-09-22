@@ -17,11 +17,12 @@ type DestinationsEditorProps = {
   origin: string;
   stops: DestinationStop[];
   disabled: boolean;
+  loadProfile?: boolean;
   onOriginChange: (value: string) => void;
   onStopsChange: (stops: DestinationStop[]) => void;
 };
 
-export function DestinationsEditor({ origin, stops, disabled, onOriginChange, onStopsChange, homePrompt }: DestinationsEditorProps) {
+export function DestinationsEditor({ origin, stops, disabled, loadProfile = true, onOriginChange, onStopsChange, homePrompt }: DestinationsEditorProps) {
   const [announcement, setAnnouncement] = useState("");
   const [dragging, setDragging] = useState<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
@@ -44,7 +45,7 @@ export function DestinationsEditor({ origin, stops, disabled, onOriginChange, on
 
   return (
     <div className="destinations-editor" ref={container}>
-      <OriginPicker label="Leaving from" value={origin} required disabled={disabled}
+      <OriginPicker label="Leaving from" value={origin} required disabled={disabled} loadProfile={loadProfile}
         onSelect={onOriginChange} onClear={() => onOriginChange("")} />
       <div className="destination-stops-heading">
         <h4>Destinations</h4><span>{stops.length} / 20 stops</span>
