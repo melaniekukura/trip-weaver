@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { RouteIcon } from "./Icons";
+import cyanLogo from "../references/logo-icon/TW-cyan.png";
 
 export function AppShell({ label, navigation, accountActions, children }: {
   label: string;
@@ -14,7 +14,7 @@ export function AppShell({ label, navigation, accountActions, children }: {
     }}>Skip to content</a>
     <header className="topbar">
       <a className="brand" href="#/" aria-label="Trip-Weaver home">
-        <RouteIcon />
+        <img className="brand-logo" src={cyanLogo} alt="" width="32" height="31" />
         <span>Trip-Weaver</span>
       </a>
       {navigation}

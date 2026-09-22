@@ -95,10 +95,16 @@ a {
   font-weight: 700;
 }
 
-.brand .icon,
 .destination-visual .icon,
 .step .icon {
   color: var(--teal);
+}
+
+.brand-logo {
+  display: block;
+  width: 32px;
+  height: auto;
+  flex: 0 0 auto;
 }
 
 .icon {

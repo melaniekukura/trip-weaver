@@ -1,5 +1,9 @@
 # Trip-Weaver
 
+<p align="center">
+  <img src="references/logo-icon/TW-indigo.png" alt="Trip-Weaver TW route logo" width="93" />
+</p>
+
 Trip planning is fragmented across search, spreadsheets, booking tabs, and notes; Trip-Weaver turns live travel research, accessibility needs, costs, and saved choices into one private, reactive itinerary with a trip-aware AI assistant.
 
 Built for the Convex All-Gas Hackathon.
@@ -25,11 +29,6 @@ results when possible and refresh only when needed.
 Suggested flow: begin a trip as a guest, add interests and accessibility needs,
 sign in to preserve the draft, run one research search, review the reactive budget
 and itinerary, ask the trip-aware assistant a question, and email the itinerary.
-
-## Screenshots
-
-> **Submission media placeholder:** Add screenshots of the trip planner,
-> Firecrawl research results, budget dashboard, and final itinerary before judging.
 
 ## Feature highlights
 
@@ -115,6 +114,14 @@ flowchart LR
 The browser receives live updates from Convex as research jobs, assistant requests,
 and email delivery events progress. Secrets and third-party calls remain in Convex
 actions; the Vite client receives only validated, owner-scoped data.
+
+## Brand assets
+
+The reusable TW route marks are stored in `references/logo-icon/`. The browser
+favicon and README use the Space Indigo version; the navigation bar uses Cyan for
+contrast against its Space Indigo background. Black, gray, and white variants are
+available for light, neutral, and dark surfaces. Functional interface icons remain
+separate from the Trip-Weaver brand mark.
 
 ## Built with Convex
 
