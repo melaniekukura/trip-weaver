@@ -5,7 +5,7 @@ import { action, internalMutation, internalQuery } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import { flightOption, flightSearchUrl } from "./flightSearch";
 import { bookingBrowserCode } from "./returnFlights";
-import { executeReturnBrowser, reserveFirecrawlRun } from "./firecrawl";
+import { checkFirecrawlBudget, executeReturnBrowser } from "./firecrawl";
 import { diagnoseFlightFailure, flightFailure, sanitizeFlightDiagnostic } from "./flightDiagnostics";
 import type { QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
@@ -54,7 +54,7 @@ export const reserve = internalMutation({
     const result = await limiter.limit(ctx, "bookingLinks", { key: trip.ownerId });
     if (!result.ok) throw new ConvexError({ code: "BOOKING_RATE_LIMITED", retryAfter: result.retryAfter,
       message: `Booking-link limit reached. Try again in ${Math.max(1, Math.ceil(result.retryAfter / 60000))} minute(s). You can still use the airline search links below.` });
-    await reserveFirecrawlRun(ctx, sessionId);
+    await checkFirecrawlBudget(ctx, sessionId);
     return null;
   },
 });
