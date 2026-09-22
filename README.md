@@ -49,7 +49,8 @@ and itinerary, ask the trip-aware assistant a question, and email the itinerary.
 - **A usable product:** combine booked transportation, booked lodging, and planned
   activities into a chronological itinerary, then send an immutable snapshot through AgentMail.
 - **Private by default:** Convex Auth, server-derived ownership, validation, rate
-  limits, stale-edit protection, and cleanup keep each traveler's data isolated.
+  limits, stale-edit protection, account recovery, and cleanup keep each traveler's
+  data isolated.
 
 ## Product access and planning flows
 
@@ -307,10 +308,12 @@ five observed fares with source links, progress, errors, filters, and refresh.
 Matching results are cached for 15 minutes. See
 [the research API and itinerary handoff](references/flight-search.md).
 
-The **Required Documents** workflow searches government and official-source leads
-for the saved origin, destination, and trip start date. It returns application,
-information, or PDF links when Firecrawl finds them. Results are research guidance,
-not legal advice or a guarantee that every traveler has the same requirements.
+The **Required Documents** workflow searches for entry-document leads for the saved
+origin, destination, and trip start date, with queries that prioritize government
+and official sources. It returns application, information, or PDF links when
+Firecrawl finds them and reuses matching results for six hours. Each new search
+reserves two Firecrawl credits. Results are research guidance, not legal advice or
+a guarantee that every traveler has the same requirements.
 
 `convex/firecrawl.ts` uses Firecrawl's v2 REST API directly from Convex; no browser
 SDK or additional service is required. It provides two internal actions:

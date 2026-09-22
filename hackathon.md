@@ -2,7 +2,7 @@
 
 - **Project:** Trip-Weaver
 - **Event:** Convex All Gas Hackathon
-- **What it does:** Private multi-city trip planning with Firecrawl research, accessibility requirements, trip cost breakdowns, a unified day-by-day itinerary, AgentMail delivery, and a trip-aware AI planning assistant.
+- **What it does:** Guest-to-account multi-city trip planning with Firecrawl research, accessibility requirements, trip cost breakdowns, entry-document guidance, a unified day-by-day itinerary, AgentMail delivery, and a trip-aware AI planning assistant.
 - **Live app:** https://rare-scorpion-458.convex.site
 - **Repo:** private
 - **Frontend:** Convex static hosting
@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** openrouter/free
 - **Started:** 2026-09-04T19:25:03Z
-- **Last updated:** 2026-09-18T19:52:21Z
+- **Last updated:** 2026-09-22T03:54:08Z
 
 ## Log
 
@@ -134,3 +134,17 @@ Expanded activity discovery with dedicated major-museum and monument/landmark qu
 Replaced About with Profile, including editable name, account-email display, an optional default airport, and maximum connections. Added private profile queries/mutations, a user-indexed settings table, validation, and stale-edit protection. New trip origins use the saved airport; existing trips offer an explicit Use default airport action. Outgoing and return filters initialize from the connection limit and allow overrides. Added a compact accessibility search/chip editor whose saved defaults are copied only when creating new trips; existing trips and later profile changes remain independent, and copied trip chips can be removed (`convex/profile.ts`, `convex/schema.ts`, `convex/trips.ts`, `src/pages/ProfilePage.tsx`, `src/profileDefaults.ts`, `src/AccessibilityTab.tsx`).
 Removed New Trip from Budget while retaining it in My Trips. Save Trip and Create my trip stay gray and disabled until the new trip has a valid name, selected origin, destination list, dates, and traveler count; submission also guards against incomplete creation (`src/Trips.tsx`, `src/TripForm.tsx`, `src/tripCreation.ts`).
 Latest verification passed 318 tests, frontend/backend TypeScript checks, and whitespace checks. The production build passed after the Profile/accessibility-default work, before the final button changes; backend updates were synced to personal dev. Tests cover destination isolation, disabled-search behavior, late-result rejection, fee totals and currency conversion, activity evidence and broader discovery, profile ownership, and new-trip-only accessibility inheritance. A live public exchange-rate request confirmed the API response format; destination fare research, expanded attraction coverage, and browser interaction remain unverified live. No new production deployment was performed in this work session.
+
+### 2026-09-20 - 7efaaa4 (includes aaed3fc, ddc2651, and 805bcdc)
+Hardened Firecrawl accounting with per-request reservations, reported-usage reconciliation, interrupted-request expiry, and session/project limits across active research flows. Multi-city route editing now keeps the return-home flight as the final leg.
+Added owned lodging research and editable stays with city/date validation, property-type filtering, prices, source and booking links, confirmation details, notes, and booked state. Booked lodging now contributes to budgets and the chronological itinerary; interrupted research preserves saved work.
+
+### 2026-09-21 - c3c9ed5 (includes dd73214 through c93c268)
+Added manual expense tracking and itemized transportation costs, then included the booked lodging section in immutable itinerary-email snapshots sent to a chosen recipient. Accessibility editing gained searchable suggestions.
+Restored a shared public home page and a guest trip builder with full Overview and Accessibility access, limited flight and interest setup, gated account-only tabs, session-storage draft preservation, and idempotent import into a newly owned trip after authentication. Refactored shared app-shell and trip-form controller responsibilities to keep guest and authenticated flows aligned.
+Added required-field feedback, 15-minute-code password recovery, and full traveler-count propagation through outgoing and return flight research, cache identity, provider validation, displayed totals, and budgets. The trip assistant now receives only an allowlisted read-only view of routes, dates, flight times, scheduled and unscheduled activities, interests, and accessibility needs; lodging and financial data remain excluded.
+
+### 2026-09-21 - 73481d7 (includes c810587, 57e9445, and 34ab16f)
+Set the browser inactivity timeout to 30 minutes with a warning two minutes before sign-out. Added a signed-in-only Required Documents tab after Itinerary, with owned Firecrawl searches by origin, destination, and start date; categorized source links; six-hour reuse; Workpool scheduling; rate and credit limits; trip-deletion cleanup; and recoverable errors. A follow-up removed an unsupported search-content option that caused live request failures.
+Scoped creation validation to required Overview fields so controls on other tabs no longer force navigation back to Overview. Added the supplied Space Indigo favicon and README mark plus a Cyan navigation logo for contrast.
+Automated verification reached 397 passing tests, and frontend/backend type checks and the production build passed during this implementation work. A live required-document search completed with two reported Firecrawl credits; the result remains research guidance that travelers must confirm with the relevant authority. No production deployment was performed in this work session.
