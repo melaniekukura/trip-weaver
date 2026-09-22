@@ -69,3 +69,19 @@ test("new trips preserve initial airport values from the home search", () => {
   expect(html).toContain("Los Angeles — Los Angeles International (LAX)");
   expect(html).toContain('value="2026-10-15"');
 });
+
+test("guest planning exposes baseline tabs and gates protected features", () => {
+  const html = renderToStaticMarkup(createElement(TripForm, {
+    mode: "guest",
+    initialValues: { draftId: "draft-1", name: "California", origin: "DTW", destinations: ["LAX"],
+      startDate: "2026-10-15", endDate: "2026-10-22", travelers: 1, interests: ["Museums"],
+      accessibility: "Step-free access", homeReturnNotNeededFor: "" },
+    onClose: vi.fn(), onSignInRequired: vi.fn(), onDraftChange: vi.fn(),
+  }));
+  for (const tab of ["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary"]) {
+    expect(html).toContain(`>${tab}</button>`);
+  }
+  expect(html.match(/Sign in for more features/g)).toHaveLength(4);
+  expect(html).toContain("Sign in to search live flight options.");
+  expect(html).toContain("Sign in to save");
+});

@@ -46,4 +46,9 @@ export default defineSchema({
     ownerId: v.id("users"),
     updatedAt: v.number(),
   })).index("by_ownerId", ["ownerId"]),
+  guestTripImports: defineTable({
+    ownerId: v.id("users"),
+    draftId: v.string(),
+    tripId: v.id("trips"),
+  }).index("by_ownerId_and_draftId", ["ownerId", "draftId"]),
 });

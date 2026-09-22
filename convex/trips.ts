@@ -94,6 +94,23 @@ export const create = mutation({
   },
 });
 
+export const importGuestDraft = mutation({
+  args: { draftId: v.string(), trip: tripFields },
+  returns: v.id("trips"),
+  handler: async (ctx, { draftId, trip }) => {
+    const ownerId = await requireUser(ctx);
+    if (!/^[a-zA-Z0-9-]{1,80}$/.test(draftId)) throw new ConvexError({ code: "INVALID_TRIP", message: "Invalid guest trip draft." });
+    const imported = await ctx.db.query("guestTripImports").withIndex("by_ownerId_and_draftId",
+      q => q.eq("ownerId", ownerId).eq("draftId", draftId)).unique();
+    if (imported) return imported.tripId;
+    const profile = await ctx.db.query("profiles").withIndex("by_userId", q => q.eq("userId", ownerId)).unique();
+    const tripId = await ctx.db.insert("trips", { ...validateTrip({ ...trip,
+      accessibility: trip.accessibility ?? profile?.defaultAccessibility ?? "" }), ownerId, updatedAt: Date.now() });
+    await ctx.db.insert("guestTripImports", { ownerId, draftId, tripId });
+    return tripId;
+  },
+});
+
 export const update = mutation({
   args: { tripId: v.id("trips"), changes: tripFields, expectedUpdatedAt: v.number() },
   returns: v.null(),

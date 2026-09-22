@@ -7,6 +7,8 @@ import { DestinationsEditor } from "./DestinationsEditor";
 import type { DestinationStop } from "./DestinationsEditor";
 import { tripPlannerPath } from "./tripRoutes";
 import { useTripFormController } from "./useTripFormController";
+import { GuestFeatureGate } from "./GuestFeatureGate";
+import type { GuestTripDraft } from "./guestTripDraft";
 import { HomeJourneyPrompt } from "./HomeJourneyPrompt";
 import { homeJourneyStatus } from "../convex/homeJourney";
 import { flightPlanItinerary } from "../convex/flightPlanFields";
@@ -24,31 +26,35 @@ import type { Doc } from "../convex/_generated/dataModel";
 const planningTabs = ["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary"];
 const setupTabs = ["Overview", "Destinations", "Create my trip"];
 
-type InitialTrip = { origin: string; destinations: string[]; startDate: string };
+type InitialTrip = Pick<GuestTripDraft, "origin" | "destinations" | "startDate"> &
+  Partial<Omit<GuestTripDraft, "origin" | "destinations" | "startDate">>;
 
-export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignInRequired }: {
-  trip?: Doc<"trips">; initialValues?: InitialTrip; onClose: () => void; mode?: "modal" | "page";
+export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignInRequired, onGuestContinue, onDraftChange }: {
+  trip?: Doc<"trips">; initialValues?: InitialTrip; onClose: () => void; mode?: "modal" | "page" | "guest";
   onSignInRequired?: () => void;
+  onGuestContinue?: (draft: Omit<GuestTripDraft, "draftId">) => void;
+  onDraftChange?: (draft: GuestTripDraft) => void;
 }) {
   const { isAuthenticated } = useConvexAuth();
-  const planning = mode === "page";
+  const planning = mode !== "modal";
+  const guest = mode === "guest";
   const tabs = planning ? planningTabs : setupTabs;
-  const [accessibility, setAccessibility] = useState(trip?.accessibility ?? "");
+  const [accessibility, setAccessibility] = useState(trip?.accessibility ?? initialValues?.accessibility ?? "");
   const form = useRef<HTMLFormElement>(null);
   const [active, setActive] = useState(0);
-  const [name, setName] = useState(trip?.name ?? "");
-  const [travelers, setTravelers] = useState(String(trip?.travelers ?? 1));
+  const [name, setName] = useState(trip?.name ?? initialValues?.name ?? "");
+  const [travelers, setTravelers] = useState(String(trip?.travelers ?? initialValues?.travelers ?? 1));
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantMounted, setAssistantMounted] = useState(false);
   const assistantToggle = useRef<HTMLButtonElement>(null);
   const assistantClose = useRef<HTMLButtonElement>(null);
   const [startDate, setStartDate] = useState(trip?.startDate ?? initialValues?.startDate ?? "");
-  const [interests, setInterests] = useState(trip?.interests ?? []);
-  const [endDate, setEndDate] = useState(trip?.endDate ?? "");
+  const [interests, setInterests] = useState(trip?.interests ?? initialValues?.interests ?? []);
+  const [endDate, setEndDate] = useState(trip?.endDate ?? initialValues?.endDate ?? "");
   const [origin, setOrigin, defaultAirport] = useDefaultOrigin(trip?.origin ?? initialValues?.origin);
   const [destinations, setDestinations] = useState<DestinationStop[]>(() =>
     (trip?.destinations ?? initialValues?.destinations ?? []).map((value, index) => ({ id: `saved-${index}`, value })));
-  const [homeReturnNotNeededFor, setHomeReturnNotNeededFor] = useState(trip?.homeReturnNotNeededFor ?? "");
+  const [homeReturnNotNeededFor, setHomeReturnNotNeededFor] = useState(trip?.homeReturnNotNeededFor ?? initialValues?.homeReturnNotNeededFor ?? "");
   const { savedTrip, pending, error, notice, saveTrip } = useTripFormController({
     trip, form, planning, origin, destinations, homeReturnNotNeededFor, setActive,
   });
@@ -113,12 +119,24 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
 
   const creationReady = tripCreationReady({ name, origin, destinations: destinations.map(stop => stop.value),
     startDate, endDate, travelers: Number(travelers) });
+  const draftValues = { name, origin, destinations: destinations.map(stop => stop.value), startDate, endDate,
+    travelers: Number(travelers), interests, accessibility, homeReturnNotNeededFor };
+
+  useEffect(() => {
+    if (guest && initialValues?.draftId) onDraftChange?.({ draftId: initialValues.draftId, ...draftValues });
+  }, [guest, initialValues?.draftId, name, origin, destinations, startDate, endDate, travelers, interests,
+    accessibility, homeReturnNotNeededFor, onDraftChange]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!savedTrip && !creationReady) return;
-    if (!isAuthenticated) {
+    if (guest && initialValues?.draftId) {
+      onDraftChange?.({ draftId: initialValues.draftId, ...draftValues });
       onSignInRequired?.();
+      return;
+    }
+    if (!isAuthenticated) {
+      onGuestContinue?.(draftValues);
       return;
     }
     const creating = !savedTrip;
@@ -184,12 +202,16 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
             </section>}
             {planning && <>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-1" aria-labelledby="trip-tab-1" data-tab="1" hidden={active !== 1}>
-                <TransportationTab accessibility={accessibility} onRoundTripChange={onRoundTripChange} onRemoveLeg={removeTransportationLeg} routePending={pending} homePrompt={homePrompt} homeReturnNotNeededFor={homeReturnNotNeededFor} tripId={savedTrip?._id} origin={origin} destinations={destinations}
-                  departureDate={startDate} returnDate={endDate} onReturnDateChange={setEndDate} onSaveTrip={saveTrip} onEditDetails={() => { setActive(0); tabButtons.current[0]?.focus(); }} />
+                <TransportationTab guest={guest} accessibility={accessibility} onRoundTripChange={onRoundTripChange} onRemoveLeg={removeTransportationLeg} routePending={pending} homePrompt={homePrompt} homeReturnNotNeededFor={homeReturnNotNeededFor} tripId={savedTrip?._id} origin={origin} destinations={destinations}
+                  departureDate={startDate} returnDate={endDate} onReturnDateChange={setEndDate} onSaveTrip={guest ? async () => null : saveTrip} onEditDetails={() => { setActive(0); tabButtons.current[0]?.focus(); }} />
+                {guest && <GuestFeatureGate onSignIn={() => onSignInRequired?.()}><section className="transport-expenses">
+                  <h3>Other transportation expenses</h3><p>Add itemized transportation costs and include them in your budget.</p>
+                </section></GuestFeatureGate>}
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-2" aria-labelledby="trip-tab-2" data-tab="2" hidden={active !== 2}>
-                {savedTrip && <LodgingTab tripId={savedTrip._id} route={homeRoute} plan={liveTrip?.flightPlan}
-                  defaultCurrency={liveTrip?.currency ?? savedTrip.currency} />}
+                {guest ? <GuestFeatureGate onSignIn={() => onSignInRequired?.()}><section><h3>Where you’re staying</h3>
+                  <p>Search for lodging, compare stays, and track booking details.</p></section></GuestFeatureGate> : savedTrip &&
+                  <LodgingTab tripId={savedTrip._id} route={homeRoute} plan={liveTrip?.flightPlan} defaultCurrency={liveTrip?.currency ?? savedTrip.currency} />}
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-3" aria-labelledby="trip-tab-3" data-tab="3" hidden={active !== 3}>
                 <h3>Interests &amp; activities</h3>
@@ -197,17 +219,19 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
                 <CityStaySummary route={homeRoute} plan={liveTrip?.flightPlan} onOpenTransportation={() => { setActive(1); tabButtons.current[1]?.focus(); }} />
                 <InterestsEditor interests={interests} onChange={setInterests} />
                 </div>
-                <InterestDiscovery accessibility={accessibility} tripId={savedTrip?._id} interests={interests} destinations={destinations.map(stop => stop.value)} onSaveTrip={saveTrip} />
+                <InterestDiscovery guest={guest} onSignIn={() => onSignInRequired?.()} accessibility={accessibility} tripId={savedTrip?._id}
+                  interests={interests} destinations={destinations.map(stop => stop.value)} onSaveTrip={guest ? async () => null : saveTrip} />
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-4" aria-labelledby="trip-tab-4" data-tab="4" hidden={active !== 4}>
-                <AccessibilityTab initialValue={trip?.accessibility} onChange={setAccessibility} />
+                <AccessibilityTab initialValue={accessibility} onChange={setAccessibility} />
               </section>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-5" aria-labelledby="trip-tab-5" data-tab="5" hidden={active !== 5}>
-                <TripItinerary tripId={savedTrip?._id} route={homeRoute} plan={liveTrip?.flightPlan}
+                {guest ? <GuestFeatureGate onSignIn={() => onSignInRequired?.()}><section><h3>Your itinerary</h3>
+                  <p>Build a complete day-by-day schedule from flights, lodging, and activities.</p></section></GuestFeatureGate> : <TripItinerary tripId={savedTrip?._id} route={homeRoute} plan={liveTrip?.flightPlan}
                   onSaveTrip={saveTrip}
                   onOpenTransportation={() => { setActive(1); tabButtons.current[1]?.focus(); }}
                   onOpenLodging={() => { setActive(2); tabButtons.current[2]?.focus(); }}
-                  onOpenInterests={() => { setActive(3); tabButtons.current[3]?.focus(); }} />
+                  onOpenInterests={() => { setActive(3); tabButtons.current[3]?.focus(); }} />}
               </section>
             </>}
           </fieldset>
@@ -216,11 +240,11 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
           {error && <p className="search-error" role="alert">{error}</p>}
           {notice && <p className="field-hint" role="status">{notice}</p>}
           <div className="modal-footer-actions">
-            <button className="secondary-button" type="button" disabled={pending} onClick={onClose}>{planning ? "Back to trips" : "Cancel"}</button>
+            <button className="secondary-button" type="button" disabled={pending} onClick={onClose}>{guest ? "Back home" : planning ? "Back to trips" : "Cancel"}</button>
             <div className="button-row">
               {active > 0 && <button className="secondary-button" type="button" onClick={() => setActive(active - 1)}>Back</button>}
               {active < tabs.length - 1 && <button className="secondary-button" type="button" onClick={() => setActive(active + 1)}>Next</button>}
-              <button className="primary-button trip-save-button" type="submit" disabled={pending || (!savedTrip && !creationReady)}>{pending ? "Saving…" : !planning && active === 2 ? "Create my trip" : planning ? "Save changes" : "Save trip"}</button>
+              <button className="primary-button trip-save-button" type="submit" disabled={pending || (!savedTrip && !creationReady)}>{pending ? "Saving…" : guest ? "Sign in to save" : !planning && active === 2 ? "Create my trip" : planning ? "Save changes" : "Save trip"}</button>
             </div>
           </div>
         </footer>
@@ -229,20 +253,20 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
   );
 
   if (planning) return <section className="trip-planner-editor" aria-labelledby="editor-title">
-    <button ref={assistantToggle} className={`assistant-toggle${assistantOpen ? " is-open" : ""}`} type="button"
+    {!guest && <button ref={assistantToggle} className={`assistant-toggle${assistantOpen ? " is-open" : ""}`} type="button"
       aria-label={assistantOpen ? "Close AI chat" : "Ask Trip-Weaver"}
       aria-controls="trip-assistant-drawer" aria-expanded={assistantOpen} onClick={toggleAssistant}>
       <span aria-hidden="true">✦</span>
       <span className="assistant-toggle-label">{assistantOpen ? "Close AI chat" : "Ask Trip-Weaver"}</span>
-    </button>
+    </button>}
     <div className="trip-planner-main">{content}</div>
-    <aside id="trip-assistant-drawer" className={`trip-assistant-drawer${assistantOpen ? " is-open" : ""}`}
+    {!guest && <aside id="trip-assistant-drawer" className={`trip-assistant-drawer${assistantOpen ? " is-open" : ""}`}
       aria-label="Trip planning assistant" aria-hidden={!assistantOpen} inert={!assistantOpen}
       onKeyDown={(event) => { if (event.key === "Escape") toggleAssistant(); }}>
       <button ref={assistantClose} className="assistant-drawer-close" type="button" aria-label="Close AI chat"
         onClick={toggleAssistant}>×</button>
       {assistantMounted && <TripAssistant tripId={savedTrip?._id} />}
-    </aside>
+    </aside>}
   </section>;
   return <dialog ref={dialog} className="trip-modal" aria-labelledby="editor-title" onCancel={(event) => {
     event.preventDefault();

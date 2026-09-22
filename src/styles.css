@@ -895,6 +895,35 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .live-planner .location-options .location-code { margin-left: auto; font-size: 12px; }
 .home-search-hint { margin: 18px auto 0; }
 .hero .trip-modal { text-align: left; }
+
+.guest-feature-gate {
+  position: relative;
+  min-height: 150px;
+  overflow: hidden;
+  border: 1px solid rgb(41 41 41 / 12%);
+  border-radius: 16px;
+  background: var(--paper);
+}
+
+.guest-feature-preview {
+  min-height: 150px;
+  padding: 24px;
+  opacity: 0.28;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+
+.guest-feature-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+  background: rgb(247 247 247 / 72%);
+  text-align: center;
+}
 .transportation-flights > .secondary-button { margin-top: 16px; }
 .location-options button { flex-shrink: 0; }
 
@@ -929,11 +958,14 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .trip-planner-editor .trip-modal-header { padding: 0 0 28px; background: transparent; color: var(--ink); }
 .trip-planner-editor .trip-modal-header .eyebrow { color: var(--indigo); }
 .trip-planner-editor .trip-modal-header h2 { font-size: clamp(26px, 3vw, 38px); line-height: 1.2; }
+.trip-planner-editor :is(h2, h3, h4, h5),
+.trip-planner-editor .trip-tabs button,
+.trip-planner-editor .guest-feature-message strong { font-family: "Manrope", sans-serif; }
 .trip-planner-editor .trip-modal-form { flex: 1; }
 .trip-planner-editor .trip-modal-body { flex: 1; padding: 36px 0 48px; overflow: visible; }
-.trip-planner-editor .trip-tab-panel { min-height: 320px; gap: 24px; }
-.trip-planner-editor .trip-tabs { padding: 0; gap: 24px; background: transparent; }
-.trip-planner-editor .trip-tabs button { flex: 0 0 auto; padding: 18px 24px; font-size: 15px; }
+.trip-planner-editor .trip-tab-panel { min-height: 320px; gap: 24px; padding: 4px clamp(8px, 1.5vw, 20px) 24px; }
+.trip-planner-editor .trip-tabs { padding: 0 8px; gap: 12px; background: transparent; scroll-padding-inline: 8px; }
+.trip-planner-editor .trip-tabs button { flex: 0 0 auto; min-height: 56px; padding: 16px 22px; font-size: 15px; font-weight: 700; }
 .trip-planner-editor .trip-modal-footer { padding: 24px 0; background: transparent; }
 .trip-planner-editor .location-options { position: static; }
 .trip-planner-editor :is(.destination-stop, .transportation-flight-card, .flight-setup, .location-options,
@@ -971,9 +1003,9 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   .trip-planner-page { --planner-side-padding: 16px; padding-top: 24px; min-height: calc(100dvh - 105px); }
   .trip-planner-editor .trip-modal-header { padding: 0 0 24px; }
   .trip-planner-editor .trip-modal-body { padding: 28px 0 36px; }
-  .trip-planner-editor .trip-tabs { gap: 8px; }
-  .trip-planner-editor .trip-tabs button { padding: 16px 14px; font-size: 14px; }
-  .trip-planner-editor .trip-tab-panel { min-height: 260px; }
+  .trip-planner-editor .trip-tabs { gap: 4px; padding: 0 4px; scroll-padding-inline: 4px; }
+  .trip-planner-editor .trip-tabs button { min-height: 52px; padding: 14px 12px; font-size: 14px; }
+  .trip-planner-editor .trip-tab-panel { min-height: 260px; padding: 2px 4px 20px; }
   .assistant-toggle { top: 121px; width: 48px; padding: 12px; justify-content: center; }
   .assistant-toggle-label { display: none; }
   .trip-assistant-drawer { width: 100%; padding: 125px 16px 20px; }

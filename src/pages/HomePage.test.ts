@@ -12,7 +12,7 @@ vi.mock("convex/react", () => ({
 }));
 
 test("guests see the standard homepage without protected profile defaults", () => {
-  const html = renderToStaticMarkup(createElement(HomePage, { onSignInRequired: vi.fn() }));
+  const html = renderToStaticMarkup(createElement(HomePage, { onGuestContinue: vi.fn() }));
   expect(html).toContain("Trip-Weaver");
   expect(html).toContain('id="planner"');
   expect(html).toContain("Leaving from");

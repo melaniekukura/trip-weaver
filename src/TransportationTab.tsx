@@ -22,6 +22,7 @@ import { transportationLegs, transportLocationLabel } from "./transportationLegs
 import { ExpenseList } from "./ExpenseList";
 
 type TransportationTabProps = {
+  guest?: boolean;
   accessibility?: string;
   onRemoveLeg?: (index: number) => Promise<void>; routePending?: boolean;
   onRoundTripChange?: (roundTrip: boolean) => void;
@@ -38,7 +39,7 @@ type TransportationTabProps = {
 
 type LegSelection = { route: string; source: Doc<"researchSources"> };
 
-export function TransportationTab({ accessibility = "", onRoundTripChange, onRemoveLeg, routePending = false, homePrompt, homeReturnNotNeededFor, tripId, origin, destinations, departureDate, returnDate, onReturnDateChange, onEditDetails, onSaveTrip }: TransportationTabProps) {
+export function TransportationTab({ guest = false, accessibility = "", onRoundTripChange, onRemoveLeg, routePending = false, homePrompt, homeReturnNotNeededFor, tripId, origin, destinations, departureDate, returnDate, onReturnDateChange, onEditDetails, onSaveTrip }: TransportationTabProps) {
   const persisted = useQuery(api.trips.get, tripId ? { tripId } : "skip");
   const mutatePlan = useMutation(api.trips.changeFlightPlan);
   const [mutatingPlan, setSavingPlan] = useState(false);
@@ -93,7 +94,7 @@ export function TransportationTab({ accessibility = "", onRoundTripChange, onRem
     </div>}
     {tripId && persisted === undefined ? <p role="status">Loading saved flight plan…</p> : <div className="transport-legs">{legs.map((leg, index) => {
       const previous = index > 0 ? selections[legs[index - 1].id] : null;
-      return <TransportationLeg accessibility={accessibility} savedAccessibility={persisted?.accessibility ?? ""} key={leg.id} {...leg} index={index} allowRoundTrip={legs.length === 1} isHomeLeg={index === legs.length - 1 && sameTravelLocation(leg.destination, origin)} departureDate={departureDate} returnDate={returnDate} onReturnDateChange={onReturnDateChange}
+      return <TransportationLeg guest={guest} accessibility={accessibility} savedAccessibility={persisted?.accessibility ?? ""} key={leg.id} {...leg} index={index} allowRoundTrip={legs.length === 1} isHomeLeg={index === legs.length - 1 && sameTravelLocation(leg.destination, origin)} departureDate={departureDate} returnDate={returnDate} onReturnDateChange={onReturnDateChange}
         onRoundTripChange={index === 0 ? reportRoundTrip : undefined}
         onRemove={onRemoveLeg && legs.length > 1 ? () => onRemoveLeg(index) : undefined}
         removalHint={index < legs.length - 1 ? `Removes ${transportLocationLabel(leg.destination)} from Overview; the next leg will leave from ${transportLocationLabel(leg.origin)}.` : "Removes this final stop from Overview."}
@@ -122,7 +123,8 @@ export function TransportationTab({ accessibility = "", onRoundTripChange, onRem
   </>;
 }
 
-function TransportationLeg({ accessibility, savedAccessibility, onRoundTripChange, onRemove, removalHint, origin, destination, index, allowRoundTrip, isHomeLeg, departureDate: tripStart, returnDate, onReturnDateChange, previousArrival, onSelect, onEditDetails, onSaveTrip, saved, itineraryKey, savingPlan, changePlan }: {
+function TransportationLeg({ guest, accessibility, savedAccessibility, onRoundTripChange, onRemove, removalHint, origin, destination, index, allowRoundTrip, isHomeLeg, departureDate: tripStart, returnDate, onReturnDateChange, previousArrival, onSelect, onEditDetails, onSaveTrip, saved, itineraryKey, savingPlan, changePlan }: {
+  guest: boolean;
   accessibility: string; savedAccessibility: string;
   onRoundTripChange?: (roundTrip: boolean) => void;
   onRemove?: () => Promise<void>; removalHint: string;
@@ -254,10 +256,11 @@ function TransportationLeg({ accessibility, savedAccessibility, onRoundTripChang
           priceLabel={tripType === "round-trip" ? "Maximum round-trip price (USD)" : "Maximum price (USD)"} />
       </details>}
       {!selectedOutbound && <p className="field-hint transport-search-note">1 adult · Economy including basic fares · USD. Times are local to each airport.</p>}
-      {!booked && <button className="primary-button" type="button" disabled={busy || savingPlan}
+      {!booked && <button className="primary-button" type="button" disabled={guest || busy || savingPlan}
         onClick={() => void search(result?.run.status === "completed")}>
         {busy ? "Finding outgoing flights…" : result?.run.status === "completed" ? "Refresh outgoing flights" : "Search Flight"}
       </button>}
+      {guest && <p className="field-hint">Sign in to search live flight options.</p>}
       {starting && <p role="status">Saving your trip and starting flight search…</p>}
       {error && <p className="search-error" role="alert">{error}</p>}
       {notice && !stale && <p role="status" className="field-hint">{notice}</p>}

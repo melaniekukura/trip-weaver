@@ -33,6 +33,16 @@ test("owner can create, read, update, and delete; ownership survives a new sessi
   await expect(alice.query(api.trips.get, { tripId })).rejects.toThrow("TRIP_NOT_FOUND");
 });
 
+test("guest drafts import once into the authenticated user's trips", async () => {
+  const { alice, t } = await setup();
+  const args = { draftId: "guest-draft-1", trip: details };
+  const first = await alice.mutation(api.trips.importGuestDraft, args);
+  const second = await alice.mutation(api.trips.importGuestDraft, args);
+  expect(second).toBe(first);
+  expect((await alice.query(api.trips.get, { tripId: first })).name).toBe("Japan");
+  await expect(t.mutation(api.trips.importGuestDraft, args)).rejects.toThrow("UNAUTHENTICATED");
+});
+
 test("anonymous access is rejected for every trip operation", async () => {
   const { t, alice } = await setup();
   const tripId = await alice.mutation(api.trips.create, details);

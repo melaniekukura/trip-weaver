@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Icon } from "../Icons";
 import { LocationPicker } from "../LocationPicker";
 import { TripForm } from "../TripForm";
+import type { GuestTripDraft } from "../guestTripDraft";
 
-export function HomePage({ onSignInRequired }: { onSignInRequired?: () => void }) {
+export function HomePage({ onGuestContinue }: { onGuestContinue?: (draft: Omit<GuestTripDraft, "draftId">) => void }) {
   const [origin, setOrigin, defaultAirport] = useDefaultOrigin();
   const [destination, setDestination] = useState("");
   const [date, setDate] = useState("");
@@ -37,7 +38,7 @@ export function HomePage({ onSignInRequired }: { onSignInRequired?: () => void }
           <Icon size={20}><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></Icon>
         </button>
       </form>
-      {planning && <TripForm onSignInRequired={onSignInRequired}
+      {planning && <TripForm onGuestContinue={onGuestContinue}
         initialValues={{ origin, destinations: destination ? [destination] : [], startDate: date }} onClose={() => setPlanning(false)} />}
     </section>
   );

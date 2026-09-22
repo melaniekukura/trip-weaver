@@ -1,18 +1,20 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AuthForm } from "./AuthForm";
 import { AppShell } from "./AppShell";
 import { IdleSession } from "./IdleSession";
 import { HomePage } from "./pages/HomePage";
-import { tripIdFromPath } from "./tripRoutes";
+import { tripIdFromPath, tripPlannerPath } from "./tripRoutes";
 import { TripBudgetPage } from "./pages/TripBudgetPage";
 import { TripPlannerPage } from "./pages/TripPlannerPage";
 import { TripsPage } from "./pages/TripsPage";
 import { BudgetPage } from "./pages/BudgetPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { getFirecrawlSessionId } from "./firecrawlSession";
+import { GuestTripPlannerPage } from "./pages/GuestTripPlannerPage";
+import { clearGuestTripDraft, createGuestTripDraft, guestDraftTripInput, readGuestTripDraft, saveGuestTripDraft } from "./guestTripDraft";
 
 const pages = {
   "/": { title: "Home", component: HomePage },
@@ -45,6 +47,9 @@ function SignedInApp() {
   const firecrawlBudget = useQuery(api.firecrawl.budget, { sessionId: getFirecrawlSessionId() });
   const [showFirecrawlBudget, setShowFirecrawlBudget] = useState(true);
   const [signOutError, setSignOutError] = useState(false);
+  const [importError, setImportError] = useState("");
+  const importGuestDraft = useMutation(api.trips.importGuestDraft);
+  const importStarted = useRef(false);
   const path = currentPath(useHashLocation());
   const tripId = tripIdFromPath(path);
   const budgetWorkflow = !!tripId && path.endsWith("/budget");
@@ -61,6 +66,19 @@ function SignedInApp() {
     document.getElementById("page-content")?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }, [page, path, tripId, budgetWorkflow]);
+
+  useEffect(() => {
+    const draft = readGuestTripDraft();
+    if (!draft || importStarted.current) return;
+    importStarted.current = true;
+    void importGuestDraft({ draftId: draft.draftId, trip: guestDraftTripInput(draft) }).then(importedId => {
+      clearGuestTripDraft(draft.draftId);
+      window.location.hash = tripPlannerPath(importedId);
+    }).catch(() => {
+      importStarted.current = false;
+      setImportError("Your guest trip could not be saved. Your draft is still available in this browser session.");
+    });
+  }, [importGuestDraft]);
 
   const navigation = <nav className="desktop-nav" aria-label="Primary navigation">
     {(Object.keys(pages) as PagePath[]).filter((route) => route !== "/").map((route) => (
@@ -85,20 +103,28 @@ function SignedInApp() {
   </>;
   return <AppShell label={page.title} navigation={navigation} accountActions={accountActions}>
     {signOutError && <p className="search-feedback search-error" role="alert">Unable to sign out. Please try again.</p>}
+    {importError && <p className="search-feedback search-error" role="alert">{importError}</p>}
     {tripId ? budgetWorkflow ? <TripBudgetPage key={path} tripId={tripId} /> : <TripPlannerPage key={path} tripId={tripId} /> : <Page />}
   </AppShell>;
 }
 
 function GuestApp() {
-  const signingIn = useHashLocation() === "#signin";
+  const hash = useHashLocation();
+  const signingIn = hash === "#signin";
+  const planning = hash === "#/guest-trip";
 
   function showSignIn() {
     window.location.hash = "signin";
   }
 
-  return <AppShell label={signingIn ? "Sign in" : "Home"}
+  function startGuestTrip(values: Parameters<typeof createGuestTripDraft>[0]) {
+    saveGuestTripDraft(createGuestTripDraft(values));
+    window.location.hash = "/guest-trip";
+  }
+
+  return <AppShell label={signingIn ? "Sign in" : planning ? "Guest trip planner" : "Home"}
     accountActions={<button className="sign-out" type="button" onClick={showSignIn}>Sign in</button>}>
-    {signingIn ? <AuthForm /> : <HomePage onSignInRequired={showSignIn} />}
+    {signingIn ? <AuthForm /> : planning ? <GuestTripPlannerPage onSignIn={showSignIn} /> : <HomePage onGuestContinue={startGuestTrip} />}
   </AppShell>;
 }
 
