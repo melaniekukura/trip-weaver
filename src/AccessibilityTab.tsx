@@ -15,12 +15,24 @@ function categoryFor(value: string) {
   return categories.find(category => category.suggestions.some(suggestion => suggestion.toLowerCase() === value.toLowerCase()))?.name ?? "Custom requirements";
 }
 
+export function accessibilitySuggestions(query: string, selected: string[] = []) {
+  const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  const added = new Set(selected.map(value => value.toLowerCase()));
+  return words.length ? categories.flatMap(category => category.suggestions
+    .filter(value => !added.has(value.toLowerCase()) && words.every(word => `${category.name} ${value}`.toLowerCase().includes(word)))
+    .map(value => ({ value, category: category.name }))) : [];
+}
+
 export function AccessibilityTab({ initialValue = "", onChange, compact = false }: { initialValue?: string; onChange?: (value: string) => void; compact?: boolean }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [requirements, setRequirements] = useState(() => initialValue.split("\n").map(value => value.trim()).filter(Boolean));
   const [draft, setDraft] = useState("");
   const [message, setMessage] = useState("");
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const suggestions = accessibilitySuggestions(draft, requirements);
+  const showSuggestions = compact && open && suggestions.length > 0;
 
   function addRequirement(suggestion = draft) {
     const value = suggestion.trim();
@@ -36,6 +48,8 @@ export function AccessibilityTab({ initialValue = "", onChange, compact = false 
     setRequirements([...requirements, value]);
     onChange?.([...requirements, value].join("\n"));
     setDraft("");
+    setOpen(false);
+    setActive(0);
     setMessage(`Added ${value}.`);
     input.current?.focus();
   }
@@ -51,12 +65,36 @@ export function AccessibilityTab({ initialValue = "", onChange, compact = false 
   return <div className="accessibility-editor">
     <label className={compact ? "interest-sr-only" : undefined} htmlFor={`${id}-requirement`}>Accessibility requirements</label>
     <div className="accessibility-search">
+      <div className="accessibility-input" onBlur={event => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
+      }}>
       <input ref={input} id={`${id}-requirement`} type="text"
+        role={compact ? "combobox" : undefined} autoComplete="off"
+        aria-autocomplete={compact ? "list" : undefined} aria-expanded={compact ? showSuggestions : undefined}
+        aria-controls={showSuggestions ? `${id}-suggestions` : undefined}
+        aria-activedescendant={showSuggestions && suggestions[active] ? `${id}-suggestion-${active}` : undefined}
         value={draft} maxLength={2000} placeholder="Try step-free access, quiet environments, or no strenuous activity"
-        aria-describedby={`${id}-status`} onChange={event => setDraft(event.target.value)}
+        aria-describedby={`${id}-status`} onFocus={() => { setOpen(true); setActive(0); }}
+        onChange={event => { setDraft(event.target.value); setOpen(true); setActive(0); }}
         onKeyDown={event => {
-          if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); addRequirement(); }
+          if (event.nativeEvent.isComposing) return;
+          if (compact && suggestions.length && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+            event.preventDefault(); setOpen(true);
+            setActive(showSuggestions ? (active + (event.key === "ArrowDown" ? 1 : -1) + suggestions.length) % suggestions.length : 0);
+          } else if (event.key === "Escape" && showSuggestions) {
+            event.preventDefault(); event.stopPropagation(); setOpen(false);
+          } else if (event.key === "Enter") {
+            event.preventDefault(); addRequirement(showSuggestions ? suggestions[active]?.value : draft);
+          }
         }} />
+      {showSuggestions && <ul id={`${id}-suggestions`} className="accessibility-suggestions" role="listbox" aria-label="Accessibility suggestions">
+        {suggestions.map((suggestion, index) => <li key={suggestion.value} id={`${id}-suggestion-${index}`}
+          role="option" aria-selected={active === index} onMouseDown={event => event.preventDefault()}
+          onMouseEnter={() => setActive(index)} onClick={() => addRequirement(suggestion.value)}>
+          <span>{suggestion.value}</span><small>{suggestion.category}</small>
+        </li>)}
+      </ul>}
+      </div>
       <button type="button" className="primary-button" disabled={!draft.trim()} onClick={() => addRequirement()}>Add requirement</button>
     </div>
     <input type="hidden" name="accessibility" value={requirements.join("\n")} />

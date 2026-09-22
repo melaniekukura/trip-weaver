@@ -635,6 +635,12 @@ footer a:focus-visible {
 .accessibility-editor { display: grid; gap: 16px; width: 100%; }
 .trip-form .accessibility-editor > label { font-size: 20px; font-weight: 600; }
 .accessibility-search { display: flex; gap: 12px; }
+.accessibility-input { position: relative; flex: 1; min-width: 0; }
+.accessibility-input input { width: 100%; }
+.accessibility-suggestions { position: absolute; top: 100%; left: 0; right: 0; z-index: 20; max-height: 280px; overflow-y: auto; margin: 4px 0 0; padding: 6px; list-style: none; background: #F7F7F7; border: 1px solid #C3C3C3; border-radius: 6px; box-shadow: 0 8px 20px rgb(41 41 41 / 12%); }
+.accessibility-suggestions li { padding: 10px 12px; cursor: pointer; color: #292929; }
+.accessibility-suggestions li[aria-selected="true"] { background: rgb(22 203 196 / 15%); }
+.accessibility-suggestions small { display: block; margin-top: 3px; color: #251F47; }
 .trip-form .accessibility-search input { flex: 1; min-height: 64px; padding: 18px 20px; font-size: 17px; }
 .accessibility-search .primary-button { flex-shrink: 0; }
 .accessibility-editor .field-hint { margin: 0; font-size: 14px; }
