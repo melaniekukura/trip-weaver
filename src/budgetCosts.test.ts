@@ -40,3 +40,16 @@ test("ignores removed destinations, stale dates, disabled destinations and legac
   expect(budgetCosts({ ...trip, transportationBudget: { revision: 1, includeRides: true, rides: [{ mode: "bus", count: 3, price: 3 }] } }).totals).toEqual({});
   expect(budgetCosts({ ...input, localTransportation: [{ ...row, rides: [{ mode: "bus", count: 2, status: "unknown" }] }] })).toMatchObject({ totals: {}, unknown: 1 });
 });
+
+test("manual expenses contribute once to totals, custom categories and their selected day", () => {
+  const base = { id: "one", name: "Gift", category: "Shopping", amount: 12.34, currency: "USD", date: "2026-10-02", revision: 1 };
+  const costs = budgetCosts({ ...trip, expenses: [base, { ...base, id: "two", category: "shopping", amount: 5 },
+    { ...base, id: "three", category: "Miscellaneous", amount: 2 }, { ...base, id: "four", category: "Restaurants", amount: 20 }] });
+  expect(costs.totals.USD).toBe(39.34);
+  expect(costs.breakdown.filter(item => item.id.startsWith("custom:"))).toEqual([
+    expect.objectContaining({ id: "custom:shopping", label: "Shopping", totals: { USD: 17.34 } }),
+  ]);
+  expect(costs.breakdown.find(item => item.id === "miscellaneous")?.totals.USD).toBe(2);
+  expect(costs.breakdown.find(item => item.id === "restaurants")?.totals.USD).toBe(20);
+  expect(dailyCosts(trip.startDate, trip.endDate, costs.entries)?.days.map(day => day.cents)).toEqual([0, 3934, 0]);
+});

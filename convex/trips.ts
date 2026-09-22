@@ -10,6 +10,39 @@ import schema from "./schema";
 import { flightPlanItinerary } from "./flightPlanFields";
 import { homeJourneyStatus } from "./homeJourney";
 import { tripFields, validateTrip } from "./tripFields";
+import { expenseFields, maxExpenses, validateExpense } from "./expenseFields";
+
+export const saveExpense = mutation({
+  args: { tripId: v.id("trips"), expense: expenseFields },
+  returns: v.null(),
+  handler: async (ctx, { tripId, expense }) => {
+    const trip = await requireTrip(ctx, tripId);
+    const validated = validateExpense(expense);
+    const expenses = [...trip.expenses ?? []];
+    const index = expenses.findIndex(item => item.id === expense.id);
+    if ((index < 0 ? 0 : expenses[index].revision) !== expense.revision) {
+      throw new ConvexError({ message: "This expense changed. Reopen it before saving." });
+    }
+    if (index < 0 && expenses.length >= maxExpenses) throw new ConvexError({ message: `Each trip supports up to ${maxExpenses} expenses.` });
+    const category = expenses.find(item => item.category.toLowerCase() === validated.category.toLowerCase())?.category ?? validated.category;
+    const saved = { ...validated, category, revision: expense.revision + 1 };
+    if (index < 0) expenses.push(saved); else expenses[index] = saved;
+    await ctx.db.patch("trips", tripId, { expenses });
+    return null;
+  },
+});
+
+export const removeExpense = mutation({
+  args: { tripId: v.id("trips"), id: v.string(), revision: v.number() },
+  returns: v.null(),
+  handler: async (ctx, { tripId, id, revision }) => {
+    const trip = await requireTrip(ctx, tripId);
+    const expense = trip.expenses?.find(item => item.id === id);
+    if (!expense || expense.revision !== revision) throw new ConvexError({ message: "This expense changed. Refresh before removing it." });
+    await ctx.db.patch("trips", tripId, { expenses: trip.expenses!.filter(item => item.id !== id) });
+    return null;
+  },
+});
 
 async function requireUser(ctx: QueryCtx) {
   const userId = await getAuthUserId(ctx);

@@ -11,6 +11,7 @@ import { flightTables } from "./flightSchema";
 import { emailTables } from "./emailSchema";
 import { assistantTables } from "./assistantSchema";
 import { lodgingTables } from "./lodgingSchema";
+import { expenseFields } from "./expenseFields";
 
 export default defineSchema({
   ...authTables,
@@ -37,6 +38,7 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_sessionId", ["sessionId"]),
   trips: defineTable(tripFields.extend({
+    expenses: v.optional(v.array(expenseFields)),
     flightPlan: v.optional(flightPlanFields),
     extraFeeSettings: v.optional(feeSettings),
     transportationBudget: v.optional(transportationBudgetFields),

@@ -3,7 +3,7 @@ import { BudgetConversionStatus } from "./BudgetConversionStatus";
 import { useId, useState } from "react";
 import type { Doc } from "../convex/_generated/dataModel";
 import type { FeeResult } from "../convex/extraFeeResearch";
-import { budgetCosts, costCategories, dailyCosts, formatCost } from "./budgetCosts";
+import { budgetCosts, dailyCosts, formatCost } from "./budgetCosts";
 
 export function BudgetGraphs({ trip, fees, lodgings = [] }: { trip: Doc<"trips">; fees?: FeeResult[]; lodgings?: Doc<"lodgings">[] }) {
   const { costs, currency, error, retry, rateDate } = useBudgetCosts(trip, fees, lodgings);
@@ -65,7 +65,7 @@ function BudgetCurrencyGraphs({ trip, costs, currency, feesLoading }: {
       <section className="budget-chart-card" aria-labelledby={`${chartId}-daily`}>
         <header><h4 id={`${chartId}-daily`}>Spending per day</h4>
           <button className="text-button" type="button" onClick={() => setCategory("all")} disabled={category === "all"}>All categories</button></header>
-        <p className="budget-chart-focus" aria-live="polite">{selectedDay ? `${dateLabel(selectedDay.date)} · ${money(selectedDay.cents)}` : category === "all" ? "All categories" : costCategories.find(item => item.id === category)?.label}</p>
+        <p className="budget-chart-focus" aria-live="polite">{selectedDay ? `${dateLabel(selectedDay.date)} · ${money(selectedDay.cents)}` : category === "all" ? "All categories" : categories.find(item => item.id === category)?.label}</p>
         {daily ? <>
           <div className="budget-daily-plot">
             <div className="budget-daily-axis" aria-hidden="true"><span>{money(max)}</span><span>{money(Math.round(max / 2))}</span><span>{money(0)}</span></div>
@@ -76,7 +76,7 @@ function BudgetCurrencyGraphs({ trip, costs, currency, feesLoading }: {
                   title={`${dateLabel(day.date)}: ${money(day.cents)}`} onFocus={() => setFocusedDate(day.date)}
                   onMouseEnter={() => setFocusedDate(day.date)} onClick={() => setFocusedDate(day.date)}>
                   <span style={{ height: `${day.cents / max * 100}%`, minHeight: day.cents > 0 ? "3px" : "0",
-                    background: costCategories.find(item => item.id === category)?.color ?? "#16CBC4" }} />
+                    background: categories.find(item => item.id === category)?.color ?? "#16CBC4" }} />
                 </button>
                 <small>{dateLabel(day.date)}</small>
               </div>)}

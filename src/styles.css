@@ -1460,3 +1460,15 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .accessibility-chip button:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
 
 .trip-save-button:disabled { background: #C3C3C3; color: #292929; opacity: 1; }
+
+.expense-form fieldset { border: 0; padding: 0; margin: 0 0 24px; min-width: 0; }
+.expense-form legend { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.expense-fields { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1.3fr; gap: 16px; margin-bottom: 18px; }
+.expense-fields label { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.expense-fields input, .expense-fields select { width: 100%; min-width: 0; padding: 12px; border: 1px solid #C3C3C3; border-radius: 4px; background: #F7F7F7; color: #292929; font: inherit; }
+.expense-table-scroll { overflow-x: auto; }
+.expense-table { width: 100%; border-collapse: collapse; text-align: left; }
+.expense-table th, .expense-table td { padding: 14px 12px; border-bottom: 1px solid #C3C3C3; }
+.expense-table th { color: #251F47; }
+@media (max-width: 900px) { .expense-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 540px) { .expense-fields { grid-template-columns: 1fr; } }

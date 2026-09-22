@@ -1,6 +1,7 @@
 import { TransportationBudget } from "../TransportationBudget";
 import { BudgetGraphs } from "../BudgetGraphs";
 import { BudgetCostSummary } from "../BudgetCostSummary";
+import { ExpenseList } from "../ExpenseList";
 import { ExtraFees } from "../ExtraFees";
 import type { ExtraFeeData } from "../ExtraFees";
 import { useConvex, useQuery } from "convex/react";
@@ -10,7 +11,7 @@ import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { tripPlannerPath } from "../tripRoutes";
 
-const tabs = ["Overview", "Transportation", "Extra Fees", "Graphs"];
+const tabs = ["Overview", "Transportation", "Extra Fees", "Expense List", "Graphs"];
 type BudgetState = { status: "loading" } | { status: "error" } | { status: "ready"; trip: Doc<"trips"> };
 
 export function BudgetWorkflow({ tripName, trip, fees, lodgings }: {
@@ -44,7 +45,8 @@ export function BudgetWorkflow({ tripName, trip, fees, lodgings }: {
           {index === 0 && (trip ? <BudgetCostSummary trip={trip} fees={fees?.results} lodgings={lodgings} breakdown /> : <p><strong>Total Cost:</strong> --</p>)}
           {index === 1 && trip && <TransportationBudget trip={trip} />}
           {index === 2 && trip && <ExtraFees trip={trip} data={fees} />}
-          {index === 3 && trip && <BudgetGraphs trip={trip} fees={fees?.results} lodgings={lodgings} />}
+          {index === 3 && trip && <ExpenseList trip={trip} />}
+          {index === 4 && trip && <BudgetGraphs trip={trip} fees={fees?.results} lodgings={lodgings} />}
         </section>)}
       </div>
       <footer className="trip-modal-footer">

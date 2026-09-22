@@ -11,9 +11,10 @@ export const costCategories = [
   { id: "activities", label: "Activities & tickets", color: "#9A63CE" },
   { id: "baggage", label: "Baggage", color: "#D85D85" },
   { id: "car", label: "Rental car & parking", color: "#39886C" },
+  { id: "miscellaneous", label: "Miscellaneous", color: "#737D8C" },
 ] as const;
-export type CostCategory = typeof costCategories[number]["id"];
-export type CostEntry = { id: string; title: string; category: CostCategory; currency: string; cents: number; date?: string };
+export type CostCategory = typeof costCategories[number]["id"] | `custom:${string}`;
+export type CostEntry = { id: string; title: string; category: CostCategory; currency: string; cents: number; date?: string; categoryLabel?: string };
 export const formatCost = (amount: number, currency: string) => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
 
 export function budgetCosts(trip: Doc<"trips">, fees: FeeResult[] = [], lodgings: Doc<"lodgings">[] = []) {
@@ -44,6 +45,11 @@ export function budgetCosts(trip: Doc<"trips">, fees: FeeResult[] = [], lodgings
     entries.push({ id: fee.target.id, title: fee.target.title, category: fee.target.category, currency: fee.currency,
       cents: Math.round(fee.amount * 100) * fee.target.quantity, ...(fee.target.date ? { date: fee.target.date } : {}) });
   }
+  for (const expense of trip.expenses ?? []) {
+    const category = costCategories.find(item => item.label.toLowerCase() === expense.category.toLowerCase());
+    entries.push({ id: `expense-${expense.id}`, title: expense.name, category: category?.id ?? `custom:${expense.category.toLowerCase()}`,
+      categoryLabel: category?.label ?? expense.category, currency: expense.currency, cents: Math.round(expense.amount * 100), date: expense.date });
+  }
   return { ...summarizeCosts(entries),
     unknown: localRides.filter(ride => ride.count > 0 && ride.status !== "priced").length + fees.filter(fee => fee.status !== "priced").length +
       transportation.flights.filter(flight => flight.amount === null).length + lodgings.filter(lodging => lodging.totalCost === undefined).length,
@@ -51,10 +57,15 @@ export function budgetCosts(trip: Doc<"trips">, fees: FeeResult[] = [], lodgings
 }
 
 export function summarizeCosts(entries: CostEntry[]) {
+  const custom = new Map<string, { id: CostCategory; label: string; color: string }>();
+  for (const entry of entries) if (entry.category.startsWith("custom:") && !custom.has(entry.category)) {
+    const hue = [...entry.category].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 360, 0);
+    custom.set(entry.category, { id: entry.category, label: entry.categoryLabel ?? entry.category.slice(7), color: `hsl(${hue} 55% 45%)` });
+  }
   return { entries, totals: totalCosts(entries),
-    transportationTotals: totalCosts(entries.filter(entry => entry.category === "flights" || entry.category === "transportation")),
-    extraFeeTotals: totalCosts(entries.filter(entry => !["flights", "transportation", "lodging"].includes(entry.category))),
-    breakdown: costCategories.map(category => ({ ...category, totals: totalCosts(entries.filter(entry => entry.category === category.id)) })),
+    transportationTotals: totalCosts(entries.filter(entry => !entry.id.startsWith("expense-") && (entry.category === "flights" || entry.category === "transportation"))),
+    extraFeeTotals: totalCosts(entries.filter(entry => !entry.id.startsWith("expense-") && !["flights", "transportation", "lodging"].includes(entry.category))),
+    breakdown: [...costCategories, ...custom.values()].map(category => ({ ...category, totals: totalCosts(entries.filter(entry => entry.category === category.id)) })),
   };
 }
 export function convertBudgetCosts(costs: ReturnType<typeof budgetCosts>, currency: string, rates?: { base: string; rates: Record<string, number> }) {

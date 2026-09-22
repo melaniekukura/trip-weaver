@@ -20,6 +20,7 @@ import type * as bookingLinks from "../bookingLinks.js";
 import type * as cityAirports from "../cityAirports.js";
 import type * as currencies from "../currencies.js";
 import type * as emailSchema from "../emailSchema.js";
+import type * as expenseFields from "../expenseFields.js";
 import type * as extraFeeResearch from "../extraFeeResearch.js";
 import type * as extraFeeSchema from "../extraFeeSchema.js";
 import type * as extraFees from "../extraFees.js";
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   cityAirports: typeof cityAirports;
   currencies: typeof currencies;
   emailSchema: typeof emailSchema;
+  expenseFields: typeof expenseFields;
   extraFeeResearch: typeof extraFeeResearch;
   extraFeeSchema: typeof extraFeeSchema;
   extraFees: typeof extraFees;

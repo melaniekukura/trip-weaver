@@ -80,3 +80,15 @@ test("New Trip appears in My Trips but not Budget", () => {
   expect(renderToStaticMarkup(createElement(Trips, { view: "budget" }))).not.toContain("new-trip-button");
   expect(renderToStaticMarkup(createElement(Trips, { view: "trips" }))).toContain("new-trip-button");
 });
+
+test("custom expense categories and currency conversion reach cards, overview and both graphs", () => {
+  const withExpenses = { ...trip, expenses: [{ id: "gift", name: "Souvenir", category: "Shopping", amount: 10, currency: "EUR", date: "2026-10-02", revision: 1 }] };
+  query.mockImplementation(reference => getFunctionName(reference) === "lodgings:list" ? lodgings : { run: null, results: fees });
+  for (const element of [createElement(BudgetCostSummary, { trip: withExpenses, fees, lodgings, breakdown: true }), createElement(TripCardCost, { trip: withExpenses }),
+    createElement(BudgetGraphs, { trip: withExpenses, fees, lodgings })]) {
+    expect(renderToStaticMarkup(element)).toContain("$1,030.00");
+  }
+  const graphs = renderToStaticMarkup(createElement(BudgetGraphs, { trip: withExpenses, fees, lodgings }));
+  expect(graphs).toContain("Shopping $20.00");
+  expect(graphs).toContain('aria-label="Oct 2: $90.00"');
+});
