@@ -1,4 +1,4 @@
-export const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+export const IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 export const IDLE_WARNING_MS = 2 * 60 * 1000;
 export const ACTIVITY_KEY = `trip-weaver:last-activity:${import.meta.env.VITE_CONVEX_URL}`;
 
