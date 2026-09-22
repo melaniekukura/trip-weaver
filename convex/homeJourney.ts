@@ -1,6 +1,6 @@
 import { flightPlanItinerary } from "./flightPlanFields";
 
-type Route = { origin: string; destinations: string[]; startDate: string; endDate: string; homeReturnNotNeededFor?: string };
+type Route = { origin: string; destinations: string[]; startDate: string; endDate: string; travelers?: number; homeReturnNotNeededFor?: string };
 type Leg = { index: number; itinerary: string; request: { tripType?: string }; returning?: unknown };
 
 export function sameTravelLocation(left: string, right: string) {

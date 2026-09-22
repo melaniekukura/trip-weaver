@@ -34,7 +34,7 @@ export function FlightResults({ research, flight, filters, selectedSourceId, onS
       <FlightAccessibilityNotice assessment={research.accessibility} />
       {compact && <h4>Top {sources.length} lowest-priced options</h4>}
       <p className="field-hint">{sources.length} lowest-priced {sources.length === 1 ? "listing" : "listings"} from {research.sources.length} returned.
-        {flight.tripType === "round-trip" ? "Round trip" : "One way"} · 1 adult · Economy including basic fares · USD. Prices may change; confirm before booking.</p>
+        {flight.tripType === "round-trip" ? "Round trip" : "One way"} · {flight.travelers ?? 1} {(flight.travelers ?? 1) === 1 ? "adult" : "adults"} · Economy including basic fares · USD. Prices may change; confirm before booking.</p>
       {research.run.finishedAt && <p className="field-hint">Observed {new Date(research.run.finishedAt).toLocaleString()}. Times are local to each airport.</p>}
       {sources.length === 0 && <p>No retrieved flights match. Adjust the filters or try another search.</p>}
       {research.run.airportScope && <p className="field-hint">Included airports: {research.run.airportScope.origin.join(", ")} → {research.run.airportScope.destination.join(", ")}.</p>}
@@ -50,7 +50,7 @@ export function FlightResults({ research, flight, filters, selectedSourceId, onS
           </div>
           <div className="transportation-flight-price">
             <strong>{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(source.flight!.amount)}</strong>
-            <span>{flight.tripType === "round-trip" ? "Round trip, from · USD / adult" : "USD / adult"}</span>
+            <span>{flight.tripType === "round-trip" ? "Round trip" : "One way"} · total for {flight.travelers ?? 1} {(flight.travelers ?? 1) === 1 ? "traveler" : "travelers"}</span>
             {flight.tripType === "round-trip" && onSelectOutbound && <button type="button" className="secondary-button"
               aria-pressed={selectedSourceId === source._id} onClick={() => onSelectOutbound(source)}>{selectedSourceId === source._id ? "Selected" : "Choose outgoing"}</button>}
             {flight.tripType !== "round-trip" && onSelectFlight && <button type="button" className="secondary-button"

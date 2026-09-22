@@ -24,6 +24,7 @@ import { ExpenseList } from "./ExpenseList";
 type TransportationTabProps = {
   guest?: boolean;
   accessibility?: string;
+  travelers?: number;
   onRemoveLeg?: (index: number) => Promise<void>; routePending?: boolean;
   onRoundTripChange?: (roundTrip: boolean) => void;
   homePrompt?: ReactNode; homeReturnNotNeededFor?: string;
@@ -39,7 +40,7 @@ type TransportationTabProps = {
 
 type LegSelection = { route: string; source: Doc<"researchSources"> };
 
-export function TransportationTab({ guest = false, accessibility = "", onRoundTripChange, onRemoveLeg, routePending = false, homePrompt, homeReturnNotNeededFor, tripId, origin, destinations, departureDate, returnDate, onReturnDateChange, onEditDetails, onSaveTrip }: TransportationTabProps) {
+export function TransportationTab({ guest = false, accessibility = "", travelers = 1, onRoundTripChange, onRemoveLeg, routePending = false, homePrompt, homeReturnNotNeededFor, tripId, origin, destinations, departureDate, returnDate, onReturnDateChange, onEditDetails, onSaveTrip }: TransportationTabProps) {
   const persisted = useQuery(api.trips.get, tripId ? { tripId } : "skip");
   const mutatePlan = useMutation(api.trips.changeFlightPlan);
   const [mutatingPlan, setSavingPlan] = useState(false);
@@ -47,7 +48,7 @@ export function TransportationTab({ guest = false, accessibility = "", onRoundTr
   const [planError, setPlanError] = useState("");
   const planLock = useRef(false);
   const plan = persisted?.flightPlan;
-  const itineraryKey = flightPlanItinerary({ origin, destinations: destinations.map(stop => stop.value), startDate: departureDate, endDate: returnDate });
+  const itineraryKey = flightPlanItinerary({ origin, destinations: destinations.map(stop => stop.value), startDate: departureDate, endDate: returnDate, travelers });
   const savedItineraryKey = persisted ? flightPlanItinerary(persisted) : itineraryKey;
   const matchingItinerary = savedItineraryKey === itineraryKey;
   const selectionKey = matchingItinerary ? itineraryKey : "";
@@ -94,7 +95,7 @@ export function TransportationTab({ guest = false, accessibility = "", onRoundTr
     </div>}
     {tripId && persisted === undefined ? <p role="status">Loading saved flight plan…</p> : <div className="transport-legs">{legs.map((leg, index) => {
       const previous = index > 0 ? selections[legs[index - 1].id] : null;
-      return <TransportationLeg guest={guest} accessibility={accessibility} savedAccessibility={persisted?.accessibility ?? ""} key={leg.id} {...leg} index={index} allowRoundTrip={legs.length === 1} isHomeLeg={index === legs.length - 1 && sameTravelLocation(leg.destination, origin)} departureDate={departureDate} returnDate={returnDate} onReturnDateChange={onReturnDateChange}
+      return <TransportationLeg guest={guest} accessibility={accessibility} travelers={travelers} savedAccessibility={persisted?.accessibility ?? ""} key={leg.id} {...leg} index={index} allowRoundTrip={legs.length === 1} isHomeLeg={index === legs.length - 1 && sameTravelLocation(leg.destination, origin)} departureDate={departureDate} returnDate={returnDate} onReturnDateChange={onReturnDateChange}
         onRoundTripChange={index === 0 ? reportRoundTrip : undefined}
         onRemove={onRemoveLeg && legs.length > 1 ? () => onRemoveLeg(index) : undefined}
         removalHint={index < legs.length - 1 ? `Removes ${transportLocationLabel(leg.destination)} from Overview; the next leg will leave from ${transportLocationLabel(leg.origin)}.` : "Removes this final stop from Overview."}
@@ -123,9 +124,9 @@ export function TransportationTab({ guest = false, accessibility = "", onRoundTr
   </>;
 }
 
-function TransportationLeg({ guest, accessibility, savedAccessibility, onRoundTripChange, onRemove, removalHint, origin, destination, index, allowRoundTrip, isHomeLeg, departureDate: tripStart, returnDate, onReturnDateChange, previousArrival, onSelect, onEditDetails, onSaveTrip, saved, itineraryKey, savingPlan, changePlan }: {
+function TransportationLeg({ guest, accessibility, travelers, savedAccessibility, onRoundTripChange, onRemove, removalHint, origin, destination, index, allowRoundTrip, isHomeLeg, departureDate: tripStart, returnDate, onReturnDateChange, previousArrival, onSelect, onEditDetails, onSaveTrip, saved, itineraryKey, savingPlan, changePlan }: {
   guest: boolean;
-  accessibility: string; savedAccessibility: string;
+  accessibility: string; travelers: number; savedAccessibility: string;
   onRoundTripChange?: (roundTrip: boolean) => void;
   onRemove?: () => Promise<void>; removalHint: string;
   allowRoundTrip: boolean; isHomeLeg: boolean;
@@ -154,9 +155,9 @@ function TransportationLeg({ guest, accessibility, savedAccessibility, onRoundTr
   const [submitted, setSubmitted] = useState<{ tripId: Id<"trips">; flight: FlightRequest; route: string } | null>(null);
   const lock = useRef(false);
   const start = useMutation(api.flightJobs.start);
-  const route = JSON.stringify([origin, destination, departureDate, tripType, tripType === "round-trip" ? returnDate : null, accessibility]);
+  const route = JSON.stringify([origin, destination, departureDate, tripType, tripType === "round-trip" ? returnDate : null, travelers, accessibility]);
   const restored = saved && { tripId: saved.outbound.tripId, flight: saved.request,
-    route: JSON.stringify([origin, destination, saved.request.departureDate, saved.request.tripType ?? "one-way", saved.request.returnDate ?? null, savedAccessibility]) };
+    route: JSON.stringify([origin, destination, saved.request.departureDate, saved.request.tripType ?? "one-way", saved.request.returnDate ?? null, saved.request.travelers ?? 1, savedAccessibility]) };
   const candidate = submitted ?? restored;
   const current = candidate?.route === route && (!saved || saved.itinerary === itineraryKey || submitted) ? candidate : null;
   const research = useQuery(api.flightJobs.latest, current ? { tripId: current.tripId, flight: current.flight } : "skip");
@@ -179,7 +180,7 @@ function TransportationLeg({ guest, accessibility, savedAccessibility, onRoundTr
     setStarting(true); setError(""); setNotice("");
     try {
       const flight = validateFlightRequest({
-        ...flightRequestFromTrip(origin, destination, departureDate),
+        ...flightRequestFromTrip(origin, destination, departureDate, travelers),
         ...(allowRoundTrip && tripType === "round-trip" ? { tripType, returnDate } : {}),
       });
       const tripId = await onSaveTrip();
@@ -255,7 +256,7 @@ function TransportationLeg({ guest, accessibility, savedAccessibility, onRoundTr
         <FlightFilterControls value={filters} onChange={(value) => { setFilters(value); setShowOptions(false); onSelect(null); }}
           priceLabel={tripType === "round-trip" ? "Maximum round-trip price (USD)" : "Maximum price (USD)"} />
       </details>}
-      {!selectedOutbound && <p className="field-hint transport-search-note">1 adult · Economy including basic fares · USD. Times are local to each airport.</p>}
+      {!selectedOutbound && <p className="field-hint transport-search-note">{travelers} {travelers === 1 ? "adult" : "adults"} · Economy including basic fares · USD. Times are local to each airport.</p>}
       {!booked && <button className="primary-button" type="button" disabled={guest || busy || savingPlan}
         onClick={() => void search(result?.run.status === "completed")}>
         {busy ? "Finding outgoing flights…" : result?.run.status === "completed" ? "Refresh outgoing flights" : "Search Flight"}
@@ -272,8 +273,8 @@ function TransportationLeg({ guest, accessibility, savedAccessibility, onRoundTr
       </div>}
       {current && !starting && <div className="transportation-flights">
         {selectedOutbound && result && <FlightAccessibilityNotice assessment={result.accessibility} />}
-        {selectedOutbound && <SelectedFlightCard source={selectedOutbound} direction="Outgoing" roundTrip={tripType === "round-trip"} booked={booked} />}
-        {booked && returning && <SelectedFlightCard source={returning} direction="Return" roundTrip booked />}
+        {selectedOutbound && <SelectedFlightCard source={selectedOutbound} direction="Outgoing" travelers={travelers} roundTrip={tripType === "round-trip"} booked={booked} />}
+        {booked && returning && <SelectedFlightCard source={returning} direction="Return" travelers={travelers} roundTrip booked />}
         {!booked && selectedOutbound && <button type="button" className="text-button" onClick={() => setShowOptions(!showOptions)}>
           {showOptions ? "Hide other options" : "See other options"}</button>}
         {!booked && (!selectedOutbound || showOptions) && <fieldset disabled={savingPlan}>

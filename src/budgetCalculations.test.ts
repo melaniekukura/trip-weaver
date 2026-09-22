@@ -12,6 +12,12 @@ test("counts all selected legs for all travelers without requiring booked status
   expect(totals.flightTotal).toBe(200.5);
 });
 
+test("does not multiply fares already searched as a group total", () => {
+  const groupLeg = { ...leg, request: { ...leg.request, travelers: 2 } };
+  const totals = transportationTotals({ ...trip, flightPlan: { revision: 1, confirmed: false, legs: [groupLeg] } });
+  expect(totals.flightTotal).toBe(100.25);
+});
+
 test("round-trip totals use the combined return fare once, and incomplete returns remain untotalled", () => {
   const roundTrip = { ...leg, request: { ...leg.request, tripType: "round-trip" as const, returnDate: trip.endDate } };
   const plan = { revision: 1, confirmed: false, legs: [roundTrip] };

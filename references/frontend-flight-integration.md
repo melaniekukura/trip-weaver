@@ -9,8 +9,8 @@ cancel the backend job. New trip forms explain this behavior.
 
 Results show up to three valid fares sorted by USD amount from the listings
 returned by the backend, not a claim to the cheapest flights on the market.
-The backend currently returns at most five listings. Searches are one-way,
-one adult, economy, and do not apply accessibility or interest preferences.
+The backend currently returns at most five listings. Searches use the trip's
+traveler count and economy, and do not apply accessibility or interest preferences.
 Progress, rate-limit errors, provider errors, cache reuse, and refresh are
 shown in the UI. Route or date changes hide results for the previous route.
 

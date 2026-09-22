@@ -1,9 +1,8 @@
 # Flight search prototype
 
 Each saved trip has a **Find flights** panel. Choose one-way or round trip,
-three-letter airport codes, and dates within 330 days. The prototype uses one
-adult, economy including basic fares, and USD. These settings are explicit rather
-than inherited from a trip's traveler count or currency.
+three-letter airport codes, and dates within 330 days. Searches inherit the trip's
+traveler count and use economy including basic fares and USD.
 
 ## Demo and paired flights
 
@@ -36,8 +35,9 @@ next-day arrivals. Clear filters restores all retrieved options for that leg.
 Outgoing round-trip cards show the provider's starting round-trip fare. Return
 cards show the observed combined fare for that return plus the chosen outgoing
 flight. The summary uses that combined amount directly; it never adds the two
-card prices together. Return filters apply only to the return leg and its combined
-price. Changing outgoing filters can hide a selected outgoing flight and its
+card prices together. Multi-traveler searches show the provider's group total,
+which the budget does not multiply again. Return filters apply only to the return
+leg and its combined price. Changing outgoing filters can hide a selected outgoing flight and its
 return picker until it matches again. Selections are local UI state; retrieved
 options persist on the trip, but itinerary saving remains separate work.
 
@@ -49,8 +49,8 @@ flights exist. The lists are in source order, not a guaranteed cheapest ranking.
 
 - `flightJobs:start({ tripId, flight, outboundSourceId?, refresh? })` queues a job.
 - `flightJobs:latest({ tripId, flight, outboundSourceId? })` reads `{ run, sources }`.
-- `flight` contains origin, destination, departureDate, optional tripType, and
-  required returnDate when tripType is `round-trip`.
+- `flight` contains origin, destination, departureDate, traveler count, optional
+  tripType, and required returnDate when tripType is `round-trip`.
 - An outboundSourceId starts/reads matching returns; omitting it searches outbound
   options. The server checks the caller owns the trip and the selected source
   belongs to a completed matching outbound search. Return results cannot be used
@@ -92,5 +92,5 @@ cache reuse, and temporary trip cleanup. Live Firecrawl probes also verified sel
 an outgoing flight and reading matched return options. Mouse clicks encountered
 Google's overlapping flight-row elements; keyboard activation worked. Browser
 layout changes can still break extraction; this is a prototype, not verified
-checkout inventory. Multi-passenger/cabin/currency support, complete flight
+checkout inventory. Cabin/currency support, complete flight
 coverage, and saving a selected pair into the itinerary remain future work.

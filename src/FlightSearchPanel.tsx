@@ -40,7 +40,7 @@ export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
     setPending(true); setError(""); setNotice("");
     try {
       const flight = refresh && submitted ? submitted : validateFlightRequest({
-        ...flightRequestFromTrip(origin, destination, departureDate),
+        ...flightRequestFromTrip(origin, destination, departureDate, trip.travelers),
         ...(tripType === "round-trip" ? { tripType, returnDate } : {}),
       });
       const result = await start({ tripId: trip._id, flight, refresh, sessionId: getFirecrawlSessionId() });
@@ -55,7 +55,7 @@ export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
 
   return <section className="flight-search-panel" aria-label={`Flights for ${trip.name}`}>
     <h4>Find flights <span className="data-source">Prototype</span></h4>
-    <p className="field-hint">1 adult · Economy including basic fares · USD</p>
+    <p className="field-hint">{trip.travelers} {trip.travelers === 1 ? "adult" : "adults"} · Economy including basic fares · USD</p>
     <form onSubmit={(event) => { event.preventDefault(); void search(); }}>
       <div className="flight-search-fields">
         <label htmlFor={`${id}-type`}>Trip type

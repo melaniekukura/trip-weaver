@@ -62,7 +62,8 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
     trip, form, planning, origin, destinations, homeReturnNotNeededFor, setActive,
   });
   const liveTrip = useQuery(api.trips.get, savedTrip ? { tripId: savedTrip._id } : "skip");
-  const homeRoute = { origin, destinations: destinations.map(stop => stop.value), startDate, endDate, homeReturnNotNeededFor };
+  const homeRoute = { origin, destinations: destinations.map(stop => stop.value), startDate, endDate,
+    travelers: Number(travelers), homeReturnNotNeededFor };
   const [roundTripRoute, setRoundTripRoute] = useState("");
   const routeKey = JSON.stringify([origin, destinations]);
   const onRoundTripChange = useCallback((roundTrip: boolean) => {
@@ -225,7 +226,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
             </section>}
             {planning && <>
               <section className="trip-tab-panel" role="tabpanel" id="trip-panel-1" aria-labelledby="trip-tab-1" data-tab="1" hidden={active !== 1}>
-                <TransportationTab guest={guest} accessibility={accessibility} onRoundTripChange={onRoundTripChange} onRemoveLeg={removeTransportationLeg} routePending={pending} homePrompt={homePrompt} homeReturnNotNeededFor={homeReturnNotNeededFor} tripId={savedTrip?._id} origin={origin} destinations={destinations}
+                <TransportationTab guest={guest} accessibility={accessibility} travelers={Number(travelers)} onRoundTripChange={onRoundTripChange} onRemoveLeg={removeTransportationLeg} routePending={pending} homePrompt={homePrompt} homeReturnNotNeededFor={homeReturnNotNeededFor} tripId={savedTrip?._id} origin={origin} destinations={destinations}
                   departureDate={startDate} returnDate={endDate} onReturnDateChange={setEndDate} onSaveTrip={guest ? async () => null : saveTrip} onEditDetails={() => { setActive(0); tabButtons.current[0]?.focus(); }} />
                 {guest && <GuestFeatureGate onSignIn={() => onSignInRequired?.()}><section className="transport-expenses">
                   <h3>Other transportation expenses</h3><p>Add itemized transportation costs and include them in your budget.</p>

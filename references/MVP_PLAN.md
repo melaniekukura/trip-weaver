@@ -65,8 +65,10 @@ are not durable after the session storage is cleared.
       expenses in the budget.
 - [x] Label researched fares as observations rather than verified checkout
       inventory.
-- [ ] Support configurable passenger counts, cabins, and currencies in flight
-      search. The current search scope is one adult, economy, and USD.
+- [x] Apply the trip's traveler count to outgoing and return flight searches,
+      provider-context validation, cached requests, displayed totals, and budgets.
+- [ ] Support configurable cabins and currencies in flight search. The current
+      search scope is economy and USD.
 - [ ] Verify live fare availability or complete bookings inside Trip-Weaver.
 
 ## 5. Lodging, interests, and accessibility
@@ -170,13 +172,12 @@ or change the trip.
 
 The current product covers the main saved-trip workflow. The remaining work is:
 
-1. Password reset and account recovery.
-2. Dedicated weather and safety research.
-3. Broader flight-search inputs beyond one adult, economy, and USD.
-4. Assistant research tools and user-approved structured trip changes.
-5. Complete assistant context for lodging, expenses, and itinerary data.
-6. Manual itinerary entries and custom ordering, if those remain MVP requirements.
-7. A repeatable end-to-end browser acceptance test and production monitoring.
+1. Dedicated weather and safety research.
+2. Broader flight-search inputs beyond economy and USD.
+3. Assistant research tools and user-approved structured trip changes.
+4. Complete assistant context for lodging, expenses, and itinerary data.
+5. Manual itinerary entries and custom ordering, if those remain MVP requirements.
+6. A repeatable end-to-end browser acceptance test and production monitoring.
 
 Verified live availability, in-app booking/payment, newsletter ingestion,
 background price alerts, collaboration, and automated route optimization remain

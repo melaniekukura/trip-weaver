@@ -5,6 +5,7 @@ import type { Infer } from "convex/values";
 const locationType = v.union(v.literal("airport"), v.literal("city"));
 export const flightRequest = v.object({
   origin: v.string(), destination: v.string(), departureDate: v.string(),
+  travelers: v.optional(v.number()),
   originType: v.optional(locationType), destinationType: v.optional(locationType),
   tripType: v.optional(v.union(v.literal("one-way"), v.literal("round-trip"))), returnDate: v.optional(v.string()),
 });
@@ -16,6 +17,14 @@ export const flightOption = v.object({
   originAirport: v.optional(v.string()), destinationAirport: v.optional(v.string()),
 });
 
+export function flightTravelerCount(input: FlightRequest) {
+  const travelers = input.travelers ?? 1;
+  if (!Number.isInteger(travelers) || travelers < 1 || travelers > 100) {
+    throw new ConvexError({ code: "INVALID_FLIGHT_SEARCH", message: "Choose between 1 and 100 travelers." });
+  }
+  return travelers;
+}
+
 export function validateFlightRequest(input: FlightRequest): FlightRequest {
   const origin = input.origin.trim().toUpperCase();
   const destination = input.destination.trim().toUpperCase();
@@ -25,7 +34,9 @@ export function validateFlightRequest(input: FlightRequest): FlightRequest {
     date.toISOString().slice(0, 10) !== input.departureDate) {
     throw new ConvexError({ code: "INVALID_FLIGHT_SEARCH", message: "Enter different three-letter airport or city codes and a valid departure date." });
   }
+  flightTravelerCount(input);
   const normalized: FlightRequest = { origin, destination, departureDate: input.departureDate,
+    ...(input.travelers !== undefined ? { travelers: input.travelers } : {}),
     ...(input.originType === "city" ? { originType: "city" as const } : {}),
     ...(input.destinationType === "city" ? { destinationType: "city" as const } : {}),
   };
@@ -44,17 +55,19 @@ export function validateFlightRequest(input: FlightRequest): FlightRequest {
 
 export function flightSearchUrl(input: FlightRequest) {
   const request = validateFlightRequest(input);
+  const travelers = flightTravelerCount(request);
   const date = new Date(`${request.departureDate}T00:00:00Z`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
   const url = new URL("https://www.google.com/travel/flights");
   url.searchParams.set("hl", "en"); url.searchParams.set("curr", "USD");
   const returning = request.returnDate ? new Date(`${request.returnDate}T00:00:00Z`).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }) : null;
   const journey = returning ? `returning ${returning} round trip` : "one way";
-  url.searchParams.set("q", `Flights from ${request.origin} to ${request.destination} on ${date} ${journey} 1 adult economy`);
+  url.searchParams.set("q", `Flights from ${request.origin} to ${request.destination} on ${date} ${journey} ${travelers} ${travelers === 1 ? "adult" : "adults"} economy`);
   return url.href;
 }
 
 export function parseFlightPage(markdown: string, input: FlightRequest, scope?: AirportScope): Infer<typeof flightOption>[] {
   const request = validateFlightRequest(input);
+  const travelers = flightTravelerCount(request);
   if ((request.originType === "city" || request.destinationType === "city") && !scope) {
     throw new ConvexError({ code: "AIRPORT_LOOKUP_FAILED", message: "City airports could not be verified." });
   }
@@ -67,7 +80,7 @@ export function parseFlightPage(markdown: string, input: FlightRequest, scope?: 
   const journeyLabel = roundTrip ? "Round trip" : "One way";
   const datesLabel = `departing ${request.departureDate}${roundTrip ? ` and returning ${request.returnDate}` : ""}`;
   if (!header.includes(`# Flight search\n${journeyLabel}\n`) || !/\nEconomy(?: \(include Basic\))?\n/.test(header) ||
-    !text.includes("Prices include required taxes + fees for 1 adult.") || !/Currency\s*USD\b/.test(text) ||
+    !text.includes(`Prices include required taxes + fees for ${travelers} ${travelers === 1 ? "adult" : "adults"}.`) || !/Currency\s*USD\b/.test(text) ||
     !text.includes(`${datesLabel}\n`)) return flightFailure("outbound_parse", "context_mismatch");
   const dateLabel = new Date(`${request.departureDate}T00:00:00Z`).toLocaleDateString("en-US", {
     weekday: "short", month: "short", day: "numeric", timeZone: "UTC",

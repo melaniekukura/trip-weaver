@@ -13,7 +13,7 @@ import { diagnoseFlightFailure, flightDiagnostic, flightFailure } from "./flight
 import type { DiagnosticStage } from "./flightDiagnostics";
 import { sourceFields } from "./flightSchema";
 import schema from "./schema";
-import { flightRequest, flightSearchUrl, parseFlightPage, validateFlightRequest } from "./flightSearch";
+import { flightRequest, flightSearchUrl, flightTravelerCount, parseFlightPage, validateFlightRequest } from "./flightSearch";
 import { parseReturnResults, returnBrowserCode } from "./returnFlights";
 import type { FlightRequest } from "./flightSearch";
 
@@ -60,8 +60,12 @@ export const start = mutation({
   returns: v.object({ runId: v.id("researchRuns"), reused: v.boolean() }),
   handler: async (ctx, args) => {
     const trip = await ownedTrip(ctx, args.tripId);
-    await checkOutbound(ctx, trip._id, args.flight, args.outboundSourceId);
-    const details = searchDetails(args.flight, args.outboundSourceId);
+    const request = validateFlightRequest(args.flight);
+    if (flightTravelerCount(request) !== trip.travelers) {
+      throw new ConvexError({ code: "TRAVELERS_CHANGED", message: "Save the current traveler count before searching flights." });
+    }
+    await checkOutbound(ctx, trip._id, request, args.outboundSourceId);
+    const details = searchDetails(request, args.outboundSourceId);
     if (details.flightRequest) {
       const departure = Date.parse(`${details.flightRequest.departureDate}T00:00:00Z`);
       const today = Date.parse(new Date().toISOString().slice(0, 10));
@@ -108,8 +112,10 @@ export const latest = query({
   })),
   handler: async (ctx, args) => {
     const trip = await ownedTrip(ctx, args.tripId);
-    await checkOutbound(ctx, trip._id, args.flight, args.outboundSourceId);
-    const details = searchDetails(args.flight, args.outboundSourceId);
+    const request = validateFlightRequest(args.flight);
+    if (flightTravelerCount(request) !== trip.travelers) return null;
+    await checkOutbound(ctx, trip._id, request, args.outboundSourceId);
+    const details = searchDetails(request, args.outboundSourceId);
     const run = args.runId ? await ctx.db.get("researchRuns", args.runId) : await ctx.db.query("researchRuns").withIndex("by_tripId_searchKey", (q) =>
       q.eq("tripId", trip._id).eq("searchKey", details.searchKey)).order("desc").first();
     if (!run || run.tripId !== trip._id || run.searchKey !== details.searchKey) return null;

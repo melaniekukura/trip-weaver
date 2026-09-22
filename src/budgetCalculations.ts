@@ -8,7 +8,8 @@ export function transportationTotals(trip: Doc<"trips">) {
   const flights = current.map(leg => {
     const roundTrip = leg.request.tripType === "round-trip";
     const source = roundTrip ? leg.returning : leg.outbound;
-    return { leg, amount: source ? Math.round(source.flight.amount * 100) * trip.travelers / 100 : null };
+    const multiplier = leg.request.travelers === undefined ? trip.travelers : 1;
+    return { leg, amount: source ? Math.round(source.flight.amount * 100) * multiplier / 100 : null };
   });
   const flightTotal = flights.reduce((total, flight) => total + (flight.amount ?? 0), 0);
   return { flights, flightTotal, staleCount: legs.length - current.length };
