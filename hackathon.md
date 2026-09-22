@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** openrouter/free
 - **Started:** 2026-09-04T19:25:03Z
-- **Last updated:** 2026-09-22T04:10:31Z
+- **Last updated:** 2026-09-22T04:16:40Z
 
 ## Log
 
@@ -152,3 +152,8 @@ Automated verification reached 397 passing tests, and frontend/backend type chec
 ### 2026-09-22 - 9292a42 (includes 665dd75 and 9086f25)
 Added a scalable Cyan SVG route mark above the home-page title with a smooth left-to-right reveal, sharp vector edges, and a reduced-motion fallback (`references/logo-icon/TW-cyan.svg`, `src/pages/HomePage.tsx`, `src/styles.css`).
 Aligned the planning-page heading with Budget by using “Trip: {trip title}” and removed the duplicate in-form planner label and trip name while retaining modal creation/edit headers (`src/pages/TripPlannerPage.tsx`, `src/TripForm.tsx`). Verification included 397 passing tests, focused homepage and trip-form tests after the final refinements, frontend/backend TypeScript checks, the production build, and whitespace checks. No production deployment is recorded for this update.
+
+### 2026-09-22 - c657088 (includes 7a68aa8)
+Refreshed the public project documentation to describe the animated home-page
+logo and removed the unfinished submission-media placeholder (`README.md`). No
+application behavior or deployment changed in this readiness pass.
