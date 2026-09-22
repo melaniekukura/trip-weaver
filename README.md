@@ -41,8 +41,9 @@ the itinerary.
   results separate confirmed matches, unknowns, and source-supported mismatches.
 - **Reactive trip budgets:** selected transportation and researched fees roll into
   category totals, daily spending graphs, and cached ECB reference-rate conversions.
-- **A versatile planning assistant:** the Convex Agent component gives the assistant
-  the owned trip's current route, selections, bookings, saved ideas, and itinerary.
+- **A versatile planning assistant:** the Convex Agent component gets read-only access
+  to the owned trip's route, dates, flight times, scheduled and unscheduled activities,
+  interests, and accessibility requirements. Lodging and financials are excluded.
 - **A usable product:** combine booked transportation and planned activities into a
   chronological itinerary, then send an immutable snapshot through AgentMail.
 - **Private by default:** Convex Auth, server-derived ownership, validation, rate

@@ -114,13 +114,12 @@ records rather than a separate generic itinerary-item collection.
 
 - [x] Use the Convex Agent component with an OpenRouter model.
 - [x] Maintain one persistent, paginated conversation per owned trip.
-- [x] Supply the assistant with current trip overview, flight selections, and
-      saved activity ideas.
+- [x] Supply the assistant with a read-only, allowlisted context containing the
+      route, dates, flight times, scheduled and unscheduled activities, interests,
+      and accessibility requirements. Lodging and financial data are excluded.
 - [x] Distinguish suggestions, selections, and confirmed bookings in the prompt.
 - [x] Provide generation state, provider-error handling, request idempotency, and
       per-user/global usage limits.
-- [ ] Include all saved planning data in context, especially lodging, expenses,
-      and the complete derived itinerary.
 - [ ] Give the assistant bounded research tools.
 - [ ] Let the assistant propose structured itinerary changes for explicit user
       approval.
@@ -175,9 +174,8 @@ The current product covers the main saved-trip workflow. The remaining work is:
 1. Dedicated weather and safety research.
 2. Broader flight-search inputs beyond economy and USD.
 3. Assistant research tools and user-approved structured trip changes.
-4. Complete assistant context for lodging, expenses, and itinerary data.
-5. Manual itinerary entries and custom ordering, if those remain MVP requirements.
-6. A repeatable end-to-end browser acceptance test and production monitoring.
+4. Manual itinerary entries and custom ordering, if those remain MVP requirements.
+5. A repeatable end-to-end browser acceptance test and production monitoring.
 
 Verified live availability, in-app booking/payment, newsletter ingestion,
 background price alerts, collaboration, and automated route optimization remain
