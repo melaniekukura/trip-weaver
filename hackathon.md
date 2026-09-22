@@ -2,7 +2,7 @@
 
 - **Project:** Trip-Weaver
 - **Event:** Convex All Gas Hackathon
-- **What it does:** Private multi-city trip planning with Firecrawl research, accessibility requirements, trip cost breakdowns, a unified day-by-day itinerary, AgentMail delivery, and a trip-aware AI planning assistant.
+- **What it does:** Private multi-city trip planning with Firecrawl research for flights, lodging, activities, and costs; accessibility requirements; reactive budgets; a unified day-by-day itinerary; AgentMail delivery; and a trip-aware AI planning assistant.
 - **Live app:** https://rare-scorpion-458.convex.site
 - **Repo:** private
 - **Frontend:** Convex static hosting
@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** openrouter/free
 - **Started:** 2026-09-04T19:25:03Z
-- **Last updated:** 2026-09-18T19:52:21Z
+- **Last updated:** 2026-09-22T01:49:05Z
 
 ## Log
 
@@ -134,3 +134,10 @@ Expanded activity discovery with dedicated major-museum and monument/landmark qu
 Replaced About with Profile, including editable name, account-email display, an optional default airport, and maximum connections. Added private profile queries/mutations, a user-indexed settings table, validation, and stale-edit protection. New trip origins use the saved airport; existing trips offer an explicit Use default airport action. Outgoing and return filters initialize from the connection limit and allow overrides. Added a compact accessibility search/chip editor whose saved defaults are copied only when creating new trips; existing trips and later profile changes remain independent, and copied trip chips can be removed (`convex/profile.ts`, `convex/schema.ts`, `convex/trips.ts`, `src/pages/ProfilePage.tsx`, `src/profileDefaults.ts`, `src/AccessibilityTab.tsx`).
 Removed New Trip from Budget while retaining it in My Trips. Save Trip and Create my trip stay gray and disabled until the new trip has a valid name, selected origin, destination list, dates, and traveler count; submission also guards against incomplete creation (`src/Trips.tsx`, `src/TripForm.tsx`, `src/tripCreation.ts`).
 Latest verification passed 318 tests, frontend/backend TypeScript checks, and whitespace checks. The production build passed after the Profile/accessibility-default work, before the final button changes; backend updates were synced to personal dev. Tests cover destination isolation, disabled-search behavior, late-result rejection, fee totals and currency conversion, activity evidence and broader discovery, profile ownership, and new-trip-only accessibility inheritance. A live public exchange-rate request confirmed the API response format; destination fare research, expanded attraction coverage, and browser interaction remain unverified live. No new production deployment was performed in this work session.
+
+### 2026-09-22 - dd73214
+Added owner-scoped lodging research and saved stays with custom cities, booking details, budget totals, and itinerary coverage. Searches are queued through Workpool, rate-limited, cached, and filtered for relevant English-language lodging (`convex/lodgingJobs.ts`, `convex/lodgings.ts`, `src/LodgingTab.tsx`).
+Added editable manual expenses with custom categories, currencies, dates, totals, and graphs. Transportation-only entries now appear in both the Transportation planner and its budget subtotal, replacing the unfinished train, bus, and ferry placeholders (`convex/trips.ts`, `src/ExpenseList.tsx`, `src/TransportationTab.tsx`, `src/TransportationBudget.tsx`).
+Itinerary email delivery now defaults to the verified account address but accepts a validated alternate recipient while retaining rate limits, recipient-bound idempotency, delivery status, and retry handling (`convex/itineraryEmails.ts`, `src/ItineraryEmailAction.tsx`).
+Improved accessibility suggestion entry, return-leg ordering, saved-activity filtering, and the responsive assistant drawer. Firecrawl-backed flows now record provider-reported credit usage and expose session and project totals (`src/AccessibilityTab.tsx`, `src/DestinationsEditor.tsx`, `src/InterestDiscovery.tsx`, `src/TripForm.tsx`, `convex/firecrawl.ts`).
+Development verification passed 370 tests across 59 files, frontend/backend TypeScript checks, the production build, and whitespace checks. No deployment is recorded for this update.
