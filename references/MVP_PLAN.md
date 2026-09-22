@@ -17,7 +17,7 @@ This status reflects the repository as of September 21, 2026.
 - [x] Keep unauthenticated profile queries from blanking or crashing the app.
 - [x] Store profile defaults for home airport, maximum connections, and
       accessibility needs.
-- [x] Enforce a 10-minute browser inactivity timeout with a two-minute warning.
+- [x] Enforce a 30-minute browser inactivity timeout with a two-minute warning.
 - [ ] Add password reset and account recovery.
 - [ ] Add a server-enforced session lifetime if the browser-only idle timer is
       not sufficient for launch requirements.
