@@ -192,7 +192,7 @@ footer a {
 
 .hero-logo {
   display: block;
-  width: clamp(148px, 18vw, 184px);
+  width: clamp(160px, 20vw, 200px);
   height: auto;
   margin: 0 auto 22px;
 }

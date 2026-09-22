@@ -15,7 +15,7 @@ export function HomePage({ onGuestContinue }: { onGuestContinue?: (draft: Omit<G
 
   return (
     <section className="hero" aria-labelledby="hero-title">
-      <img className="hero-logo" src={cyanLogo} alt="" width="184" height="180" />
+      <img className="hero-logo" src={cyanLogo} alt="" width="200" height="182" />
       <p className="eyebrow">Trip planning, woven together</p>
       <h1 id="hero-title">Trip-Weaver</h1>
       <p className="hero-copy">
