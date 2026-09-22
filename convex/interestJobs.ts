@@ -14,7 +14,7 @@ import { discoveryItem, discoveryKind, ideaItinerary } from "./interestSchema";
 import { diversifyIdeas } from "./interestDiversity";
 import { discoverSpecificIdeas } from "./interestDiscovery";
 import { foodInterest, interestQuery, interestSearchKey, sightseeingInterest, sightseeingQuery } from "./interestSearch";
-import { reserveFirecrawlRun } from "./firecrawl";
+import { checkFirecrawlBudget } from "./firecrawl";
 
 const pool = new Workpool(components.researchPool, { maxParallelism: 2, retryActionsByDefault: false });
 const limiter = new RateLimiter(components.rateLimiter, {
@@ -49,7 +49,7 @@ export const start = mutation({
       const status = await limiter.limit(ctx, name, { key });
       if (!status.ok) throw new ConvexError({ message: `Interest search limit reached. Try again in ${Math.max(1, Math.ceil(status.retryAfter / 60000))} minute(s).` });
     }
-    await reserveFirecrawlRun(ctx, args.sessionId);
+    await checkFirecrawlBudget(ctx, args.sessionId);
     const runId = await ctx.db.insert("interestRuns", { ...search, tripId: trip._id, searchKey, status: "pending", results: [], warnings: [],
       ...(args.sessionId ? { firecrawlSessionId: args.sessionId } : {}) });
     const workId = await pool.enqueueAction(ctx, internal.interestJobs.execute, { runId }, { retry: false, onComplete: internal.interestJobs.onComplete, context: { runId } });

@@ -25,11 +25,18 @@ async function setup() {
     kind: "activities", title: "Tea & pottery", description: "Workshop", venue: "Studio", url: "https://example.com/tea",
     destination: "Kyoto", retrievedAt: "2026-09-01",
   }, itinerary: { date: "2026-10-03", time: "13:30", notes: "Arrive early" } }));
-  return { t, alice, bob, tripId, favoriteId };
+  const lodgingId = await t.run(async ctx => ctx.db.insert("lodgings", { tripId, type: "hotel", destination: "Kyoto",
+    name: "Gion Hotel", address: "1 Gion Street", checkInDate: "2026-10-02", checkOutDate: "2026-10-06",
+    booked: true, currency: "USD", bookingUrl: "https://example.com/hotel", confirmationNumber: "HOTEL-123",
+    notes: "Late arrival", updatedAt: Date.now() }));
+  await t.run(async ctx => ctx.db.insert("lodgings", { tripId, type: "hostel", destination: "Kyoto",
+    name: "Unbooked Hostel", checkInDate: "2026-10-06", checkOutDate: "2026-10-09",
+    booked: false, currency: "USD", updatedAt: Date.now() }));
+  return { t, alice, bob, tripId, favoriteId, lodgingId };
 }
 
 test("owner requests one immutable itinerary snapshot per request identifier", async () => {
-  const { t, alice, tripId, favoriteId } = await setup();
+  const { t, alice, tripId, favoriteId, lodgingId } = await setup();
   const first = await alice.mutation(api.itineraryEmails.request, { tripId, requestId: "request-1" });
   const duplicate = await alice.mutation(api.itineraryEmails.request, { tripId, requestId: "request-1" });
   expect(duplicate).toBe(first);
@@ -37,12 +44,19 @@ test("owner requests one immutable itinerary snapshot per request identifier", a
     .withIndex("by_tripId", q => q.eq("tripId", tripId)).take(10));
   expect(deliveries).toHaveLength(1);
   expect(deliveries[0]).toMatchObject({ recipient: "alice@example.test", status: "queued", attempts: 0,
-    snapshot: { name: trip.name, destinations: ["Kyoto"], items: [{ kind: "activity", title: "Tea & pottery",
-      date: "2026-10-03", time: "13:30", notes: "Arrive early" }] } });
+    snapshot: { name: trip.name, destinations: ["Kyoto"], items: [
+      { kind: "lodging", title: "Gion Hotel", date: "2026-10-02", location: "Kyoto",
+        detail: "Check-in 2026-10-02 · Check-out 2026-10-06 · 1 Gion Street", notes: "Late arrival",
+        url: "https://example.com/hotel", reference: "HOTEL-123" },
+      { kind: "activity", title: "Tea & pottery", date: "2026-10-03", time: "13:30", notes: "Arrive early" },
+    ] } });
+  expect(JSON.stringify(deliveries[0].snapshot)).not.toContain("Unbooked Hostel");
   expect(deliveries[0].snapshotVersion).toMatch(/^v1-[0-9a-f]{8}$/);
   await t.run(async ctx => ctx.db.patch("interestFavorites", favoriteId, { itinerary: { date: "2026-10-04" } }));
+  await t.run(async ctx => ctx.db.patch("lodgings", lodgingId, { name: "Changed Hotel" }));
   const unchanged = await t.run(async ctx => ctx.db.get("emailDeliveries", first));
-  expect(unchanged?.snapshot.items[0].date).toBe("2026-10-03");
+  expect(unchanged?.snapshot.items.find(item => item.kind === "activity")?.date).toBe("2026-10-03");
+  expect(unchanged?.snapshot.items.find(item => item.kind === "lodging")?.title).toBe("Gion Hotel");
 });
 
 test("owner can send an itinerary to a different validated email address", async () => {
@@ -130,11 +144,15 @@ test("AgentMail webhook payloads are narrowed before storage", () => {
 
 test("email content includes text and escaped HTML", () => {
   const snapshot = { ...trip, items: [{ kind: "activity" as const, title: "Tea <Pottery>", location: "Kyoto & Gion",
-    notes: "Bring <tickets>", url: "javascript:alert(1)" }] };
+    notes: "Bring <tickets>", url: "javascript:alert(1)" }, { kind: "lodging" as const, title: "Gion <Hotel>",
+    location: "Kyoto", detail: "Check-in 2026-10-02 · Check-out 2026-10-06", reference: "HOTEL-123" }] };
   const content = itineraryEmailContent(snapshot);
   expect(content.subject).toContain("Japan <Fall>");
   expect(content.text).toContain("Tea <Pottery>");
   expect(content.html).toContain("Japan &lt;Fall&gt;");
   expect(content.html).toContain("Tea &lt;Pottery&gt;");
+  expect(content.text).toContain("Gion <Hotel>");
+  expect(content.html).toContain("Gion &lt;Hotel&gt;");
+  expect(content.html).toContain("HOTEL-123");
   expect(content.html).not.toContain("javascript:");
 });

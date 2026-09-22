@@ -9,6 +9,7 @@ export const flightPlanFields = v.object({
     outbound: savedFlightSource, returning: v.optional(savedFlightSource), booked: v.boolean(), reference: v.optional(v.string()) })),
 });
 
-export function flightPlanItinerary(trip: { origin: string; destinations: string[]; startDate: string; endDate: string }) {
-  return JSON.stringify([trip.origin, trip.destinations, trip.startDate, trip.endDate]);
+export function flightPlanItinerary(trip: { origin: string; destinations: string[]; startDate: string; endDate: string; travelers?: number }) {
+  const route = [trip.origin, trip.destinations, trip.startDate, trip.endDate];
+  return JSON.stringify(trip.travelers !== undefined && trip.travelers !== 1 ? [...route, trip.travelers] : route);
 }

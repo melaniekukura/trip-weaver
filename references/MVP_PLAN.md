@@ -1,161 +1,182 @@
-# Trip-Weaver MVP backend plan
+# Trip-Weaver MVP plan and status
 
 ## MVP outcome
 
-A user creates a trip, researches it through an AI travel assistant inside the
-app, saves and edits an itinerary, and emails themselves a summary.
+Trip-Weaver lets a guest begin planning without an account, preserve that draft
+through sign-in, and continue in a private saved trip. Signed-in travelers can
+research and select trip options, track costs and accessibility needs, use a
+trip-aware assistant, assemble an itinerary, and email themselves a snapshot.
 
-The assistant does not specifically require a Codex runtime. Choose its model
-and integration when implementing phase 4.
+This status reflects the repository as of September 21, 2026.
 
-## Starting point
+## 1. Access, authentication, and profiles
 
-As of September 9, 2026:
+- [x] Show the same public home page to guests and signed-in users.
+- [x] Provide email/password sign-up and sign-in through Convex Auth.
+- [x] Verify new accounts with a six-digit code delivered through AgentMail.
+- [x] Keep unauthenticated profile queries from blanking or crashing the app.
+- [x] Store profile defaults for home airport, maximum connections, and
+      accessibility needs.
+- [x] Enforce a 30-minute browser inactivity timeout with a two-minute warning.
+- [ ] Add password reset and account recovery.
+- [ ] Add a server-enforced session lifetime if the browser-only idle timer is
+      not sufficient for launch requirements.
 
-- React frontend connects to the local Convex backend.
-- Internal Firecrawl search and scrape actions exist with mocked integration tests.
-- Flight search returns explicitly labeled mock data.
-- The database schema is empty.
-- Authentication, saved trips, chat, and AgentMail are not implemented.
-- The frontend dates field is not passed to the backend.
+## 2. Guest planning and draft handoff
 
-## 1. Authentication and saved trips
+- [x] Let guests begin from the home-page trip form without signing in.
+- [x] Preserve entered airports, including leaving blank airports blank.
+- [x] Provide the complete Overview and Accessibility tabs to guests.
+- [x] Provide guest flight setup and interests editing while clearly gating
+      account-only research, saved lists, lodging, and itinerary features.
+- [x] Keep the guest draft in session storage while navigating to sign-in.
+- [x] Import the draft exactly once into a new owned trip after sign-in or
+      account creation, then open that trip in the editor.
 
-- [x] Choose and implement sign-in (email and password via Convex Auth).
-- [x] Add trip records with owner, origin, destinations, actual dates, budget,
-      currency, travelers, and interests.
-- [x] Implement create, list, read, update, and delete operations.
-- [x] Derive ownership from the authenticated identity and enforce it on every
-      trip operation.
-- [x] Connect the frontend to saved trips and pass structured dates.
-- [x] Verify persistence after reload and rejection of another user's access.
+Guest drafts are browser-session drafts. They do not sync between devices and
+are not durable after the session storage is cleared.
 
-**Done when:** a user can create and retrieve their trips after reloading, and
-another user cannot access them.
+## 3. Saved trips and planning workspace
 
-**Verification, September 9:** unit tests and a live local API check cover sign-up,
-sign-in, wrong-password rejection, persistence across sessions/new clients,
-ownership isolation, and trip CRUD. Lint and production build pass.
-Two synthetic local test accounts remain signed out;
-the live test trip was deleted.
+- [x] Create, list, read, update, and delete private trips.
+- [x] Store the trip name, origin, ordered multi-city destinations, dates,
+      travelers, budget, currency, interests, accessibility needs, and return-home
+      preference.
+- [x] Derive ownership from the authenticated identity on every trip operation.
+- [x] Validate trip inputs and reject stale concurrent edits.
+- [x] Apply profile defaults when creating a trip.
+- [x] Open trips from either the home-page flow or the Trips page in the same
+      editor.
+- [x] Clean up flight, lodging, interest, assistant, email, and fee records after
+      a trip is deleted.
 
-**Browser verification, September 10:** user confirmed creating a trip in the UI,
-retaining all saved fields after reload, retrieving the trip after signing out
-and back in, and isolation from a second account. All 46 tests, lint, and build
-also passed during the PR review. Step 1 is complete.
+## 4. Transportation and flight research
 
-**Before public launch:** implement password reset. AgentMail-backed email
-verification is complete. The existing flight demo's free-text date input remains
-separate from the saved-trip form, which sends structured start and end dates.
+- [x] Build flight legs from the saved route, including multi-city and return-home
+      handling.
+- [x] Search Google Flights through Firecrawl for one-way and round-trip options.
+- [x] Support airport validation, connection filters, outbound and return
+      selection, booking links, booking state, and plan confirmation.
+- [x] Save observed prices, source URLs, retrieval times, and selected flight
+      details.
+- [x] Queue research with Workpool and provide rate limits, credit limits,
+      caching, progress, diagnostics, and recoverable failure states.
+- [x] Research local transportation fares and include itemized transportation
+      expenses in the budget.
+- [x] Label researched fares as observations rather than verified checkout
+      inventory.
+- [x] Apply the trip's traveler count to outgoing and return flight searches,
+      provider-context validation, cached requests, displayed totals, and budgets.
+- [ ] Support configurable cabins and currencies in flight search. The current
+      search scope is economy and USD.
+- [ ] Verify live fare availability or complete bookings inside Trip-Weaver.
 
-## 2. Editable itineraries
+## 5. Lodging, interests, and accessibility
 
-- [x] Store flights, stays, activities, and transfers as individual trip-owned
-      records with ordering, local dates, time zones, notes, and source links.
-- [x] Implement adding, editing, moving, and removing items.
-- [ ] Validate dates and enforce ownership for all item operations.
-- [x] Connect the itinerary UI to reactive Convex queries.
-- [ ] Define cleanup of related records when a trip is deleted.
+- [x] Search for source-linked lodging options by destination and property type.
+- [x] Add, edit, and remove stays with dates, cost, booking link, confirmation
+      number, notes, and booked state.
+- [x] Research activities, sights, food, and dated events by destination and
+      saved interest.
+- [x] Save and remove favorite ideas and schedule them with a date, time, and
+      notes.
+- [x] Compare activity results with the traveler's accessibility requirements
+      and retain source-supported evidence.
+- [x] Handle interrupted lodging and interest jobs without discarding saved trip
+      work.
+- [ ] Add dedicated weather research.
+- [ ] Add dedicated safety research.
 
-**Done when:** a manually created itinerary persists and updates immediately in
-the UI.
+## 6. Itinerary
 
-## 3. Trip research
+- [x] Build a chronological itinerary from booked flights, booked lodging, and
+      scheduled saved activities.
+- [x] Show unscheduled saved activities separately.
+- [x] Link itinerary entries back to their source and editing workflow.
+- [x] Keep itinerary queries reactive as the underlying plan changes.
+- [ ] Support arbitrary manual itinerary entries such as transfers or notes.
+- [ ] Support manual reordering independent of date and time sorting.
 
-- [x] Connect the existing internal Firecrawl actions to authenticated trip
-      research operations.
-- [ ] Support research topics: sights, events, weather, safety, flights, and stays.
-- [x] Save research runs, source URLs, retrieval times, and results.
-- [x] Add request limits, caching, and visible progress and error states.
-- [ ] Handle partial failures and interrupted research without losing saved work.
-- [ ] Let the user save a sourced recommendation to the itinerary.
-- [ ] Treat retrieved web content as untrusted material, never agent instructions.
-- [ ] Distinguish sourced research from verified live fares and availability.
+The current itinerary is a derived view of the flight, lodging, and activity
+records rather than a separate generic itinerary-item collection.
 
-**Done when:** a user researches a destination and saves a sourced recommendation
-to their itinerary.
+## 7. Budgeting
 
-**First milestone, September 11:** the saved-trip UI now focuses on flight
-research using Firecrawl to read Google Flights. The prototype supports one-way and round-trip
-economy, one adult, USD, with route/date validation, observed fares, source links,
-15-minute caching, background jobs, ownership checks, and credit limits. City/sights research is deferred.
-Flight parser and queue tests, lint, build, and an authenticated live search
-through the local backend have been verified. Browser visual verification remains pending. See
-`references/flight-search.md`.
+- [x] Track a trip budget and supported currency.
+- [x] Include selected transportation, lodging, manual expenses, researched
+      local fares, and researched extra fees in totals.
+- [x] Show category breakdowns and daily budget graphs.
+- [x] Convert supported currencies with cached reference rates and visible error
+      recovery.
+- [x] Reject invalid costs and stale expense or transportation updates.
 
-**Flight scope:** prices are observations from Google Flights, not verified
-checkout inventory. Additional travelers/cabins/currencies, other
-research topics, and saving results into the itinerary remain unfinished.
+## 8. AI travel assistant
 
-## 4. AI travel assistant
+- [x] Use the Convex Agent component with an OpenRouter model.
+- [x] Maintain one persistent, paginated conversation per owned trip.
+- [x] Supply the assistant with a read-only, allowlisted context containing the
+      route, dates, flight times, scheduled and unscheduled activities, interests,
+      and accessibility requirements. Lodging and financial data are excluded.
+- [x] Distinguish suggestions, selections, and confirmed bookings in the prompt.
+- [x] Provide generation state, provider-error handling, request idempotency, and
+      per-user/global usage limits.
+- [ ] Give the assistant bounded research tools.
+- [ ] Let the assistant propose structured itinerary changes for explicit user
+      approval.
+- [ ] Apply approved changes through validated, ownership-checked mutations.
 
-- [ ] Choose the model/provider and persistent agent integration.
-- [ ] Associate a persistent conversation with each trip.
-- [ ] Give the assistant tools to read trip details and run bounded research.
-- [ ] Have it propose sourced itinerary changes for the user to accept.
-- [ ] Apply accepted changes through validated, ownership-checked operations.
-- [ ] Add visible generation progress, failure handling, and usage limits.
-- [ ] Ensure retries or concurrent changes do not duplicate itinerary items or
-      overwrite newer user edits.
+The assistant can advise from saved context, but it cannot currently run research
+or change the trip.
 
-**Done when:** “Find activities for day two” produces sourced suggestions the user
-can add to their trip.
+## 9. AgentMail itinerary delivery
 
-## 5. AgentMail itinerary delivery
+- [x] Send an immutable itinerary snapshot to the signed-in user's verified
+      address.
+- [x] Record the snapshot, recipient, request identity, and delivery status.
+- [x] Prevent duplicate sends and support explicit retry.
+- [x] Verify signed webhooks for sent, delivered, bounced, and rejected events.
+- [x] Expose actionable delivery and retry states in the itinerary UI.
 
-- [x] Configure the AgentMail integration and backend secrets.
-- [x] Add an explicit “Email my itinerary” action.
-- [x] Send a snapshot of the saved itinerary to the user's verified address.
-- [x] Record which itinerary version was sent and its delivery status.
-- [x] Prevent duplicate sends during retries and expose actionable failures.
+## 10. Operations and verification
 
-**Done when:** the user receives the requested itinerary and can see whether
-delivery succeeded.
+- [x] Serve the frontend and backend through Convex, with a production deployment
+      workflow guarded by tests and type checking.
+- [x] Keep third-party secrets and network calls in backend actions.
+- [x] Treat retrieved web content as untrusted source material.
+- [x] Test core ownership isolation, validation, stale edits, background research,
+      duplicate requests, assistant failures, and email retries with mocked
+      integrations.
+- [x] Track and display conservative Firecrawl session and project credit usage.
+- [ ] Complete a documented end-to-end browser acceptance pass covering guest
+      draft -> account creation -> research -> selection -> itinerary -> email.
+- [ ] Add automated browser-level end-to-end tests for the critical path.
+- [ ] Add production monitoring and alerting for provider and background-job
+      failures.
 
-**Verification, September 17:** the user received and entered an AgentMail
-verification code, sent an itinerary from the UI, and confirmed its delivery
-status. Signed webhooks track sent, delivered, bounced, and rejected events.
-Automated checks cover duplicate requests, retry ownership, immutable snapshots,
-webhook deduplication, and out-of-order delivery events. All 254 tests, lint, and
-the production build passed before the feature was committed in `a75580e`.
+## Current data model
 
-## 6. MVP verification
-
-- [ ] Test unauthenticated requests and cross-user access to all trip resources.
-- [ ] Test invalid dates and itinerary inputs.
-- [ ] Test provider failures and interrupted research.
-- [x] Test duplicate requests and email retry behavior.
-- [x] Run `npm test`, `npm run lint`, and `npm run build`.
-- [ ] Verify the complete create → research → save → email flow.
-
-**Done when:** the complete flow works, with recoverable errors when a provider is
-unavailable.
-
-## Initial data model
-
-| Record | Purpose |
+| Record group | Purpose |
 | --- | --- |
-| Trips | Ownership and planning preferences |
-| Itinerary items | Individual flights, stays, activities, and transfers belonging to a trip |
-| Research runs | Research request, progress, completion, and error state |
-| Research sources | Results, provenance, and retrieval times |
-| Chat threads | Trip conversations; message storage depends on the agent integration |
-| Email deliveries | Snapshot/version sent, recipient, and delivery status |
+| Auth users and profiles | Account identity, verification, and traveler defaults |
+| Trips and guest import keys | Owned planning data, budgets, flight selections, and idempotent guest-draft handoff |
+| Research runs and sources | Flight requests, progress, results, provenance, diagnostics, and cache state |
+| Lodging runs and lodgings | Lodging research and saved or booked stays |
+| Interest runs and favorites | Activity/event research, accessibility evidence, saved ideas, and schedules |
+| Fee and transportation data | Extra-fee research, local fares, and manual costs |
+| Assistant threads and requests | Persistent trip conversations and idempotent generation state |
+| Email deliveries | Immutable itinerary snapshots and AgentMail delivery state |
+| Firecrawl budgets | Per-session and project-wide research usage |
 
-Finalize validators, indexes, and component-managed storage during each phase.
-Keep growing collections in separate records rather than unbounded trip arrays.
+## Remaining MVP gaps
 
-## Deferred beyond the MVP
+The current product covers the main saved-trip workflow. The remaining work is:
 
-- Newsletter ingestion and matching incoming content to trips.
-- Automatic background monitoring and alerts.
-- Collaborative itinerary editing.
-- Booking and payment processing.
-- Automated route optimization.
-- Verified live flight pricing and availability unless explicitly added to scope.
+1. Dedicated weather and safety research.
+2. Broader flight-search inputs beyond economy and USD.
+3. Assistant research tools and user-approved structured trip changes.
+4. Manual itinerary entries and custom ordering, if those remain MVP requirements.
+5. A repeatable end-to-end browser acceptance test and production monitoring.
 
-## Working through this plan
-
-Start with phase 1, then phase 2 so research and chat have persistent trip data to
-work with. Check off items only after implementation and verification. Record
-scope changes and unresolved decisions here as work proceeds.
+Verified live availability, in-app booking/payment, newsletter ingestion,
+background price alerts, collaboration, and automated route optimization remain
+post-MVP scope.

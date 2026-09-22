@@ -2,7 +2,7 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export const itineraryEmailItem = v.object({
-  kind: v.union(v.literal("transportation"), v.literal("activity")),
+  kind: v.union(v.literal("transportation"), v.literal("lodging"), v.literal("activity")),
   date: v.optional(v.string()),
   time: v.optional(v.string()),
   title: v.string(),

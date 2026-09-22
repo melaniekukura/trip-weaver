@@ -18,7 +18,7 @@ import type { FlightRequest } from "../convex/flightSearch";
 
 export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
   const id = useId();
-  const [origin, setOrigin] = useDefaultOrigin(trip.origin);
+  const [origin, setOrigin, defaultAirport] = useDefaultOrigin(trip.origin);
   const [destination, setDestination] = useState(trip.destinations[0] ?? "");
   const [departureDate, setDepartureDate] = useState(trip.startDate);
   const [tripType, setTripType] = useState<"one-way" | "round-trip">("one-way");
@@ -40,7 +40,7 @@ export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
     setPending(true); setError(""); setNotice("");
     try {
       const flight = refresh && submitted ? submitted : validateFlightRequest({
-        ...flightRequestFromTrip(origin, destination, departureDate),
+        ...flightRequestFromTrip(origin, destination, departureDate, trip.travelers),
         ...(tripType === "round-trip" ? { tripType, returnDate } : {}),
       });
       const result = await start({ tripId: trip._id, flight, refresh, sessionId: getFirecrawlSessionId() });
@@ -55,7 +55,7 @@ export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
 
   return <section className="flight-search-panel" aria-label={`Flights for ${trip.name}`}>
     <h4>Find flights <span className="data-source">Prototype</span></h4>
-    <p className="field-hint">1 adult · Economy including basic fares · USD</p>
+    <p className="field-hint">{trip.travelers} {trip.travelers === 1 ? "adult" : "adults"} · Economy including basic fares · USD</p>
     <form onSubmit={(event) => { event.preventDefault(); void search(); }}>
       <div className="flight-search-fields">
         <label htmlFor={`${id}-type`}>Trip type
@@ -63,7 +63,8 @@ export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
             <option value="one-way">One way</option><option value="round-trip">Round trip</option>
           </select>
         </label>
-        <OriginPicker label="From city or airport" value={origin} required onSelect={setOrigin} onClear={() => setOrigin("")} />
+        <OriginPicker label="From city or airport" value={origin} required defaultAirport={defaultAirport}
+          onSelect={setOrigin} onClear={() => setOrigin("")} />
         <LocationPicker label="To city or airport" value={destination} required onSelect={setDestination} onClear={() => setDestination("")} />
         <label htmlFor={`${id}-date`}>Departure date
           <input id={`${id}-date`} type="date" required value={departureDate}

@@ -6,7 +6,7 @@ import { transportLocationLabel } from "./transportationLegs";
 import { ItineraryEmailAction } from "./ItineraryEmailAction";
 import { IdeaItinerary } from "./IdeaItinerary";
 
-type TripRoute = Pick<Doc<"trips">, "origin" | "destinations" | "startDate" | "endDate">;
+type TripRoute = Pick<Doc<"trips">, "origin" | "destinations" | "startDate" | "endDate"> & { travelers?: number };
 type Favorite = Doc<"interestFavorites">;
 type FlightLeg = NonNullable<Doc<"trips">["flightPlan"]>["legs"][number];
 type Lodging = Doc<"lodgings">;

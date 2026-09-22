@@ -8,7 +8,7 @@ import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalAction, internalMutation, mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
-import { reserveFirecrawlRun } from "./firecrawl";
+import { checkFirecrawlBudget } from "./firecrawl";
 import { lodgingType } from "./lodgingSchema";
 import schema from "./schema";
 
@@ -120,7 +120,7 @@ export const start = mutation({
       const status = await limiter.limit(ctx, name, { key });
       if (!status.ok) throw new ConvexError({ message: `Lodging search limit reached. Try again in ${Math.max(1, Math.ceil(status.retryAfter / 60000))} minute(s).` });
     }
-    await reserveFirecrawlRun(ctx, args.sessionId);
+    await checkFirecrawlBudget(ctx, args.sessionId);
     const runId = await ctx.db.insert("lodgingRuns", { tripId: trip._id, ...search, status: "pending", results: [] });
     const workId = await pool.enqueueAction(ctx, internal.lodgingJobs.execute,
       { runId, ...(args.sessionId ? { sessionId: args.sessionId } : {}) },

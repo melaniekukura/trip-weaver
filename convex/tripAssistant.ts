@@ -7,6 +7,7 @@ import { components, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, internalMutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { accessibilityRequirements } from "./accessibility";
 import { flightPlanItinerary } from "./flightPlanFields";
 import schema from "./schema";
 import { tripAgent, tripAgentInstructions } from "./tripAgent";
@@ -38,33 +39,56 @@ async function ownedTrip(ctx: QueryCtx | MutationCtx, tripId: Id<"trips">) {
   return { ownerId, trip };
 }
 
-export function promptContext(trip: Doc<"trips">, favorites: Doc<"interestFavorites">[]) {
+function flightDetails(flight: Doc<"researchSources">["flight"], origin: string, destination: string, date?: string) {
+  return {
+    origin: flight.originAirport ?? origin,
+    destination: flight.destinationAirport ?? destination,
+    date: date ?? null,
+    departure: flight.departure,
+    arrival: flight.arrival,
+    duration: flight.duration,
+    stops: flight.stops,
+    airline: flight.airline,
+  };
+}
+
+export function assistantTripContext(trip: Doc<"trips">, favorites: Doc<"interestFavorites">[]) {
   const itinerary = flightPlanItinerary(trip);
-  const flightSelections = (trip.flightPlan?.legs ?? []).filter(leg => leg.itinerary === itinerary).map(leg => ({
+  const flights = (trip.flightPlan?.legs ?? []).filter(leg => leg.itinerary === itinerary).map(leg => ({
     routeIndex: leg.index,
     status: leg.booked ? "booked" : "selected_not_booked",
-    bookingReference: leg.reference ?? null,
-    request: leg.request,
-    outbound: leg.outbound.flight,
-    returning: leg.returning?.flight ?? null,
+    tripType: leg.request.tripType ?? "one-way",
+    travelers: leg.request.travelers ?? trip.travelers,
+    outbound: flightDetails(leg.outbound.flight, leg.request.origin, leg.request.destination, leg.request.departureDate),
+    returning: leg.returning ? flightDetails(leg.returning.flight, leg.request.destination, leg.request.origin,
+      leg.request.returnDate) : null,
   }));
-  const savedIdeas = favorites.map(favorite => ({
+  const activities = favorites.map(favorite => ({
     kind: favorite.item.kind,
     title: favorite.item.title,
-    description: favorite.item.description,
-    destination: favorite.item.destination,
-    venue: favorite.item.venue ?? null,
-    dates: favorite.item.dates ?? null,
-    price: favorite.item.price ?? null,
+    location: { destination: favorite.item.destination, venue: favorite.item.venue ?? null },
+    availableDates: favorite.item.dates ?? null,
     interest: favorite.item.interest ?? null,
-    sourceUrl: favorite.item.url,
-    schedule: favorite.itinerary ?? null,
+    schedule: {
+      date: favorite.itinerary?.date ?? null,
+      time: favorite.itinerary?.time ?? null,
+      status: !favorite.itinerary ? "saved_unscheduled" : favorite.itinerary.time ? "scheduled" : "time_not_designated",
+    },
+    accessibility: (favorite.item.accessibilityEvidence ?? []).map(evidence => ({
+      requirement: evidence.requirement,
+      status: evidence.conforms ? "confirmed_match" : "confirmed_mismatch",
+    })),
   }));
-  return `Current Trip-Weaver data:\n${JSON.stringify({ overview: { name: trip.name, origin: trip.origin,
-    destinations: trip.destinations, startDate: trip.startDate, endDate: trip.endDate,
-    travelers: trip.travelers, budget: trip.budget, currency: trip.currency,
-    interests: trip.interests, accessibility: trip.accessibility ?? null },
-  flightPlan: { confirmed: trip.flightPlan?.confirmed ?? false, selections: flightSelections }, savedIdeas })}`;
+  return {
+    trip: { name: trip.name, origin: trip.origin, destinations: trip.destinations,
+      startDate: trip.startDate, endDate: trip.endDate, travelers: trip.travelers,
+      interests: trip.interests, accessibilityRequirements: accessibilityRequirements(trip.accessibility) },
+    itinerary: { flights, activities },
+  };
+}
+
+export function promptContext(trip: Doc<"trips">, favorites: Doc<"interestFavorites">[]) {
+  return `Current read-only Trip-Weaver itinerary context:\n${JSON.stringify(assistantTripContext(trip, favorites))}`;
 }
 
 function assistantError(error: unknown) {

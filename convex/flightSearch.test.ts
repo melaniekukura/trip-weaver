@@ -42,6 +42,19 @@ test("normalizes airport codes and constructs a fixed Google Flights URL", () =>
   expect(url.searchParams.get("q")).toBe("Flights from DTW to LAX on October 15, 2026 one way 1 adult economy");
 });
 
+test("searches and validates fares for the selected traveler count", () => {
+  const groupRequest = { ...request, travelers: 2 };
+  const groupPage = fixture.replaceAll("1 adult", "2 adults");
+  expect(parseFlightPage(groupPage, groupRequest)).toHaveLength(3);
+  expect(new URL(flightSearchUrl(groupRequest)).searchParams.get("q"))
+    .toBe("Flights from DTW to LAX on October 15, 2026 one way 2 adults economy");
+  expect(() => parseFlightPage(fixture, groupRequest)).toThrow("FLIGHTS_UNAVAILABLE");
+});
+
+test.each([0, 1.5, 101])("rejects invalid traveler count %s", travelers => {
+  expect(() => validateFlightRequest({ ...request, travelers })).toThrow("INVALID_FLIGHT_SEARCH");
+});
+
 test("city searches retain flights from every included airport and reject unrelated routes", () => {
   const cityRequest = { ...request, origin: "LON", originType: "city" as const, destination: "NYC", destinationType: "city" as const };
   const scope = { origin: ["LHR", "LGW"], destination: ["JFK", "EWR"] };

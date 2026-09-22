@@ -6,7 +6,8 @@ import { TransportationTab } from "./TransportationTab";
 import { ReturnFlightPicker } from "./ReturnFlightPicker";
 
 const { query } = vi.hoisted(() => ({ query: vi.fn() }));
-vi.mock("convex/react", () => ({ useQuery: query, useMutation: () => vi.fn(), useAction: () => vi.fn() }));
+vi.mock("convex/react", () => ({ useConvexAuth: () => ({ isAuthenticated: true }),
+  useQuery: query, useMutation: () => vi.fn(), useAction: () => vi.fn() }));
 
 test("transportation offers trip type and filters before starting a search", () => {
   query.mockReturnValue(undefined);
@@ -24,6 +25,15 @@ test("transportation offers trip type and filters before starting a search", () 
   expect(html).toContain("Search Flight");
   expect(html).toContain('aria-expanded="true"');
   expect(html).not.toContain("coming soon");
+});
+
+test("transportation displays the trip's traveler count", () => {
+  query.mockReturnValue(undefined);
+  const html = renderToStaticMarkup(createElement(TransportationTab, {
+    travelers: 3, origin: "DTW", destinations: [{ id: "la", value: "LAX" }],
+    departureDate: "2026-10-15", returnDate: "2026-10-22", onEditDetails: vi.fn(), onSaveTrip: vi.fn(),
+  }));
+  expect(html).toContain("3 adults · Economy");
 });
 
 test("saved trips offer a transportation-only manual expense list", () => {

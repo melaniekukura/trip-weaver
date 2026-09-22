@@ -7,14 +7,16 @@ import { useId, useRef, useState } from "react";
 import { api } from "../convex/_generated/api";
 import { getFirecrawlSessionId } from "./firecrawlSession";
 import type { Doc, Id } from "../convex/_generated/dataModel";
+import { GuestFeatureGate } from "./GuestFeatureGate";
 
 function errorMessage(error: unknown) {
   const data = error instanceof ConvexError ? error.data : null;
   return data && typeof data === "object" && "message" in data ? String(data.message) : "Unable to complete this request. Please try again.";
 }
 
-export function InterestDiscovery({ tripId, destinations, interests, accessibility, onSaveTrip }: {
-  accessibility?: string; tripId?: Id<"trips">; destinations: string[]; interests: string[]; onSaveTrip: () => Promise<Id<"trips"> | null>;
+export function InterestDiscovery({ guest = false, onSignIn, tripId, destinations, interests, accessibility, onSaveTrip }: {
+  guest?: boolean; onSignIn?: () => void; accessibility?: string; tripId?: Id<"trips">;
+  destinations: string[]; interests: string[]; onSaveTrip: () => Promise<Id<"trips"> | null>;
 }) {
   const uniqueDestinations = [...new Set(destinations.filter(Boolean))];
   const [choice, setChoice] = useState("");
@@ -118,8 +120,9 @@ export function InterestDiscovery({ tripId, destinations, interests, accessibili
         {!interests.length && <option value="">Add an interest above</option>}
         {interests.map(value => <option key={value} value={value}>{value}</option>)}
       </select></label>
-      <button type="button" className="primary-button" disabled={busy || !destination || !interest} onClick={() => void search()}>{busy ? "Searching…" : "Find things to do"}</button>
+      <button type="button" className="primary-button" disabled={guest || busy || !destination || !interest} onClick={() => void search()}>{busy ? "Searching…" : "Find things to do"}</button>
     </div>
+    {guest && <p className="field-hint">Sign in to search live activity and event results.</p>}
     <div className="interest-search-meta">
       <p className="field-hint">Uses your trip dates. Confirm details on the source site before booking.</p>
       <div className="button-row">
@@ -159,7 +162,9 @@ export function InterestDiscovery({ tripId, destinations, interests, accessibili
       <button type="button" className="text-button saved-idea-remove" aria-label={`Remove saved idea: ${favorite.item.title}`} disabled={pending} onClick={() => void changeFavorite(() => remove({ favoriteId: favorite._id }))}>×</button>
     </li>)}</ul>
     </section>
-    <section className="ideas-itinerary" aria-label="Activity itinerary">
+    {guest ? <GuestFeatureGate onSignIn={() => onSignIn?.()}><section className="ideas-itinerary" aria-label="Activity itinerary">
+      <div className="interest-section-heading"><h3>Itinerary</h3></div><p>Add saved ideas to your itinerary.</p>
+    </section></GuestFeatureGate> : <section className="ideas-itinerary" aria-label="Activity itinerary">
       <div className="interest-section-heading"><h3>Itinerary</h3></div>
       {!itineraryIdeas.length && <p>Add a saved idea to your itinerary to see it here.</p>}
       <ul className="itinerary-list">{itineraryIdeas.map(favorite => <li key={favorite._id}>
@@ -175,6 +180,6 @@ export function InterestDiscovery({ tripId, destinations, interests, accessibili
           </div>
         </details>
       </li>)}</ul>
-    </section>
+    </section>}
   </section>;
 }

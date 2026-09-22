@@ -164,6 +164,13 @@ test("flight validation rejects past dates and missing route before charging cre
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
+test("flight searches must use the trip's current traveler count", async () => {
+  const { alice, args } = await setup();
+  await expect(alice.mutation(api.flightJobs.start, { ...args, flight: { ...args.flight, travelers: 2 } }))
+    .rejects.toThrow("TRAVELERS_CHANGED");
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
 test("unreadable flight pages fail without saving invented or mock fares", async () => {
   const { t, alice, args } = await setup();
   vi.setSystemTime(new Date("2026-09-11T12:00:00Z"));

@@ -43,7 +43,7 @@ export function ReturnFlightPicker({ tripId, request, outbound, onClose, selecte
   const money = (amount: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
   return <section className="return-flight-picker" aria-label="Return flights">
     {!onSelectReturn && <>
-      <SelectedFlightCard source={outbound} direction="Outgoing" roundTrip />
+      <SelectedFlightCard source={outbound} direction="Outgoing" travelers={request.travelers ?? 1} roundTrip />
       <button type="button" className="text-button" onClick={onClose}>Change outgoing flight</button>
     </>}
     <h4 className="flight-search-heading">Return flight · {request.destination} → {request.origin} · {request.returnDate}</h4>
@@ -51,7 +51,7 @@ export function ReturnFlightPicker({ tripId, request, outbound, onClose, selecte
       <summary>Return flight filters</summary>
       <FlightFilterControls value={filters} onChange={setFilters} title="Return flight filters" leg="return" priceLabel="Maximum round-trip total (USD)" />
     </details>
-    <p className="field-hint">Prices cover both flights. Returns sharing an outgoing airline appear first, then other airlines; each group is sorted by price.</p>
+    <p className="field-hint">Prices cover both flights for {request.travelers ?? 1} {(request.travelers ?? 1) === 1 ? "traveler" : "travelers"}. Returns sharing an outgoing airline appear first, then other airlines; each group is sorted by price.</p>
     <button type="button" className="primary-button" disabled={busy || result === undefined} onClick={() => void search(false)}>
       {busy ? "Finding return flights…" : result?.run.status === "completed" ? "Use recent return flights" : "Find matching return flights"}
     </button>
@@ -60,7 +60,7 @@ export function ReturnFlightPicker({ tripId, request, outbound, onClose, selecte
     {error && <p className="search-error" role="alert">{error}</p>}
     {(result?.run.status === "pending" || result?.run.status === "running") && <p role="status">Selecting your outgoing flight and retrieving matching return options…</p>}
     {!error && !pending && result?.run.status === "failed" && <FlightSearchError run={result.run} />}
-    {selected && <SelectedFlightCard source={selected} direction="Return" roundTrip />}
+    {selected && <SelectedFlightCard source={selected} direction="Return" travelers={request.travelers ?? 1} roundTrip />}
     {selected && <button type="button" className="text-button" onClick={() => setShowOptions(!showOptions)}>{showOptions ? "Hide other return options" : "See other return options"}</button>}
     {result?.run.status === "completed" && <>
       <FlightAccessibilityNotice assessment={result.accessibility} />
@@ -69,7 +69,7 @@ export function ReturnFlightPicker({ tripId, request, outbound, onClose, selecte
       {(!selected || showOptions) && !options.length && <p>No retrieved return flights match. Adjust the return filters or try another outgoing flight.</p>}
       {(!selected || showOptions) && <ul className="flight-search-results">{options.map(source => <li className={`observed-flight${selected?._id === source._id ? " is-selected" : ""}`} key={source._id}>
         <div><strong>{source.flight.airline}</strong><p>{source.flight.departure} → {source.flight.arrival}</p><span>{source.flight.duration} · {source.flight.stops}</span></div>
-        <div className="observed-fare"><strong>{money(source.flight.amount)}</strong><span>Both flights, observed total</span>
+        <div className="observed-fare"><strong>{money(source.flight.amount)}</strong><span>Both flights · total for {request.travelers ?? 1} {(request.travelers ?? 1) === 1 ? "traveler" : "travelers"}</span>
           <button type="button" className="secondary-button" aria-pressed={selected?._id === source._id} disabled={disabled} onClick={() => { setLocalSelection(source); setShowOptions(false); if (onSelectReturn) void onSelectReturn(source); }}>{selected?._id === source._id ? "Selected" : "Select return"}</button></div>
       </li>)}</ul>}
       {selected && !onSelectReturn && <div className="round-trip-summary" role="status">

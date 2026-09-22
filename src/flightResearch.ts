@@ -9,7 +9,7 @@ export function lowestFlightSources(sources: FlightResearch["sources"]) {
     .sort((a, b) => a.flight!.amount - b.flight!.amount).slice(0, 3);
 }
 
-export function flightRequestFromTrip(originValue: string, destinationValue: string, departureDate: string) {
+export function flightRequestFromTrip(originValue: string, destinationValue: string, departureDate: string, travelers?: number) {
   const from = flightLocation(originValue);
   const to = flightLocation(destinationValue);
   if (!from || !to) throw new Error("Select your departure and arrival city or airport from the live suggestions in Overview.");
@@ -21,6 +21,7 @@ export function flightRequestFromTrip(originValue: string, destinationValue: str
     throw new Error("Choose a departure date within the next 330 days in Overview.");
   }
   return { origin: from.code, destination: to.code, departureDate,
+    ...(travelers !== undefined ? { travelers } : {}),
     ...(from.type === "city" ? { originType: "city" as const } : {}),
     ...(to.type === "city" ? { destinationType: "city" as const } : {}),
   };

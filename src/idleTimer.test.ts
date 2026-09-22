@@ -12,6 +12,10 @@ function setup(initial: number | null = null) {
   return { timer, onExpire, onWarning, otherTabActivity: () => { stored = Date.now(); }, read: () => stored };
 }
 
+test("uses a thirty-minute inactivity timeout", () => {
+  expect(IDLE_TIMEOUT_MS).toBe(30 * 60 * 1000);
+});
+
 test("warns before expiry and signs out exactly once at the deadline", () => {
   const { onWarning, onExpire } = setup();
   vi.advanceTimersByTime(IDLE_TIMEOUT_MS - IDLE_WARNING_MS);

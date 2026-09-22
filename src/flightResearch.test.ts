@@ -10,6 +10,8 @@ test("converts saved airport labels to the backend contract and preserves city-w
     .toEqual({ origin: "DTW", destination: "LHR", departureDate: "2026-10-10" });
   expect(flightRequestFromTrip("London, United Kingdom (LON; all airports)", "DTW", "2026-10-10"))
     .toEqual({ origin: "LON", originType: "city", destination: "DTW", departureDate: "2026-10-10" });
+  expect(flightRequestFromTrip("DTW", "LHR", "2026-10-10", 3))
+    .toEqual({ origin: "DTW", destination: "LHR", departureDate: "2026-10-10", travelers: 3 });
   expect(() => flightRequestFromTrip("London (all airports)", "DTW", "2026-10-10")).toThrow("live suggestions");
   expect(() => flightRequestFromTrip("DTW", "DTW", "2026-10-10")).toThrow("different");
   expect(() => flightRequestFromTrip("DTW", "LHR", "2026-02-30")).toThrow("330 days");

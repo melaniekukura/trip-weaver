@@ -1,6 +1,6 @@
 import { transportationBudgetFields, validateRides } from "./transportationBudget";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { paginationOptsValidator } from "convex/server";
+import { makeFunctionReference, paginationOptsValidator } from "convex/server";
 import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -8,6 +8,7 @@ import { mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import schema from "./schema";
 import { flightPlanItinerary } from "./flightPlanFields";
+import { flightTravelerCount } from "./flightSearch";
 import { homeJourneyStatus } from "./homeJourney";
 import { tripFields, validateTrip } from "./tripFields";
 import { expenseFields, maxExpenses, validateExpense } from "./expenseFields";
@@ -94,6 +95,23 @@ export const create = mutation({
   },
 });
 
+export const importGuestDraft = mutation({
+  args: { draftId: v.string(), trip: tripFields },
+  returns: v.id("trips"),
+  handler: async (ctx, { draftId, trip }) => {
+    const ownerId = await requireUser(ctx);
+    if (!/^[a-zA-Z0-9-]{1,80}$/.test(draftId)) throw new ConvexError({ code: "INVALID_TRIP", message: "Invalid guest trip draft." });
+    const imported = await ctx.db.query("guestTripImports").withIndex("by_ownerId_and_draftId",
+      q => q.eq("ownerId", ownerId).eq("draftId", draftId)).unique();
+    if (imported) return imported.tripId;
+    const profile = await ctx.db.query("profiles").withIndex("by_userId", q => q.eq("userId", ownerId)).unique();
+    const tripId = await ctx.db.insert("trips", { ...validateTrip({ ...trip,
+      accessibility: trip.accessibility ?? profile?.defaultAccessibility ?? "" }), ownerId, updatedAt: Date.now() });
+    await ctx.db.insert("guestTripImports", { ownerId, draftId, tripId });
+    return tripId;
+  },
+});
+
 export const update = mutation({
   args: { tripId: v.id("trips"), changes: tripFields, expectedUpdatedAt: v.number() },
   returns: v.null(),
@@ -125,6 +143,8 @@ export const remove = mutation({
     await ctx.scheduler.runAfter(0, internal.tripAssistant.cleanupTrip, { tripId });
     await ctx.scheduler.runAfter(0, internal.lodgings.cleanupTrip, { tripId });
     await ctx.scheduler.runAfter(0, internal.lodgingJobs.cleanupTrip, { tripId });
+    await ctx.scheduler.runAfter(0, makeFunctionReference<"mutation", { tripId: Id<"trips"> }, null>(
+      "requiredDocumentJobs:cleanupTrip"), { tripId });
     return null;
   },
 });
@@ -156,6 +176,7 @@ export const changeFlightPlan = mutation({
       const code = (value: string) => value.match(/(?:^|\()([A-Z]{3})(?:; all airports\)|\))?$/i)?.[1].toUpperCase();
       const origin = args.index === 0 ? trip.origin : trip.destinations[args.index - 1];
       if (!outbound || outbound.tripId !== trip._id || !run || run.tripId !== trip._id || run.status !== "completed" || run.outboundSourceId ||
+        flightTravelerCount(run.flightRequest) !== trip.travelers ||
         run.flightRequest.origin !== code(origin) || run.flightRequest.destination !== code(trip.destinations[args.index]) ||
         run.flightRequest.departureDate < trip.startDate || run.flightRequest.departureDate > trip.endDate ||
         (args.index === 0 && run.flightRequest.departureDate !== trip.startDate) ||

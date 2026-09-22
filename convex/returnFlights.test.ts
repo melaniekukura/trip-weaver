@@ -13,6 +13,13 @@ test("extracts matching returns with total round-trip prices and next-day arriva
   expect(result.sourceUrl).toContain("/travel/flights/search?tfs=");
 });
 
+test("validates the selected traveler count on return searches", () => {
+  const groupRequest = { ...request, travelers: 2 };
+  const groupResult = { ...fixture, initial: fixture.initial.replace("1 passenger,", "2 passengers,") };
+  expect(parseReturnResults(groupResult, groupRequest, outbound).flights).toHaveLength(5);
+  expect(() => parseReturnResults(fixture, groupRequest, outbound)).toThrow("FLIGHTS_UNAVAILABLE");
+});
+
 test.each([
   { ...fixture, initial: fixture.initial.replaceAll("2026-10-22", "2026-10-23") },
   { ...fixture, selectedLabel: fixture.selectedLabel.replace("6:30 AM", "7:30 AM") },

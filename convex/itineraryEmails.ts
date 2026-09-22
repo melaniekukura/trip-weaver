@@ -43,7 +43,7 @@ function timeValue(value?: string) {
   return twentyFourHour ? Number(twentyFourHour[1]) * 60 + Number(twentyFourHour[2]) : Number.MAX_SAFE_INTEGER;
 }
 
-export function snapshotFor(trip: Doc<"trips">, favorites: Doc<"interestFavorites">[]) {
+export function snapshotFor(trip: Doc<"trips">, favorites: Doc<"interestFavorites">[], lodgings: Doc<"lodgings">[] = []) {
   const itinerary = flightPlanItinerary(trip);
   const items: Doc<"emailDeliveries">["snapshot"]["items"] = [];
   for (const leg of (trip.flightPlan?.legs ?? []).filter(item => item.booked && item.itinerary === itinerary)) {
@@ -65,6 +65,12 @@ export function snapshotFor(trip: Doc<"trips">, favorites: Doc<"interestFavorite
     items.push({ kind: "activity", date: favorite.itinerary.date, time: favorite.itinerary.time,
       title: favorite.item.title, location: favorite.item.destination, detail: favorite.item.venue,
       notes: favorite.itinerary.notes, url: favorite.item.url });
+  }
+  for (const lodging of lodgings.filter(item => item.booked)) {
+    items.push({ kind: "lodging", date: lodging.checkInDate, title: lodging.name,
+      location: lodging.destination,
+      detail: `Check-in ${lodging.checkInDate} · Check-out ${lodging.checkOutDate}${lodging.address ? ` · ${lodging.address}` : ""}`,
+      notes: lodging.notes, url: lodging.bookingUrl, reference: lodging.confirmationNumber });
   }
   items.sort((left, right) => (left.date ?? "9999-99-99").localeCompare(right.date ?? "9999-99-99") ||
     timeValue(left.time) - timeValue(right.time) || left.title.localeCompare(right.title));
@@ -110,7 +116,8 @@ export const request = mutation({
       if (!limit.ok) throw new ConvexError({ message: `Email limit reached. Try again in ${Math.max(1, Math.ceil(limit.retryAfter / 60000))} minute(s).` });
     }
     const favorites = await ctx.db.query("interestFavorites").withIndex("by_tripId", q => q.eq("tripId", tripId)).take(100);
-    const snapshot = snapshotFor(trip, favorites);
+    const lodgings = await ctx.db.query("lodgings").withIndex("by_tripId", q => q.eq("tripId", tripId)).take(100);
+    const snapshot = snapshotFor(trip, favorites, lodgings);
     const now = Date.now();
     const deliveryId = await ctx.db.insert("emailDeliveries", { tripId, ownerId: userId, requestId,
       recipient, snapshot, snapshotVersion: snapshotVersion(snapshot), status: "queued", attempts: 0, updatedAt: now });

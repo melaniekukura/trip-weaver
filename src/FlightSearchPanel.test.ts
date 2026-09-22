@@ -4,7 +4,8 @@ import { expect, test, vi } from "vitest";
 import { FlightSearchPanel } from "./FlightSearchPanel";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 
-vi.mock("convex/react", () => ({ useQuery: () => undefined, useMutation: () => vi.fn(), useAction: () => vi.fn() }));
+vi.mock("convex/react", () => ({ useConvexAuth: () => ({ isAuthenticated: true }),
+  useQuery: () => undefined, useMutation: () => vi.fn(), useAction: () => vi.fn() }));
 
 test("trip type and flight filters are visible before any results load", () => {
   const trip: Doc<"trips"> = {

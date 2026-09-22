@@ -10,11 +10,16 @@ export type LocationPickerProps = {
   clearOnSelect?: boolean;
   citiesOnly?: boolean;
   airportsOnly?: boolean;
+  invalid?: boolean;
+  validationField?: string;
   onSelect: (value: string) => void;
+  onInputChange?: (value: string) => void;
   onClear?: () => void;
+  onRequiredBlur?: () => void;
 };
 
-export function LocationPicker({ label, value = "", required = false, disabled = false, clearOnSelect = false, citiesOnly = false, airportsOnly = false, onSelect, onClear }: LocationPickerProps) {
+export function LocationPicker({ label, value = "", required = false, disabled = false, clearOnSelect = false, citiesOnly = false,
+  airportsOnly = false, invalid = false, validationField, onSelect, onInputChange, onClear, onRequiredBlur }: LocationPickerProps) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState(value);
@@ -49,7 +54,7 @@ export function LocationPicker({ label, value = "", required = false, disabled =
     input.current?.setCustomValidity((required || airportsOnly) && query && !value ? (airportsOnly ? "Select an airport from the suggestions." : citiesOnly ? "Select a city from the suggestions." : "Select a city or airport from the suggestions.") : "");
   }, [query, required, value, citiesOnly, airportsOnly]);
 
-  useEffect(() => { if (value) setQuery(value); }, [value]);
+  useEffect(() => { setQuery(value); }, [value]);
 
   useEffect(() => {
     if (open) document.getElementById(`${id}-option-${active}`)?.scrollIntoView({ block: "nearest" });
@@ -66,15 +71,22 @@ export function LocationPicker({ label, value = "", required = false, disabled =
 
   return (
     <div className="location-picker" onBlur={(event) => {
-      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false);
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) { setOpen(false); onRequiredBlur?.(); }
     }}>
       <label htmlFor={id}>{label}</label>
       <input id={id} ref={input} role="combobox" autoComplete="off" aria-autocomplete="list"
         aria-expanded={showOptions} aria-busy={loading} aria-controls={`${id}-options`}
         aria-activedescendant={open && options[active] ? `${id}-option-${active}` : undefined}
+        aria-invalid={invalid || undefined} data-required-field={validationField}
         required={required} disabled={disabled} maxLength={90} value={query}
         placeholder={citiesOnly ? "Search for a city" : "Search city, airport, or airport code"} onFocus={() => { setOpen(true); setActive(0); }}
-        onChange={(event) => { setQuery(event.target.value); onClear?.(); setOpen(true); setActive(0); }}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          onInputChange?.(event.target.value);
+          onClear?.();
+          setOpen(true);
+          setActive(0);
+        }}
         onKeyDown={(event) => {
           if ((event.key === "ArrowDown" || event.key === "ArrowUp") && options.length > 0) {
             event.preventDefault();

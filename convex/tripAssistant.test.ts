@@ -6,11 +6,12 @@ import { expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import { flightPlanItinerary } from "./flightPlanFields";
 import schema from "./schema";
-import { promptContext } from "./tripAssistant";
+import { assistantTripContext, promptContext } from "./tripAssistant";
 
 const modules = import.meta.glob("./**/*.ts");
 const trip = { name: "Japan", origin: "Detroit", destinations: ["Kyoto"], startDate: "2026-10-01",
-  endDate: "2026-10-09", budget: 3000, currency: "USD", travelers: 2, interests: ["Food"] };
+  endDate: "2026-10-09", budget: 3000, currency: "USD", travelers: 2, interests: ["Food"],
+  accessibility: "Step-free access\nQuiet environments" };
 
 async function setup() {
   const t = convexTest(schema, modules);
@@ -37,7 +38,7 @@ test("a trip owner gets one durable assistant thread and request", async () => {
   expect(await t.run(async ctx => ctx.db.query("assistantRequests").withIndex("by_tripId", q => q.eq("tripId", tripId)).take(10))).toHaveLength(1);
 });
 
-test("assistant context includes current flight selections and saved itinerary ideas", async () => {
+test("assistant receives a read-only itinerary without lodging or financial data", async () => {
   const { t, alice, tripId } = await setup();
   await t.run(async ctx => {
     const current = (await ctx.db.get("trips", tripId))!;
@@ -50,20 +51,45 @@ test("assistant context includes current flight selections and saved itinerary i
       flight: { airline: "Example Air", departure: "9:00 AM on Thu, Oct 1", arrival: "1:00 PM on Fri, Oct 2",
         duration: "14 hr", stops: "Nonstop", amount: 900, currency: "USD", originAirport: "DTW", destinationAirport: "NRT" } });
     const outbound = (await ctx.db.get("researchSources", sourceId))!;
-    await ctx.db.patch("trips", tripId, { flightPlan: { revision: 1, confirmed: false,
-      legs: [{ index: 0, itinerary: flightPlanItinerary(current), request, outbound, booked: false }] } });
+    await ctx.db.patch("trips", tripId, { expenses: [{ id: "private-cost", name: "Private expense", category: "Miscellaneous",
+      amount: 1234, currency: "USD", date: "2026-10-03", revision: 1 }], flightPlan: { revision: 1, confirmed: false,
+      legs: [{ index: 0, itinerary: flightPlanItinerary(current), request, outbound, booked: false, reference: "PRIVATE-BOOKING" }] } });
     await ctx.db.insert("interestFavorites", { tripId, item: { kind: "activities", title: "Market tour",
       description: "Guided food market visit", venue: "Central Market", dates: "Daily", price: "$40",
       interest: "Food", url: "https://example.test/tour", destination: "Kyoto", retrievedAt: "2026-01-01" },
       itinerary: { date: "2026-10-04", time: "10:00", notes: "Meet at the entrance" } });
+    await ctx.db.insert("interestFavorites", { tripId, item: { kind: "activities", title: "Temple visit",
+      description: "Historic temple", venue: "North Temple", price: "$25", interest: "History",
+      url: "https://example.test/temple", destination: "Kyoto", retrievedAt: "2026-01-01" },
+      itinerary: { date: "2026-10-05" } });
+    await ctx.db.insert("interestFavorites", { tripId, item: { kind: "events", title: "Evening festival",
+      description: "Neighborhood festival", url: "https://example.test/festival", destination: "Kyoto",
+      retrievedAt: "2026-01-01" } });
+    await ctx.db.insert("lodgings", { tripId, type: "hotel", destination: "Kyoto",
+      name: "PRIVATE LODGING", checkInDate: "2026-10-01", checkOutDate: "2026-10-09", booked: true,
+      currency: "USD", updatedAt: Date.now() });
   });
   const claimed = await alice.mutation(internal.tripAssistant.claim, { tripId, requestId: "context-request" });
   if (claimed.kind !== "claimed") throw new Error("Expected a claimed assistant request.");
-  const context = JSON.parse(promptContext(claimed.trip, claimed.favorites).split("\n").slice(1).join("\n"));
-  expect(context.flightPlan.selections[0]).toMatchObject({ status: "selected_not_booked",
-    outbound: { airline: "Example Air", amount: 900 } });
-  expect(context.savedIdeas[0]).toMatchObject({ title: "Market tour",
-    schedule: { date: "2026-10-04", time: "10:00", notes: "Meet at the entrance" } });
+  const context = assistantTripContext(claimed.trip, claimed.favorites);
+  expect(context.trip).toMatchObject({ origin: "Detroit", destinations: ["Kyoto"], startDate: "2026-10-01",
+    endDate: "2026-10-09", interests: ["Food"], accessibilityRequirements: ["step-free access", "quiet environments"] });
+  expect(context.itinerary.flights[0]).toMatchObject({ status: "selected_not_booked", outbound: {
+    origin: "DTW", destination: "NRT", date: "2026-10-01", departure: "9:00 AM on Thu, Oct 1",
+    arrival: "1:00 PM on Fri, Oct 2", airline: "Example Air" } });
+  expect(context.itinerary.activities).toEqual(expect.arrayContaining([
+    expect.objectContaining({ title: "Market tour", location: { destination: "Kyoto", venue: "Central Market" },
+      schedule: { date: "2026-10-04", time: "10:00", status: "scheduled" } }),
+    expect.objectContaining({ title: "Temple visit",
+      schedule: { date: "2026-10-05", time: null, status: "time_not_designated" } }),
+    expect.objectContaining({ title: "Evening festival",
+      schedule: { date: null, time: null, status: "saved_unscheduled" } }),
+  ]));
+  const serialized = JSON.stringify(context);
+  for (const forbidden of ["budget", "currency", "amount", "price", "expense", "PRIVATE-BOOKING", "PRIVATE LODGING", "$40", "900"]) {
+    expect(serialized).not.toContain(forbidden);
+  }
+  expect(promptContext(claimed.trip, claimed.favorites)).toContain("Current read-only Trip-Weaver itinerary context");
 });
 
 test("assistant conversations are private to the trip owner", async () => {

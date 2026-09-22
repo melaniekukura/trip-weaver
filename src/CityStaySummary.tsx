@@ -3,7 +3,7 @@ import { flightPlanItinerary } from "../convex/flightPlanFields";
 import { sameTravelLocation } from "../convex/homeJourney";
 import { transportLocationLabel } from "./transportationLegs";
 
-type Route = Pick<Doc<"trips">, "origin" | "destinations" | "startDate" | "endDate">;
+type Route = Pick<Doc<"trips">, "origin" | "destinations" | "startDate" | "endDate"> & { travelers?: number };
 type Leg = NonNullable<Doc<"trips">["flightPlan"]>["legs"][number];
 
 function flightDate(value: string | undefined, referenceDate: string) {

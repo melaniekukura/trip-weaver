@@ -3,7 +3,7 @@ import { airlineNames } from "./airlineNames";
 import { ConvexError } from "convex/values";
 import { flightFailure, sanitizeFlightDiagnostic } from "./flightDiagnostics";
 import type { Infer } from "convex/values";
-import { flightSearchUrl } from "./flightSearch";
+import { flightSearchUrl, flightTravelerCount } from "./flightSearch";
 import type { FlightRequest, flightOption } from "./flightSearch";
 
 type Option = Infer<typeof flightOption>;
@@ -28,7 +28,7 @@ await page.goto(input.url, {timeout: 30000});
 stage = 'outbound_list';
 await page.getByRole('link', {name:/Select flight$/}).first().waitFor({timeout:15000});
 const snapshot = await page.locator('body').ariaSnapshot();
-const initial = snapshot.split('\\n').filter(line => /Change ticket type|Change seating class|passenger, change number|Where from|Where to|Track prices|Currency/.test(line)).join('\\n');
+const initial = snapshot.split('\\n').filter(line => /Change ticket type|Change seating class|passengers?, change number|Where from|Where to|Track prices|Currency/.test(line)).join('\\n');
 stage = 'page_dates';
 if (!initial.includes('departing '+input.departureDate+' and returning '+input.returnDate)) throw new Error('date_mismatch');
 stage = 'outbound_match';
@@ -125,11 +125,12 @@ export function parseReturnResults(value: unknown, request: FlightRequest, outbo
   }
   if (!value || typeof value !== "object" || !("initial" in value) || !("selectedLabel" in value) || !("labels" in value) || !("url" in value)) return unavailable();
   const { initial, selectedLabel, labels, url } = value;
+  const travelers = flightTravelerCount(request);
   if (request.tripType !== "round-trip" || !request.returnDate || typeof initial !== "string" || typeof selectedLabel !== "string" ||
     typeof url !== "string" || !Array.isArray(labels) || labels.length > 200 ||
     !initial.includes(`departing ${request.departureDate} and returning ${request.returnDate}`) ||
     !initial.includes('Change ticket type. Round trip') || !/Change seating class\. Economy(?: \(include Basic\))?"/.test(initial) ||
-    !initial.includes('1 passenger, change number of passengers.') || !initial.includes('Currency USD') ||
+    !initial.includes(`${travelers} ${travelers === 1 ? "passenger" : "passengers"}, change number of passengers.`) || !initial.includes('Currency USD') ||
     !initial.split('\n').some(line => line.includes('Where from?') && line.includes(` ${request.originType === "city" ? outbound.originAirport ?? request.origin : request.origin}\"`)) ||
     !initial.split('\n').some(line => line.includes('Where to?') && line.includes(` ${request.destinationType === "city" ? outbound.destinationAirport ?? request.destination : request.destination}\"`))) return flightFailure("return_context", "context_mismatch");
   let source: URL;
