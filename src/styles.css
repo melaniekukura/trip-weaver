@@ -1311,8 +1311,12 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .full-itinerary-unscheduled ol { margin-top: 16px; }
 .full-itinerary-unscheduled .full-itinerary-entry { grid-template-columns: 86px 28px minmax(0, 1fr); }
 .itinerary-email-action { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 28px; padding: 20px; border: 1px solid var(--gray); border-radius: 12px; background: #fff; }
+.itinerary-email-copy { flex: 1; min-width: 0; }
 .itinerary-email-action strong { color: var(--indigo); }
 .itinerary-email-action p { margin: 5px 0 0; }
+.itinerary-email-controls { display: grid; gap: 12px; width: min(100%, 360px); }
+.itinerary-email-controls label { display: grid; gap: 7px; font-weight: 600; }
+.itinerary-email-controls input { width: 100%; padding: 11px 12px; border: 1px solid var(--gray); border-radius: 4px; background: var(--paper); color: var(--ink); font: inherit; }
 .itinerary-email-status.is-sent, .itinerary-email-status.is-delivered { color: #176b55; font-weight: 700; }
 .itinerary-email-status.is-failed, .itinerary-email-status.is-bounced, .itinerary-email-status.is-rejected { color: #9b2c2c; }
 .trip-assistant { display: grid; gap: 18px; }
@@ -1358,6 +1362,11 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .budget-flight-costs li span { font-size: 14px; color: #626262; }
 .budget-subtotal, .budget-total { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 20px 0; }
 .budget-total { border-top: 2px solid var(--teal); font-size: 22px; }
+.budget-added-transport { color: #626262; font-size: 14px; }
+.budget-added-transport h5 { margin: 0 0 8px; color: var(--ink); font-size: 14px; font-weight: 600; }
+.budget-added-transport ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.budget-added-transport li { display: flex; justify-content: space-between; gap: 16px; }
+.budget-added-transport small { font-size: 11px; }
 .budget-rides-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
 .budget-rides-heading h4 { margin: 0; }
 .budget-destination-rides { display: grid; gap: 16px; padding-top: 24px; border-top: 1px solid var(--gray); }
@@ -1464,11 +1473,14 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .expense-form fieldset { border: 0; padding: 0; margin: 0 0 24px; min-width: 0; }
 .expense-form legend { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
 .expense-fields { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1.3fr; gap: 16px; margin-bottom: 18px; }
+.expense-fields.is-fixed-category { grid-template-columns: 2fr 1fr 1fr 1.3fr; }
 .expense-fields label { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .expense-fields input, .expense-fields select { width: 100%; min-width: 0; padding: 12px; border: 1px solid #C3C3C3; border-radius: 4px; background: #F7F7F7; color: #292929; font: inherit; }
 .expense-table-scroll { overflow-x: auto; }
 .expense-table { width: 100%; border-collapse: collapse; text-align: left; }
 .expense-table th, .expense-table td { padding: 14px 12px; border-bottom: 1px solid #C3C3C3; }
 .expense-table th { color: #251F47; }
-@media (max-width: 900px) { .expense-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .expense-fields, .expense-fields.is-fixed-category { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 540px) { .expense-fields { grid-template-columns: 1fr; } }
+.transport-expenses { margin-top: 36px; padding-top: 28px; border-top: 1px solid var(--gray); }
+.transport-expenses > h3 { margin-top: 0; }

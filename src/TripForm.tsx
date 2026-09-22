@@ -102,7 +102,8 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal" }: {
 
   async function saveTrip(homeChange?: { stops: DestinationStop[]; waiver: string }): Promise<Id<"trips"> | null> {
     if (saveLock.current || !form.current) return null;
-    const invalid = form.current.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(":invalid");
+    const invalid = [...form.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(":invalid")]
+      .find(field => !field.closest(".expense-list"));
     if (invalid) {
       const panel = invalid.closest<HTMLElement>("[data-tab]");
       flushSync(() => setActive(Number(panel?.dataset.tab ?? 0)));

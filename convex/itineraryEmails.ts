@@ -83,15 +83,26 @@ function snapshotVersion(snapshot: Doc<"emailDeliveries">["snapshot"]): string {
   return `v1-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
+function recipientEmail(value: string) {
+  const email = value.trim().toLowerCase();
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new ConvexError({ code: "INVALID_RECIPIENT", message: "Enter a valid recipient email address." });
+  }
+  return email;
+}
+
 export const request = mutation({
-  args: { tripId: v.id("trips"), requestId: v.string() },
+  args: { tripId: v.id("trips"), requestId: v.string(), recipient: v.optional(v.string()) },
   returns: v.id("emailDeliveries"),
-  handler: async (ctx, { tripId, requestId }) => {
+  handler: async (ctx, { tripId, requestId, recipient: requestedRecipient }) => {
     const { trip, userId, user } = await requireTrip(ctx, tripId, true);
+    const recipient = recipientEmail(requestedRecipient ?? user.email!);
     if (!/^[A-Za-z0-9._~-]{1,128}$/.test(requestId)) throw new ConvexError({ message: "Invalid email request identifier." });
     const existing = await ctx.db.query("emailDeliveries").withIndex("by_ownerId_and_requestId", q => q.eq("ownerId", userId).eq("requestId", requestId)).unique();
     if (existing) {
-      if (existing.tripId !== tripId) throw new ConvexError({ message: "This email request identifier is already in use." });
+      if (existing.tripId !== tripId || existing.recipient !== recipient) {
+        throw new ConvexError({ message: "This email request identifier is already in use." });
+      }
       return existing._id;
     }
     for (const [name, key] of [["itineraryEmailUser", userId], ["itineraryEmailGlobal", undefined]] as const) {
@@ -102,7 +113,7 @@ export const request = mutation({
     const snapshot = snapshotFor(trip, favorites);
     const now = Date.now();
     const deliveryId = await ctx.db.insert("emailDeliveries", { tripId, ownerId: userId, requestId,
-      recipient: user.email!, snapshot, snapshotVersion: snapshotVersion(snapshot), status: "queued", attempts: 0, updatedAt: now });
+      recipient, snapshot, snapshotVersion: snapshotVersion(snapshot), status: "queued", attempts: 0, updatedAt: now });
     await ctx.scheduler.runAfter(0, internal.agentmail.sendItinerary, { deliveryId });
     return deliveryId;
   },

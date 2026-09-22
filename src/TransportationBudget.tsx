@@ -15,6 +15,9 @@ export function TransportationBudget({ trip }: { trip: Doc<"trips"> }) {
   const totals = transportationTotals(trip);
   const { costs, currency, error, retry } = useBudgetCosts(trip);
   const totalLabel = costs ? formatCost(costs.transportationTotals[currency] ?? 0, currency) : error ? "--" : "Calculating…";
+  const addedExpenses = (trip.expenses ?? []).filter(expense =>
+    ["transportation", "local transportation"].includes(expense.category.toLowerCase()))
+    .sort((left, right) => left.date.localeCompare(right.date) || left.name.localeCompare(right.name));
 
   return <div className="transportation-budget">
     <section aria-labelledby="selected-transport-title">
@@ -30,6 +33,13 @@ export function TransportationBudget({ trip }: { trip: Doc<"trips"> }) {
     </section>
     {currentLocalDestinations(trip).map(({ destination, saved }) =>
       <DestinationRides key={destination} trip={trip} destination={destination} saved={saved} />)}
+    {addedExpenses.length > 0 && <section className="budget-added-transport" aria-labelledby="budget-added-transport-title">
+      <h5 id="budget-added-transport-title">Added transportation expenses</h5>
+      <ul>{addedExpenses.map(expense => <li key={expense.id}>
+        <span>{expense.name}</span>
+        <span>{formatCost(expense.amount, expense.currency)} <small>{expense.currency}</small></span>
+      </li>)}</ul>
+    </section>}
     <BudgetConversionStatus error={error} retry={retry} />
     <p className="budget-total" aria-live="polite">Transportation total <strong>{totalLabel || "--"}</strong></p>
   </div>;

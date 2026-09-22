@@ -19,6 +19,7 @@ import { flightRequestFromTrip } from "./flightResearch";
 import type { DestinationStop } from "./DestinationsEditor";
 import { flightPlanItinerary } from "../convex/flightPlanFields";
 import { transportationLegs, transportLocationLabel } from "./transportationLegs";
+import { ExpenseList } from "./ExpenseList";
 
 type TransportationTabProps = {
   accessibility?: string;
@@ -114,6 +115,10 @@ export function TransportationTab({ accessibility = "", onRoundTripChange, onRem
         onClick={() => void changePlan(0, "confirm")}>
         {allBooked && homeResolved && plan?.confirmed ? "Flight plan confirmed ✓" : "Confirm flight plan"}</button>
     </div>}
+    {persisted && <section className="transport-expenses" aria-labelledby="transport-expenses-title">
+      <h3 id="transport-expenses-title">Other transportation expenses</h3>
+      <ExpenseList trip={persisted} fixedCategory="Transportation" embedded />
+    </section>}
   </>;
 }
 
@@ -207,15 +212,6 @@ function TransportationLeg({ accessibility, savedAccessibility, onRoundTripChang
         <button type="button" className="text-button" disabled={savingPlan || busy} onClick={() => void onRemove()}>Remove leg</button>
         <p className="field-hint">{removalHint}{saved?.booked ? " This does not cancel the airline booking." : ""}</p>
       </div>}
-      <div className="transport-mode" role="group" aria-label="Mode">
-        <span className="transport-field-label">Mode</span>
-        <div className="transport-mode-options">
-          <button type="button" className="transport-mode-pill" aria-pressed="true">Flight</button>
-          {["Train", "Bus", "Ferry"].map(mode => <button key={mode} type="button" className="transport-mode-pill"
-            disabled title={`${mode} search coming soon`} aria-label={`${mode} — coming soon`}>{mode}</button>)}
-        </div>
-        <p className="field-hint">Train, bus, and ferry searches are coming soon.</p>
-      </div>
       <div className="transport-leg-fields">
         {allowRoundTrip && <div role="group" aria-label="Trip type">
           <span className="transport-field-label">Trip type</span>

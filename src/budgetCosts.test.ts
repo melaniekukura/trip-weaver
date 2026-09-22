@@ -53,3 +53,11 @@ test("manual expenses contribute once to totals, custom categories and their sel
   expect(costs.breakdown.find(item => item.id === "restaurants")?.totals.USD).toBe(20);
   expect(dailyCosts(trip.startDate, trip.endDate, costs.entries)?.days.map(day => day.cents)).toEqual([0, 3934, 0]);
 });
+
+test("manual transportation expenses contribute to the transportation subtotal", () => {
+  const expense = { id: "train", name: "Train ticket", category: "Transportation", amount: 45, currency: "USD", date: "2026-10-02", revision: 1 };
+  const costs = budgetCosts({ ...trip, expenses: [expense, { ...expense, id: "legacy", category: "Local transportation", amount: 5 }] });
+  expect(costs.totals).toEqual({ USD: 50 });
+  expect(costs.transportationTotals).toEqual({ USD: 50 });
+  expect(costs.breakdown.find(item => item.id === "transportation")?.totals).toEqual({ USD: 50 });
+});

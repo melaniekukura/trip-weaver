@@ -45,6 +45,28 @@ test("owner requests one immutable itinerary snapshot per request identifier", a
   expect(unchanged?.snapshot.items[0].date).toBe("2026-10-03");
 });
 
+test("owner can send an itinerary to a different validated email address", async () => {
+  const { t, alice, tripId } = await setup();
+  const deliveryId = await alice.mutation(api.itineraryEmails.request, {
+    tripId, requestId: "alternate-recipient", recipient: "  Travel.Partner@Example.Test ",
+  });
+  expect(await t.run(async ctx => ctx.db.get("emailDeliveries", deliveryId)))
+    .toMatchObject({ recipient: "travel.partner@example.test", status: "queued" });
+  await expect(alice.mutation(api.itineraryEmails.request, {
+    tripId, requestId: "invalid-recipient", recipient: "not-an-email",
+  })).rejects.toThrow("INVALID_RECIPIENT");
+});
+
+test("a request identifier cannot be reused for a different recipient", async () => {
+  const { alice, tripId } = await setup();
+  await alice.mutation(api.itineraryEmails.request, {
+    tripId, requestId: "recipient-bound", recipient: "first@example.test",
+  });
+  await expect(alice.mutation(api.itineraryEmails.request, {
+    tripId, requestId: "recipient-bound", recipient: "second@example.test",
+  })).rejects.toThrow("already in use");
+});
+
 test("anonymous and other users cannot request or read a trip email", async () => {
   const { t, alice, bob, tripId } = await setup();
   await expect(t.mutation(api.itineraryEmails.request, { tripId, requestId: "anonymous" })).rejects.toThrow("UNAUTHENTICATED");

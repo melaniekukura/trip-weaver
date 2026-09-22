@@ -5,7 +5,7 @@ import { transportationTotals } from "./budgetCalculations";
 
 export const costCategories = [
   { id: "flights", label: "Flights", color: "#16CBC4" },
-  { id: "transportation", label: "Local transportation", color: "#5265D8" },
+  { id: "transportation", label: "Transportation", color: "#5265D8" },
   { id: "lodging", label: "Lodging", color: "#251F47" },
   { id: "restaurants", label: "Restaurants", color: "#E78B36" },
   { id: "activities", label: "Activities & tickets", color: "#9A63CE" },
@@ -46,7 +46,9 @@ export function budgetCosts(trip: Doc<"trips">, fees: FeeResult[] = [], lodgings
       cents: Math.round(fee.amount * 100) * fee.target.quantity, ...(fee.target.date ? { date: fee.target.date } : {}) });
   }
   for (const expense of trip.expenses ?? []) {
-    const category = costCategories.find(item => item.label.toLowerCase() === expense.category.toLowerCase());
+    const normalizedCategory = expense.category.toLowerCase();
+    const category = costCategories.find(item => item.label.toLowerCase() === normalizedCategory) ??
+      (normalizedCategory === "local transportation" ? costCategories.find(item => item.id === "transportation") : undefined);
     entries.push({ id: `expense-${expense.id}`, title: expense.name, category: category?.id ?? `custom:${expense.category.toLowerCase()}`,
       categoryLabel: category?.label ?? expense.category, currency: expense.currency, cents: Math.round(expense.amount * 100), date: expense.date });
   }
@@ -63,7 +65,7 @@ export function summarizeCosts(entries: CostEntry[]) {
     custom.set(entry.category, { id: entry.category, label: entry.categoryLabel ?? entry.category.slice(7), color: `hsl(${hue} 55% 45%)` });
   }
   return { entries, totals: totalCosts(entries),
-    transportationTotals: totalCosts(entries.filter(entry => !entry.id.startsWith("expense-") && (entry.category === "flights" || entry.category === "transportation"))),
+    transportationTotals: totalCosts(entries.filter(entry => entry.category === "flights" || entry.category === "transportation")),
     extraFeeTotals: totalCosts(entries.filter(entry => !entry.id.startsWith("expense-") && !["flights", "transportation", "lodging"].includes(entry.category))),
     breakdown: [...costCategories, ...custom.values()].map(category => ({ ...category, totals: totalCosts(entries.filter(entry => entry.category === category.id)) })),
   };

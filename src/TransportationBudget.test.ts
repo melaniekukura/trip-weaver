@@ -28,3 +28,16 @@ test("only enabled destinations show fare tables, source details and ride contro
   expect(html).toContain("Add one Public bus ride in Paris");
   expect(html).not.toContain("Add one Public bus ride in London");
 });
+
+test("added transportation expenses appear as a quiet total breakdown", () => {
+  const html = renderToStaticMarkup(createElement(TransportationBudget, { trip: { ...trip, currency: "USD", expenses: [
+    { id: "rail", name: "Airport train", category: "Transportation", amount: 18, currency: "USD", date: "2026-10-01", revision: 1 },
+    { id: "legacy", name: "Metro pass", category: "Local transportation", amount: 7, currency: "USD", date: "2026-10-02", revision: 1 },
+    { id: "meal", name: "Lunch", category: "Restaurants", amount: 12, currency: "USD", date: "2026-10-01", revision: 1 },
+  ] } }));
+  expect(html).toContain("Added transportation expenses");
+  expect(html).toContain("Airport train");
+  expect(html).toContain("$18.00");
+  expect(html).toContain("Metro pass");
+  expect(html).not.toContain("Lunch");
+});

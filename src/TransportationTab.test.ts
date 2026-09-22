@@ -23,7 +23,24 @@ test("transportation offers trip type and filters before starting a search", () 
   expect(html).not.toContain("<form");
   expect(html).toContain("Search Flight");
   expect(html).toContain('aria-expanded="true"');
-  expect(html).toContain("Train — coming soon");
+  expect(html).not.toContain("coming soon");
+});
+
+test("saved trips offer a transportation-only manual expense list", () => {
+  const saved = { _id: "trip", currency: "USD", expenses: [
+    { id: "rail", name: "Airport train", category: "Transportation", amount: 18, currency: "USD", date: "2026-10-15", revision: 1 },
+    { id: "meal", name: "Lunch", category: "Restaurants", amount: 20, currency: "USD", date: "2026-10-15", revision: 1 },
+  ] };
+  query.mockImplementation((_reference, args) => args === "skip" ? undefined : saved);
+  const html = renderToStaticMarkup(createElement(TransportationTab, {
+    tripId: "trip" as Id<"trips">, origin: "DTW", destinations: [{ id: "la", value: "LAX" }],
+    departureDate: "2026-10-15", returnDate: "2026-10-22", onEditDetails: vi.fn(), onSaveTrip: vi.fn(),
+  }));
+  for (const text of ["Other transportation expenses", "Add transportation expense", "Airport train", "$18.00", "Transportation expense subtotal"]) {
+    expect(html).toContain(text);
+  }
+  expect(html).not.toContain("Lunch");
+  expect(html).not.toContain("Choose or create a category");
 });
 
 test("each consecutive stop gets a separate leg and empty routes offer setup", () => {

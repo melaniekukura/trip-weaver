@@ -58,7 +58,7 @@ test("Overview, trip cards, both graphs and tab subtotals display the same costs
   }
   const graphs = renderToStaticMarkup(createElement(BudgetGraphs, { trip, fees, lodgings }));
   expect(graphs).toContain("$1,010.00");
-  expect(graphs).toContain("Local transportation $60.00");
+  expect(graphs).toContain("Transportation $60.00");
   expect(graphs).toContain("Lodging $600.00");
   expect(graphs).toContain('aria-label="Oct 1: $870.02"');
   expect(graphs).not.toContain("All currencies");
