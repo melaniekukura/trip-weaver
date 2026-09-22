@@ -18,7 +18,7 @@ import type { FlightRequest } from "../convex/flightSearch";
 
 export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
   const id = useId();
-  const [origin, setOrigin] = useDefaultOrigin(trip.origin);
+  const [origin, setOrigin, defaultAirport] = useDefaultOrigin(trip.origin);
   const [destination, setDestination] = useState(trip.destinations[0] ?? "");
   const [departureDate, setDepartureDate] = useState(trip.startDate);
   const [tripType, setTripType] = useState<"one-way" | "round-trip">("one-way");
@@ -63,7 +63,8 @@ export function FlightSearchPanel({ trip }: { trip: Doc<"trips"> }) {
             <option value="one-way">One way</option><option value="round-trip">Round trip</option>
           </select>
         </label>
-        <OriginPicker label="From city or airport" value={origin} required onSelect={setOrigin} onClear={() => setOrigin("")} />
+        <OriginPicker label="From city or airport" value={origin} required defaultAirport={defaultAirport}
+          onSelect={setOrigin} onClear={() => setOrigin("")} />
         <LocationPicker label="To city or airport" value={destination} required onSelect={setDestination} onClear={() => setDestination("")} />
         <label htmlFor={`${id}-date`}>Departure date
           <input id={`${id}-date`} type="date" required value={departureDate}

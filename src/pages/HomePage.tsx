@@ -5,8 +5,8 @@ import { Icon } from "../Icons";
 import { LocationPicker } from "../LocationPicker";
 import { TripForm } from "../TripForm";
 
-export function HomePage({ authenticated = true, onSignInRequired }: { authenticated?: boolean; onSignInRequired?: () => void }) {
-  const [origin, setOrigin] = useDefaultOrigin(undefined, authenticated);
+export function HomePage({ onSignInRequired }: { onSignInRequired?: () => void }) {
+  const [origin, setOrigin, defaultAirport] = useDefaultOrigin();
   const [destination, setDestination] = useState("");
   const [date, setDate] = useState("");
   const [planning, setPlanning] = useState(false);
@@ -24,7 +24,7 @@ export function HomePage({ authenticated = true, onSignInRequired }: { authentic
         setPlanning(true);
       }}>
         <div className="search-field">
-          <OriginPicker label="Leaving from" value={origin} loadProfile={authenticated} onSelect={setOrigin} onInputChange={setOrigin} />
+          <OriginPicker label="Leaving from" value={origin} defaultAirport={defaultAirport} onSelect={setOrigin} onInputChange={setOrigin} />
         </div>
         <div className="search-field">
           <LocationPicker label="Going to" value={destination} onSelect={setDestination} onInputChange={setDestination} />
@@ -37,7 +37,7 @@ export function HomePage({ authenticated = true, onSignInRequired }: { authentic
           <Icon size={20}><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></Icon>
         </button>
       </form>
-      {planning && <TripForm authenticated={authenticated} onSignInRequired={onSignInRequired}
+      {planning && <TripForm onSignInRequired={onSignInRequired}
         initialValues={{ origin, destinations: destination ? [destination] : [], startDate: date }} onClose={() => setPlanning(false)} />}
     </section>
   );

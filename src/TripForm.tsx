@@ -1,14 +1,12 @@
 import { tripCreationReady } from "./tripCreation";
 import { useDefaultOrigin } from "./profileDefaults";
-import { useConvex, useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
+import { useConvexAuth, useQuery } from "convex/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
-import { flushSync } from "react-dom";
 import { DestinationsEditor } from "./DestinationsEditor";
 import type { DestinationStop } from "./DestinationsEditor";
-import { tripPreferences } from "./tripPreferences";
 import { tripPlannerPath } from "./tripRoutes";
+import { useTripFormController } from "./useTripFormController";
 import { HomeJourneyPrompt } from "./HomeJourneyPrompt";
 import { homeJourneyStatus } from "../convex/homeJourney";
 import { flightPlanItinerary } from "../convex/flightPlanFields";
@@ -21,30 +19,22 @@ import { TripItinerary } from "./TripItinerary";
 import { TripAssistant } from "./TripAssistant";
 import { LodgingTab } from "./LodgingTab";
 import { api } from "../convex/_generated/api";
-import type { Doc, Id } from "../convex/_generated/dataModel";
+import type { Doc } from "../convex/_generated/dataModel";
 
 const planningTabs = ["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary"];
 const setupTabs = ["Overview", "Destinations", "Create my trip"];
 
 type InitialTrip = { origin: string; destinations: string[]; startDate: string };
 
-export function TripForm({ trip, initialValues, onClose, mode = "modal", authenticated = true, onSignInRequired }: {
+export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignInRequired }: {
   trip?: Doc<"trips">; initialValues?: InitialTrip; onClose: () => void; mode?: "modal" | "page";
-  authenticated?: boolean; onSignInRequired?: () => void;
+  onSignInRequired?: () => void;
 }) {
+  const { isAuthenticated } = useConvexAuth();
   const planning = mode === "page";
   const tabs = planning ? planningTabs : setupTabs;
   const [accessibility, setAccessibility] = useState(trip?.accessibility ?? "");
-  const [notice, setNotice] = useState("");
-  const convex = useConvex();
-  const [savedTrip, setSavedTrip] = useState(trip);
-  const createdId = useRef<Id<"trips"> | null>(null);
-  const saveLock = useRef(false);
   const form = useRef<HTMLFormElement>(null);
-  const create = useMutation(api.trips.create);
-  const update = useMutation(api.trips.update);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
   const [active, setActive] = useState(0);
   const [name, setName] = useState(trip?.name ?? "");
   const [travelers, setTravelers] = useState(String(trip?.travelers ?? 1));
@@ -55,10 +45,13 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", authent
   const [startDate, setStartDate] = useState(trip?.startDate ?? initialValues?.startDate ?? "");
   const [interests, setInterests] = useState(trip?.interests ?? []);
   const [endDate, setEndDate] = useState(trip?.endDate ?? "");
-  const [origin, setOrigin] = useDefaultOrigin(trip?.origin ?? initialValues?.origin, authenticated);
+  const [origin, setOrigin, defaultAirport] = useDefaultOrigin(trip?.origin ?? initialValues?.origin);
   const [destinations, setDestinations] = useState<DestinationStop[]>(() =>
     (trip?.destinations ?? initialValues?.destinations ?? []).map((value, index) => ({ id: `saved-${index}`, value })));
   const [homeReturnNotNeededFor, setHomeReturnNotNeededFor] = useState(trip?.homeReturnNotNeededFor ?? "");
+  const { savedTrip, pending, error, notice, saveTrip } = useTripFormController({
+    trip, form, planning, origin, destinations, homeReturnNotNeededFor, setActive,
+  });
   const liveTrip = useQuery(api.trips.get, savedTrip ? { tripId: savedTrip._id } : "skip");
   const homeRoute = { origin, destinations: destinations.map(stop => stop.value), startDate, endDate, homeReturnNotNeededFor };
   const [roundTripRoute, setRoundTripRoute] = useState("");
@@ -101,48 +94,6 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", authent
     tabButtons.current[next]?.focus();
   }
 
-  async function saveTrip(homeChange?: { stops: DestinationStop[]; waiver: string }): Promise<Id<"trips"> | null> {
-    if (saveLock.current || !form.current) return null;
-    const invalid = [...form.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(":invalid")]
-      .find(field => !field.closest(".expense-list"));
-    if (invalid) {
-      const panel = invalid.closest<HTMLElement>("[data-tab]");
-      flushSync(() => setActive(Number(panel?.dataset.tab ?? 0)));
-      invalid.focus();
-      invalid.reportValidity();
-      return null;
-    }
-    const data = new FormData(form.current);
-    const value = (key: string) => String(data.get(key) ?? "").trim();
-    const changes = {
-      name: value("name"), origin,
-      destinations: (homeChange?.stops ?? destinations).map((stop) => stop.value),
-      homeReturnNotNeededFor: homeChange?.waiver ?? homeReturnNotNeededFor,
-      startDate: value("startDate"), endDate: value("endDate"),
-      travelers: Number(value("travelers")),
-      ...tripPreferences(data, savedTrip, planning),
-    };
-    saveLock.current = true;
-    setPending(true);
-    setError("");
-    setNotice("");
-    try {
-      let existing = savedTrip;
-      if (!existing && createdId.current) existing = await convex.query(api.trips.get, { tripId: createdId.current });
-      const tripId = existing?._id ?? await create(changes);
-      if (!existing) createdId.current = tripId;
-      else await update({ tripId, changes, expectedUpdatedAt: existing.updatedAt });
-      const persisted = await convex.query(api.trips.get, { tripId });
-      setSavedTrip(persisted);
-      if (planning) setNotice("Trip changes saved.");
-      return tripId;
-    } catch (err) {
-      setError(err instanceof ConvexError && typeof err.data === "object" && err.data !== null &&
-        "message" in err.data && typeof err.data.message === "string" ? err.data.message : "Unable to save your trip. Please try again.");
-      return null;
-    } finally { saveLock.current = false; setPending(false); }
-  }
-
   async function chooseHome(action: "add" | "not-needed" | "reset") {
     if (pending || (action === "add" && destinations.length >= 20)) return;
     const stops = action === "add" ? [...destinations, { id: crypto.randomUUID(), value: origin }] : destinations;
@@ -166,7 +117,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", authent
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!savedTrip && !creationReady) return;
-    if (!authenticated) {
+    if (!isAuthenticated) {
       onSignInRequired?.();
       return;
     }
@@ -189,7 +140,7 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", authent
 
   const destinationFields = <>
     <h3>Where are you headed?</h3>
-    <DestinationsEditor origin={origin} stops={destinations} disabled={pending} loadProfile={authenticated}
+    <DestinationsEditor origin={origin} stops={destinations} disabled={pending} defaultAirport={defaultAirport}
       onOriginChange={setOrigin} onStopsChange={setDestinations} homePrompt={homePrompt} />
   </>;
 

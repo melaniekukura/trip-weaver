@@ -7,7 +7,8 @@ import { ReturnFlightPicker } from "./ReturnFlightPicker";
 import { flightPlanItinerary } from "../convex/flightPlanFields";
 
 const mocks = vi.hoisted(() => ({ query: vi.fn(), mutate: vi.fn(), states: vi.fn() }));
-vi.mock("convex/react", () => ({ useQuery: mocks.query, useMutation: () => mocks.mutate, useAction: () => vi.fn() }));
+vi.mock("convex/react", () => ({ useConvexAuth: () => ({ isAuthenticated: true }),
+  useQuery: mocks.query, useMutation: () => mocks.mutate, useAction: () => vi.fn() }));
 vi.mock("react", async importOriginal => ({ ...await importOriginal<typeof import("react")>(),
   useState: (initial: unknown) => [typeof initial === "function" ? initial() : initial, mocks.states],
   useCallback: (callback: unknown) => callback,

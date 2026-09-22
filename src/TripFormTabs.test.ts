@@ -15,6 +15,7 @@ vi.mock("convex/react", async () => {
   const server = await import("convex/server");
   return {
     useConvex: () => ({ query: vi.fn() }),
+    useConvexAuth: () => ({ isAuthenticated: true }),
     useMutation: () => vi.fn(),
     useAction: () => vi.fn(),
     usePaginatedQuery: () => ({ results: [], status: "Exhausted", loadMore: vi.fn() }),

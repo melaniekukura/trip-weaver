@@ -6,7 +6,8 @@ import { TransportationTab } from "./TransportationTab";
 import { ReturnFlightPicker } from "./ReturnFlightPicker";
 
 const { query } = vi.hoisted(() => ({ query: vi.fn() }));
-vi.mock("convex/react", () => ({ useQuery: query, useMutation: () => vi.fn(), useAction: () => vi.fn() }));
+vi.mock("convex/react", () => ({ useConvexAuth: () => ({ isAuthenticated: true }),
+  useQuery: query, useMutation: () => vi.fn(), useAction: () => vi.fn() }));
 
 test("transportation offers trip type and filters before starting a search", () => {
   query.mockReturnValue(undefined);
