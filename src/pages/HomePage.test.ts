@@ -14,6 +14,9 @@ vi.mock("convex/react", () => ({
 test("guests see the standard homepage without protected profile defaults", () => {
   const html = renderToStaticMarkup(createElement(HomePage, { onGuestContinue: vi.fn() }));
   expect(html).toContain("Trip-Weaver");
+  expect(html).toContain('class="hero-logo"');
+  expect(html).toContain('src="data:image/svg+xml');
+  expect(html).toContain("%2316CBC4");
   expect(html).toContain('id="planner"');
   expect(html).toContain("Leaving from");
   expect(html).toContain("Going to");

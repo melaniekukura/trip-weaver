@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 93 91" shape-rendering="geometricPrecision">
+  <title>Trip-Weaver route logo</title>
+  <style>
+    .logo-reveal {
+      transform: scaleX(0);
+      transform-box: fill-box;
+      transform-origin: left center;
+      animation: reveal-logo 1.35s cubic-bezier(.65, 0, .2, 1) forwards;
+    }
+
+    @keyframes reveal-logo {
+      to { transform: scaleX(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .logo-reveal { animation: none; transform: none; }
+    }
+  </style>
+  <defs>
+    <clipPath id="logo-reveal">
+      <rect class="logo-reveal" x="7" y="8" width="84" height="80" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#logo-reveal)" fill="none" stroke="#16CBC4">
+    <path d="M9 16h48" stroke-linecap="butt" stroke-width="6" />
+    <path
+      d="M24 22v42c0 12 14 12 14 0V34c0-12 12-12 12 0v30c0 12 11 12 11 0V26h19"
+      stroke-linecap="butt"
+      stroke-linejoin="round"
+      stroke-width="7"
+    />
+    <path d="m72 12 15 14-15 14" stroke-linecap="butt" stroke-linejoin="miter" stroke-width="6" />
+    <path d="M21 84h42" stroke-linecap="butt" stroke-width="6" />
+  </g>
+</svg>

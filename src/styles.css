@@ -190,6 +190,13 @@ footer a {
   text-align: center;
 }
 
+.hero-logo {
+  display: block;
+  width: clamp(148px, 18vw, 184px);
+  height: auto;
+  margin: 0 auto 22px;
+}
+
 .eyebrow {
   margin: 0 0 14px;
   color: rgb(41 41 41 / 55%);

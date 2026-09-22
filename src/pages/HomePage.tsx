@@ -5,6 +5,7 @@ import { Icon } from "../Icons";
 import { LocationPicker } from "../LocationPicker";
 import { TripForm } from "../TripForm";
 import type { GuestTripDraft } from "../guestTripDraft";
+import cyanLogo from "../../references/logo-icon/TW-cyan.svg";
 
 export function HomePage({ onGuestContinue }: { onGuestContinue?: (draft: Omit<GuestTripDraft, "draftId">) => void }) {
   const [origin, setOrigin, defaultAirport] = useDefaultOrigin();
@@ -14,6 +15,7 @@ export function HomePage({ onGuestContinue }: { onGuestContinue?: (draft: Omit<G
 
   return (
     <section className="hero" aria-labelledby="hero-title">
+      <img className="hero-logo" src={cyanLogo} alt="" width="184" height="180" />
       <p className="eyebrow">Trip planning, woven together</p>
       <h1 id="hero-title">Trip-Weaver</h1>
       <p className="hero-copy">
