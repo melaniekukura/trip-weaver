@@ -36,6 +36,16 @@ export function verificationEmail(recipient: string, token: string) {
   };
 }
 
+export function passwordResetEmail(recipient: string, token: string) {
+  const safeToken = token.replace(/[^0-9]/g, "");
+  return {
+    recipient,
+    subject: "Reset your Trip-Weaver password",
+    text: `Your Trip-Weaver password reset code is ${safeToken}. It expires in 15 minutes. If you did not request this code, you can ignore this email.`,
+    html: `<!doctype html><html><body style="margin:0;background:#F7F7F7;color:#292929;font-family:Arial,sans-serif"><main style="max-width:560px;margin:auto;padding:32px 20px"><div style="height:6px;background:#16CBC4"></div><section style="padding:24px;background:white"><p style="color:#251F47;font-weight:700">TRIP-WEAVER</p><h1>Reset your password</h1><p>Enter this code to choose a new password:</p><p style="font-size:32px;font-weight:700;letter-spacing:8px;color:#251F47">${safeToken}</p><p>This code expires in 15 minutes. If you did not request it, you can ignore this email.</p></section></main></body></html>`,
+  };
+}
+
 export function verificationIdempotencyKey(recipient: string, token: string) {
   let hash = 2166136261;
   for (const character of recipient) {
@@ -43,4 +53,8 @@ export function verificationIdempotencyKey(recipient: string, token: string) {
     hash = Math.imul(hash, 16777619);
   }
   return `trip-weaver-verify-${(hash >>> 0).toString(16)}-${token}`;
+}
+
+export function passwordResetIdempotencyKey(recipient: string, token: string) {
+  return verificationIdempotencyKey(recipient, token).replace("trip-weaver-verify", "trip-weaver-reset");
 }

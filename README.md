@@ -204,7 +204,8 @@ the frontend origin, normally `http://localhost:5173`.
 
 New accounts receive a six-digit AgentMail verification code during sign-in. The
 code expires after 15 minutes. Existing unverified accounts must sign out and
-sign back in to complete verification. Password reset is not implemented yet.
+sign back in to complete verification. Password recovery uses a separate six-digit
+AgentMail code that expires after 15 minutes and signs the user in after reset.
 
 ### AgentMail email delivery
 
