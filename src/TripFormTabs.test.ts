@@ -84,6 +84,7 @@ test("guest planning exposes baseline tabs and gates protected features", () => 
   for (const tab of ["Overview", "Transportation", "Lodging", "Interests", "Accessibility", "Itinerary", "Required Documents"]) {
     expect(html).toContain(`>${tab}</button>`);
   }
+  expect(html).not.toContain("Your trip planner");
   expect(html.match(/Sign in for more features/g)).toHaveLength(5);
   expect(html).toContain("Sign in to search live flight options.");
   expect(html).toContain("Sign in to save");

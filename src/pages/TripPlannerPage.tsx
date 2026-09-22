@@ -18,7 +18,7 @@ export function TripPlannerPage({ tripId }: { tripId: string }) {
     void convex.query(api.trips.get, { tripId: tripId as Id<"trips"> }).then((trip) => {
       if (!cancelled) {
         setState({ status: "ready", trip });
-        document.title = `${trip.name} | Trip-Weaver`;
+        document.title = `Trip: ${trip.name} | Trip-Weaver`;
       }
     }).catch(() => { if (!cancelled) setState({ status: "error" }); });
     return () => { cancelled = true; };
@@ -27,7 +27,7 @@ export function TripPlannerPage({ tripId }: { tripId: string }) {
   return <div className="trip-planner-page">
     <a className="planner-back" href="#/trips">← All trips</a>
     <div className="planner-page-heading">
-      <h1 className="planner-page-title">Plan My Trip</h1>
+      <h1 className="planner-page-title">{state.status === "ready" ? `Trip: ${state.trip.name}` : "Trip"}</h1>
       <a className="primary-button" href={`#${tripPlannerPath(tripId, "budget")}`}>Show My Budget</a>
     </div>
     {state.status === "loading" && <p role="status">Loading your trip…</p>}

@@ -183,13 +183,13 @@ export function TripForm({ trip, initialValues, onClose, mode = "modal", onSignI
 
   const content = (
     <>
-      <header className="trip-modal-header">
+      {!planning && <header className="trip-modal-header">
         <div>
-          <p className="eyebrow">{planning ? "Your trip planner" : "Your next adventure"}</p>
-          <h2 id="editor-title">{planning ? savedTrip?.name : savedTrip ? "Edit trip" : "Plan a new trip"}</h2>
+          <p className="eyebrow">Your next adventure</p>
+          <h2 id="editor-title">{savedTrip ? "Edit trip" : "Plan a new trip"}</h2>
         </div>
-        {!planning && <button className="modal-close" type="button" aria-label="Close trip form" disabled={pending} onClick={onClose}>×</button>}
-      </header>
+        <button className="modal-close" type="button" aria-label="Close trip form" disabled={pending} onClick={onClose}>×</button>
+      </header>}
       <form ref={form} className="trip-modal-form" noValidate onSubmit={submit}>
         <div className="trip-tabs" role="tablist" aria-label="Trip details">
           {tabs.map((tab, index) => (
