@@ -23,9 +23,6 @@ results when possible and refresh only when needed.
 
 ## 60–90 second walkthrough
 
-> **Submission media placeholder:** Add the hosted walkthrough link or replace
-> this note with an embedded `docs/trip-weaver-demo.gif` before judging.
-
 Suggested flow: begin a trip as a guest, add interests and accessibility needs,
 sign in to preserve the draft, run one research search, review the reactive budget
 and itinerary, ask the trip-aware assistant a question, and email the itinerary.
